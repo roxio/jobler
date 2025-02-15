@@ -1,6 +1,6 @@
 <?php
 define('SITE_NAME', 'System Zleceń');
-define('BASE_URL', 'http://localhost/project/');
+define('BASE_URL', 'http://localhost/');
 
 $servername = "localhost"; // lub adres serwera
 $username = "root"; // użytkownik bazy danych
@@ -14,4 +14,7 @@ $conn = new mysqli($servername, $username, $password, $database);
 if ($conn->connect_error) {
     die("Błąd połączenia z bazą danych: " . $conn->connect_error);
 }
+
+// Ustawienie kodowania
+$conn->set_charset("utf8mb4");
 ?>

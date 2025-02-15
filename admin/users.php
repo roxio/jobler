@@ -61,10 +61,10 @@ if ($conn->errno) {
     <link rel="stylesheet" href="../styles/admin.css">
 </head>
 <body>
-    <div class="container">
-        <h2>Dodaj nowego użytkownika</h2>
-
+   <?php include('../includes/header.php'); ?> <!-- Pasek nawigacji -->
+        
         <!-- Formularz dodawania użytkownika -->
+        <h2>Dodaj nowego użytkownika</h2>
         <form method="POST" action="users.php">
             <label for="username">Nazwa użytkownika:</label>
             <input type="text" id="username" name="username" required><br><br>
@@ -100,7 +100,6 @@ if ($conn->errno) {
         </form>
 
         <h2>Lista użytkowników</h2>
-
         <table>
             <tr>
                 <th>ID</th>

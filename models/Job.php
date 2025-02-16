@@ -30,13 +30,16 @@ class Job {
     }
 
     // Pobieranie szczegółów ogłoszenia na podstawie jego ID
-    public function getJobDetails($jobId) {
-        $sql = "SELECT * FROM jobs WHERE id = :job_id";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':job_id', $jobId);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
+public function getJobDetails($jobId) {
+    $sql = "SELECT jobs.*, users.name as user_name 
+            FROM jobs 
+            LEFT JOIN users ON jobs.user_id = users.id 
+            WHERE jobs.id = :job_id";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':job_id', $jobId, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
 
     // Edytowanie ogłoszenia
 public function updateJob($jobId, $title, $description, $status) {
@@ -97,5 +100,20 @@ public static function getAllJobs() {
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchColumn();  // Zwraca liczbę ogłoszeń
     }
+	public static function getJobsWithPagination($limit, $offset) {
+     $pdo = Database::getConnection();  // Uzyskanie połączenia z bazą danych
+    $stmt = $pdo->prepare("SELECT * FROM jobs ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public static function getTotalJobs() {
+     $pdo = Database::getConnection();  // Uzyskanie połączenia z bazą danych
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM jobs");
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result['total'];
+}
 }
 ?>

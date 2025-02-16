@@ -1,5 +1,4 @@
 <?php
-// Możesz umieścić tutaj kod do sprawdzania, czy użytkownik jest zalogowany i przekierować na stronę logowania, jeśli nie jest.
 ?>
 <!DOCTYPE html>
 <html lang="pl">

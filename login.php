@@ -7,17 +7,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
-    // Sprawdzanie danych logowania
-    $user = User::login($email, $password);
-    if ($user) {
-        // Zapisanie danych użytkownika do sesji
-        $_SESSION['user_id'] = $user['id']; // ID użytkownika
-        $_SESSION['role'] = $user['role']; // Rola użytkownika
-        $_SESSION['user_name'] = $user['name']; // Imię użytkownika (to, co powodowało błąd)
+    // Tworzenie obiektu klasy User
+    $user = new User();
+
+    // Wywołanie metody login
+    $loginResult = $user->login($email, $password);
+
+    // Debugowanie: sprawdźmy, co zwraca metoda login
+    var_dump($loginResult); // To pozwoli zobaczyć, co dokładnie jest zwracane
+
+    if ($loginResult !== false) {
+        // Jeśli logowanie się powiodło, zapisz dane użytkownika w sesji
+        $_SESSION['user_id'] = $loginResult['id']; // ID użytkownika
+        $_SESSION['user_role'] = $loginResult['role']; // Rola użytkownika
+        $_SESSION['user_email'] = $loginResult['email']; // Email użytkownika
         
         header('Location: /'); // Przekierowanie na stronę główną po zalogowaniu
         exit;
     } else {
+        // Jeśli logowanie nie powiodło się
         $error = "Nieprawidłowy login lub hasło.";
     }
 }

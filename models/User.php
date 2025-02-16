@@ -41,25 +41,27 @@ class User {
         return ['error' => 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.'];
     }
 
-    // Logowanie użytkownika
-    public function login($email, $password) {
-        // Sprawdzanie, czy użytkownik istnieje
-        $sql = "SELECT * FROM users WHERE email = :email";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':email', $email);
-        $stmt->execute();
+// Logowanie użytkownika
+public function login($email, $password) {
+    // Sprawdzanie, czy użytkownik istnieje
+    $sql = "SELECT * FROM users WHERE email = :email";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':email', $email);
 
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($user && password_verify($password, $user['password'])) {
-            // Ustawienie sesji użytkownika
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_role'] = $user['role'];
-            return true; // Zalogowany pomyślnie
-        }
-
-        return false; // Błędne dane logowania
+    if (!$stmt->execute()) {
+        // Jeśli wystąpił błąd w zapytaniu SQL
+        return false;
     }
+
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user && password_verify($password, $user['password'])) {
+        // Zwrócenie danych użytkownika, jeśli logowanie się powiodło
+        return $user;
+    }
+
+    return false; // Zwrócenie false, jeśli logowanie nie powiodło się
+}
 
     // Sprawdzanie, czy użytkownik jest zalogowany
     public function isLoggedIn() {

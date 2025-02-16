@@ -32,24 +32,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rejestracja</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <?php include 'templates/navbar.php'; ?>
-    <div class="container">
-        <h1>Rejestracja</h1>
-        <?php if (isset($error)): ?>
-            <p style="color: red;"><?= $error ?></p>
-        <?php endif; ?>
-        <form action="register.php" method="POST">
-            <label for="email">Email:</label>
-            <input type="email" name="email" id="email" required>
-            <label for="password">Hasło:</label>
-            <input type="password" name="password" id="password" required>
-            <button type="submit">Zarejestruj się</button>
-        </form>
-        <p>Masz już konto? <a href="/login.php">Zaloguj się</a>.</p>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h2 class="h4 mb-0">Rejestracja</h2>
+                    </div>
+                    <div class="card-body">
+                        <?php if (isset($error)): ?>
+                            <div class="alert alert-danger">
+                                <?= htmlspecialchars($error) ?>
+                            </div>
+                        <?php endif; ?>
+                        <form action="register.php" method="POST">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email:</label>
+                                <input type="email" name="email" id="email" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Hasło:</label>
+                                <input type="password" name="password" id="password" class="form-control" required>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Zarejestruj się</button>
+                            </div>
+                        </form>
+                        <p class="text-center mt-3">
+                            Masz już konto? <a href="/login.php" class="text-primary">Zaloguj się</a>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <?php include 'templates/footer.php'; ?>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

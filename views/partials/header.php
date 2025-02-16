@@ -23,6 +23,12 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
+			<!-- Jeżeli użytkownik jest administratorem -->
+          <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+            <li class="nav-item">
+              <a class="nav-link" href="../admin/dashboard.php">Panel Administracyjny</a>
+            </li>
+          <?php endif; ?>
                 <li class="nav-item">
                     <a class="nav-link" href="/views/user/dashboard.php">Panel użytkownika</a>
                 </li>

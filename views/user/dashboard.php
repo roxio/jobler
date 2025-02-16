@@ -56,7 +56,7 @@ include('../partials/header.php');
             </tbody>
         </table>
     <?php else : ?>
-        <p>Nie masz żadnych ogłoszeń. <a href="/user/create_job.php">Dodaj nowe ogłoszenie</a></p>
+        <p>Nie masz żadnych ogłoszeń. <a href="../user/create_job.php">Dodaj nowe ogłoszenie</a></p>
     <?php endif; ?>
 </div>
 

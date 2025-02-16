@@ -39,14 +39,16 @@ class Job {
     }
 
     // Edytowanie ogłoszenia
-    public function updateJob($jobId, $title, $description) {
-        $sql = "UPDATE jobs SET title = :title, description = :description, updated_at = NOW() WHERE id = :job_id";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':title', $title);
-        $stmt->bindParam(':description', $description);
-        $stmt->bindParam(':job_id', $jobId);
-        return $stmt->execute();
-    }
+public function updateJob($jobId, $title, $description, $status) {
+    $sql = "UPDATE jobs SET title = :title, description = :description, status = :status, updated_at = NOW() WHERE id = :job_id";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':title', $title);
+    $stmt->bindParam(':description', $description);
+    $stmt->bindParam(':status', $status);
+    $stmt->bindParam(':job_id', $jobId);
+    return $stmt->execute();
+}
+
 
     // Zmiana statusu ogłoszenia (np. zamknięcie oferty)
     public function updateJobStatus($jobId, $status) {

@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_id'] = $loginResult['id']; // ID użytkownika
         $_SESSION['user_role'] = $loginResult['role']; // Rola użytkownika
         $_SESSION['user_email'] = $loginResult['email']; // Email użytkownika
+		$_SESSION['user_name'] = $loginResult['name']; // Zapisz nazwę użytkownika w sesji
         
         header('Location: /'); // Przekierowanie na stronę główną po zalogowaniu
         exit;

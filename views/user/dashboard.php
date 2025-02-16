@@ -48,8 +48,8 @@ include('../partials/header.php');
                         <td><?php echo htmlspecialchars($job['description']); ?></td>
                         <td><?php echo htmlspecialchars($job['status']); ?></td>
                         <td>
-                            <a href="/user/edit_job.php?id=<?php echo $job['id']; ?>" class="btn btn-warning">Edytuj</a>
-                            <a href="/user/delete_job.php?id=<?php echo $job['id']; ?>" class="btn btn-danger" onclick="return confirm('Na pewno chcesz usunąć to ogłoszenie?')">Usuń</a>
+                            <a href="../user/edit_job.php?id=<?php echo $job['id']; ?>" class="btn btn-warning">Edytuj</a>
+                            <a href="../user/delete_job.php?id=<?php echo $job['id']; ?>" class="btn btn-danger" onclick="return confirm('Na pewno chcesz usunąć to ogłoszenie?')">Usuń</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

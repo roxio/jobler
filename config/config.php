@@ -31,6 +31,7 @@ try {
     die("Connection failed: " . $e->getMessage());
 }
 
+
 // Ustawienia dla maili (jeśli wymagane w aplikacji)
 define('MAIL_HOST', 'smtp.example.com');    // Serwer SMTP
 define('MAIL_USERNAME', 'your_email@example.com'); // Adres email do wysyłania

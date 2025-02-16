@@ -1,22 +1,28 @@
 <?php
 session_start();
-require_once '../config/config.php';
-require_once '../models/User.php';
+require_once 'config/config.php';
+require_once 'models/User.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = $_POST['password'];
     $role = 'user'; // Domyślnie użytkownik
 
+    // Tworzenie instancji klasy User
+    $user = new User();
+
     // Rejestracja użytkownika
-    $user = User::register($email, $password, $role);
-    if ($user) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['role'] = $user['role'];
+    $result = $user->register($email, $password, $role);  // Zmieniliśmy sposób wywołania metody
+    
+    if (isset($result['success'])) {
+        // Jeśli rejestracja zakończyła się sukcesem, przekieruj użytkownika
+        $_SESSION['user_id'] = $result['id']; // Zwracamy id po rejestracji
+        $_SESSION['role'] = $result['role'];  // Zwracamy rolę po rejestracji
         header('Location: /');
         exit;
     } else {
-        $error = "Wystąpił błąd podczas rejestracji.";
+        // W przeciwnym razie wyświetlamy błąd
+        $error = $result['error'];
     }
 }
 ?>
@@ -29,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <?php include '../templates/navbar.php'; ?>
+    <?php include 'templates/navbar.php'; ?>
     <div class="container">
         <h1>Rejestracja</h1>
         <?php if (isset($error)): ?>
@@ -44,6 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         <p>Masz już konto? <a href="/login.php">Zaloguj się</a>.</p>
     </div>
-    <?php include '../templates/footer.php'; ?>
+    <?php include 'templates/footer.php'; ?>
 </body>
 </html>

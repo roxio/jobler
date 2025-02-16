@@ -10,7 +10,7 @@ class User {
     }
 
     // Rejestracja użytkownika
-    public function register($username, $email, $password, $role = 'user') {
+    public function register($email, $password, $role = 'user') {
         // Sprawdzanie, czy użytkownik już istnieje
         $sql = "SELECT * FROM users WHERE email = :email";
         $stmt = $this->pdo->prepare($sql);
@@ -18,21 +18,27 @@ class User {
         $stmt->execute();
 
         if ($stmt->rowCount() > 0) {
-            return false; // Użytkownik już istnieje
+            return ['error' => 'Użytkownik o tym adresie email już istnieje.'];
         }
 
         // Hashowanie hasła
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
         // Wstawianie nowego użytkownika do bazy
-        $sql = "INSERT INTO users (username, email, password, role, created_at, updated_at) 
-                VALUES (:username, :email, :password, :role, NOW(), NOW())";
+        $sql = "INSERT INTO users (email, password, role, created_at, updated_at) 
+                VALUES (:email, :password, :role, NOW(), NOW())";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':username', $username);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':password', $hashedPassword);
         $stmt->bindParam(':role', $role);
-        return $stmt->execute();
+
+        if ($stmt->execute()) {
+            // Pobierz ID nowo zarejestrowanego użytkownika
+            $userId = $this->pdo->lastInsertId();
+            return ['success' => 'Rejestracja zakończona pomyślnie.', 'id' => $userId, 'role' => $role];
+        }
+
+        return ['error' => 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.'];
     }
 
     // Logowanie użytkownika
@@ -70,10 +76,9 @@ class User {
     }
 
     // Aktualizacja danych użytkownika
-    public function updateUser($userId, $username, $email) {
-        $sql = "UPDATE users SET username = :username, email = :email, updated_at = NOW() WHERE id = :user_id";
+    public function updateUser($userId, $email) {
+        $sql = "UPDATE users SET email = :email, updated_at = NOW() WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':username', $username);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':user_id', $userId);
         return $stmt->execute();
@@ -106,12 +111,12 @@ class User {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         return $user ? $user['role'] : null;
     }
-	
-	  public function getUserCount() {
-        $sql = "SELECT COUNT(*) FROM users";  // Zmienna zależna od struktury Twojej tabeli
-        $stmt = $this->pdo->query($sql);
-        return $stmt->fetchColumn();  // Zwraca liczbę użytkowników
-    }
 
+    // Pobranie liczby użytkowników
+    public function getUserCount() {
+        $sql = "SELECT COUNT(*) FROM users";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchColumn();
+    }
 }
 ?>

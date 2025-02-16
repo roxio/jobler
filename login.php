@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once '../config/config.php';
-require_once '../models/User.php';
+require_once 'config/config.php';
+require_once 'models/User.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
@@ -10,15 +10,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Sprawdzanie danych logowania
     $user = User::login($email, $password);
     if ($user) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['role'] = $user['role'];
-        header('Location: /');
+        // Zapisanie danych użytkownika do sesji
+        $_SESSION['user_id'] = $user['id']; // ID użytkownika
+        $_SESSION['role'] = $user['role']; // Rola użytkownika
+        $_SESSION['user_name'] = $user['name']; // Imię użytkownika (to, co powodowało błąd)
+        
+        header('Location: /'); // Przekierowanie na stronę główną po zalogowaniu
         exit;
     } else {
         $error = "Nieprawidłowy login lub hasło.";
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -28,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <?php include '../templates/navbar.php'; ?>
+    <?php include 'templates/navbar.php'; ?>
     <div class="container">
         <h1>Logowanie</h1>
         <?php if (isset($error)): ?>
@@ -43,6 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         <p>Nie masz konta? <a href="/register.php">Zarejestruj się</a>.</p>
     </div>
-    <?php include '../templates/footer.php'; ?>
+    <?php include 'templates/footer.php'; ?>
 </body>
 </html>

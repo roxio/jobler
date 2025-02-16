@@ -1,0 +1,37 @@
+    /config
+        - config.php
+    /controllers
+        - UserController.php
+        - ExecutorController.php
+        - AdminController.php
+    /models
+        - User.php
+        - Executor.php
+        - Job.php
+        - Message.php
+    /views
+        /user
+            - dashboard.php
+            - create_job.php
+            - job_list.php
+        /executor
+            - dashboard.php
+            - respond_offer.php
+            - offer_list.php
+        /admin
+            - dashboard.php
+            - manage_users.php
+            - manage_jobs.php
+    /public
+        - index.php
+        - login.php
+        - register.php
+        - logout.php
+    /templates
+        - header.php
+        - footer.php
+        - navbar.php
+    /css
+        - style.css
+    /js
+        - scripts.js

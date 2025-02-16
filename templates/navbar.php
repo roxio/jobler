@@ -19,14 +19,14 @@
           </li>
           
           <!-- Jeżeli użytkownik jest administratorem -->
-          <?php if ($_SESSION['role'] === 'admin'): ?>
+          <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
             <li class="nav-item">
               <a class="nav-link" href="views/admin/dashboard.php">Panel Administracyjny</a>
             </li>
           <?php endif; ?>
           
           <!-- Jeżeli użytkownik jest wykonawcą -->
-          <?php if ($_SESSION['role'] === 'executor'): ?>
+          <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'executor'): ?>
             <li class="nav-item">
               <a class="nav-link" href="views/executor/dashboard.php">Dashboard Wykonawcy</a>
             </li>

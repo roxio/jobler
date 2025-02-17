@@ -89,3 +89,68 @@ nav {
         margin-bottom: 10px;
     }
 }
+
+        .hero {
+            background: linear-gradient(to right, #007bff, #6610f2);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+        }
+
+        /* Styl kart ogłoszeń */
+        .job-card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .job-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .job-card img {
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .job-card .card-body {
+            padding: 15px;
+        }
+
+        /* Paginacja */
+        .pagination .page-link {
+            color: #007bff;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        /* Widok listy */
+        .list-view .list-group-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .list-view img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px;
+        }

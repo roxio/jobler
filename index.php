@@ -66,22 +66,26 @@ $totalPages = ceil($totalJobs / $limit);
         <!-- Lista lub grid ogłoszeń -->
         <?php if (!empty($jobs)): ?>
             <?php if ($view == 'list'): ?>
-                <ul class="list-group list-view">
-                    <?php foreach ($jobs as $job): ?>
-                        <li class="list-group-item">
-                            <img src="../images/default-job.jpg" alt="Zdjęcie ogłoszenia">
-                            <div>
-                                <h5 class="mb-0">
-                                    <a href="views/job/view.php?id=<?= $job['id'] ?>" class="text-decoration-none text-primary">
-                                        <?= htmlspecialchars($job['title']) ?>
-                                    </a>
-                                </h5>
-                                <small class="text-muted">Dodano: <?= htmlspecialchars($job['created_at']) ?></small>
+                <div class="list-group list-view">
+                    <div class="row">
+                        <?php foreach ($jobs as $job): ?>
+                            <div class="col-md-6">
+                                <div class="list-group-item">
+                                    <img src="../images/default-job.jpg" alt="Zdjęcie ogłoszenia">
+                                    <div>
+                                        <h5 class="mt-2">
+                                            <a href="views/job/view.php?id=<?= $job['id'] ?>" class="text-decoration-none text-primary">
+                                                <?= htmlspecialchars($job['title']) ?>
+                                            </a>
+                                        </h5>
+                                        <small class="text-muted">Dodano: <?= htmlspecialchars($job['created_at']) ?></small>
+                                    </div>
+                                    <a href="views/job/view.php?id=<?= $job['id'] ?>" class="btn btn-outline-primary btn-sm mt-2">Zobacz szczegóły</a>
+                                </div>
                             </div>
-                            <a href="views/job/view.php?id=<?= $job['id'] ?>" class="btn btn-outline-primary btn-sm">Zobacz szczegóły</a>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
             <?php else: ?>
                 <div class="row">
                     <?php foreach ($jobs as $job): ?>

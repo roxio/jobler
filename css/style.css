@@ -142,15 +142,22 @@ nav {
         }
 
         /* Widok listy */
-        .list-view .list-group-item {
+        .list-view .row {
             display: flex;
-            align-items: center;
-            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .list-view .col-md-6 {
+            margin-bottom: 20px;
         }
 
         .list-view img {
-            width: 80px;
-            height: 80px;
+            width: 100%;
+            height: 150px;
             object-fit: cover;
             border-radius: 10px;
+        }
+
+        .list-view .list-group-item {
+            border: none;
         }

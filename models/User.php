@@ -10,7 +10,10 @@ class User {
     }
 
     // Rejestracja użytkownika
-    public function register($email, $password, $name, $username, $role = 'user', $phone = '') {
+	public function register($email, $password, $name, $username, $role = 'user', $phone = '') {
+    // Pobranie adresu IP użytkownika
+    $registrationIp = $_SERVER['REMOTE_ADDR'];
+
     // Sprawdzanie, czy użytkownik już istnieje
     $sql = "SELECT * FROM users WHERE email = :email OR username = :username";
     $stmt = $this->pdo->prepare($sql);
@@ -26,8 +29,8 @@ class User {
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
     // Wstawianie nowego użytkownika do bazy
-    $sql = "INSERT INTO users (email, password, name, username, role, phone, created_at, updated_at) 
-            VALUES (:email, :password, :name, :username, :role, :phone, NOW(), NOW())";
+    $sql = "INSERT INTO users (email, password, name, username, role, phone, registration_ip, created_at, updated_at) 
+            VALUES (:email, :password, :name, :username, :role, :phone, :registration_ip, NOW(), NOW())";
     $stmt = $this->pdo->prepare($sql);
     $stmt->bindParam(':email', $email);
     $stmt->bindParam(':password', $hashedPassword);
@@ -35,6 +38,7 @@ class User {
     $stmt->bindParam(':username', $username);
     $stmt->bindParam(':role', $role);
     $stmt->bindParam(':phone', $phone);
+    $stmt->bindParam(':registration_ip', $registrationIp);
 
     if ($stmt->execute()) {
         // Pobierz ID nowo zarejestrowanego użytkownika

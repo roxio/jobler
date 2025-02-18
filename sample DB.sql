@@ -35,6 +35,24 @@ CREATE TABLE `jobs` (
 INSERT INTO `jobs` (`id`, `user_id`, `title`, `description`, `status`, `created_at`, `updated_at`) VALUES
 (1, 1, 'Potrzebuję pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-16 09:33:39'),
 (2, 1, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-16 09:33:27'),
+(3, 4, 'test 12', 'test 12', 'open', '2025-02-16 10:54:15', '2025-02-16 10:54:15'),
+(4, 4, 'test 14', 'test 144', 'open', '2025-02-16 10:54:45', '2025-02-16 10:54:45'),
+(6, 5, 'executor oglosznei', 'executor ogloszenie tresc', 'open', '2025-02-16 13:54:22', '2025-02-16 13:54:22'),
+(9, 6, 'test 1122', 'test 1122', 'open', '2025-02-16 15:17:51', '2025-02-16 21:07:28');
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `job_reports`
+--
+
+CREATE TABLE `job_reports` (
+  `id` int(11) NOT NULL,
+  `job_id` int(11) DEFAULT NULL,
+  `activity_type` varchar(255) DEFAULT NULL,
+  `timestamp` datetime DEFAULT NULL,
+  `details` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -61,6 +79,21 @@ INSERT INTO `messages` (`id`, `sender_id`, `receiver_id`, `message`, `created_at
 -- --------------------------------------------------------
 
 --
+-- Struktura tabeli dla tabeli `pages`
+--
+
+CREATE TABLE `pages` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `content` text DEFAULT NULL,
+  `slug` varchar(255) NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Struktura tabeli dla tabeli `responses`
 --
 
@@ -83,6 +116,40 @@ INSERT INTO `responses` (`id`, `job_id`, `executor_id`, `message`, `created_at`)
 -- --------------------------------------------------------
 
 --
+-- Struktura tabeli dla tabeli `site_settings`
+--
+
+CREATE TABLE `site_settings` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `logo` varchar(255) NOT NULL,
+  `categories` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `site_settings`
+--
+
+INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `created_at`, `updated_at`) VALUES
+(1, 'ggg', '1', 'test,', '2025-02-17 21:58:18', '2025-02-17 21:58:33');
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `site_stats`
+--
+
+CREATE TABLE `site_stats` (
+  `id` int(11) NOT NULL,
+  `views` int(11) NOT NULL DEFAULT 0,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Struktura tabeli dla tabeli `users`
 --
 
@@ -94,17 +161,43 @@ CREATE TABLE `users` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `name` varchar(255) NOT NULL,
   `username` varchar(255) NOT NULL,
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `registration_ip` varchar(45) DEFAULT NULL,
+  `last_login_ip` varchar(45) DEFAULT NULL,
+  `status` enum('active','inactive') DEFAULT 'active',
+  `phone` varchar(15) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `name`, `username`, `updated_at`) VALUES
-(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-02-16 10:00:29', 'admin1', 'admin2', '2025-02-16 13:59:43'),
-(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', 'exe1', 'exe2', '2025-02-16 13:59:53'),
-(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', 'user1', 'user2', '2025-02-16 14:00:00');
+INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `name`, `username`, `updated_at`, `registration_ip`, `last_login_ip`, `status`, `phone`) VALUES
+(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-02-16 10:00:29', 'admin1', 'admin2', '2025-02-18 19:37:59', NULL, '127.0.0.1', 'active', NULL),
+(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', 'exe1', 'exe2', '2025-02-18 20:20:40', NULL, '127.0.0.1', 'active', NULL),
+(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', 'user1', 'user2', '2025-02-18 20:19:46', NULL, '127.0.0.1', 'active', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `user_activity_reports`
+--
+
+CREATE TABLE `user_activity_reports` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `activity_type` varchar(255) DEFAULT NULL,
+  `timestamp` datetime DEFAULT NULL,
+  `details` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_activity_reports`
+--
+
+INSERT INTO `user_activity_reports` (`id`, `user_id`, `activity_type`, `timestamp`, `details`) VALUES
+(2, 4, 'login', '2025-02-18 19:25:03', '1 test'),
+(3, 4, 'login', '2025-02-18 19:25:23', 'test');
 
 --
 -- Indeksy dla zrzutów tabel
@@ -118,12 +211,25 @@ ALTER TABLE `jobs`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indeksy dla tabeli `job_reports`
+--
+ALTER TABLE `job_reports`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `job_id` (`job_id`);
+
+--
 -- Indeksy dla tabeli `messages`
 --
 ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`),
   ADD KEY `sender_id` (`sender_id`),
   ADD KEY `receiver_id` (`receiver_id`);
+
+--
+-- Indeksy dla tabeli `pages`
+--
+ALTER TABLE `pages`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indeksy dla tabeli `responses`
@@ -134,11 +240,30 @@ ALTER TABLE `responses`
   ADD KEY `executor_id` (`executor_id`);
 
 --
+-- Indeksy dla tabeli `site_settings`
+--
+ALTER TABLE `site_settings`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indeksy dla tabeli `site_stats`
+--
+ALTER TABLE `site_stats`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indeksy dla tabeli `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `email` (`email`);
+
+--
+-- Indeksy dla tabeli `user_activity_reports`
+--
+ALTER TABLE `user_activity_reports`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -151,10 +276,22 @@ ALTER TABLE `jobs`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
+-- AUTO_INCREMENT for table `job_reports`
+--
+ALTER TABLE `job_reports`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `pages`
+--
+ALTER TABLE `pages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `responses`
@@ -163,10 +300,28 @@ ALTER TABLE `responses`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `site_settings`
+--
+ALTER TABLE `site_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+
+--
+-- AUTO_INCREMENT for table `site_stats`
+--
+ALTER TABLE `site_stats`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `user_activity_reports`
+--
+ALTER TABLE `user_activity_reports`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
@@ -177,6 +332,12 @@ ALTER TABLE `users`
 --
 ALTER TABLE `jobs`
   ADD CONSTRAINT `jobs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `job_reports`
+--
+ALTER TABLE `job_reports`
+  ADD CONSTRAINT `job_reports_ibfk_1` FOREIGN KEY (`job_id`) REFERENCES `jobs` (`id`);
 
 --
 -- Constraints for table `messages`
@@ -191,6 +352,12 @@ ALTER TABLE `messages`
 ALTER TABLE `responses`
   ADD CONSTRAINT `responses_ibfk_1` FOREIGN KEY (`job_id`) REFERENCES `jobs` (`id`),
   ADD CONSTRAINT `responses_ibfk_2` FOREIGN KEY (`executor_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `user_activity_reports`
+--
+ALTER TABLE `user_activity_reports`
+  ADD CONSTRAINT `user_activity_reports_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

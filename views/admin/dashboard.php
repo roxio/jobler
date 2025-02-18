@@ -20,7 +20,6 @@ $currentSettings = $settingsModel->getSettings();
 
 // Sprawdzenie, czy ustawienia zostały poprawnie pobrane
 if ($currentSettings === null) {
-    // Jeśli brak ustawień, przypisujemy domyślne wartości
     $currentSettings = [
         'title' => 'Domyślny tytuł',
         'logo' => 'default-logo.png',
@@ -56,90 +55,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php include '../partials/header.php'; ?>
 
-<div class="container">
-    <h1>Panel Administratora</h1>
-    <p>Witaj w panelu administracyjnym. Zarządzaj użytkownikami, ogłoszeniami, ustawieniami strony i innymi zasobami.</p>
-
+<div class="container-fluid">
     <div class="row">
-        <!-- Sekcja użytkowników -->
-        <div class="col-md-6">
-            <h3>Użytkownicy</h3>
-            <p>Masz <strong><?php echo $userCount; ?></strong> zarejestrowanych użytkowników.</p>
-            <p>Nowi użytkownicy w tym tygodniu: <strong><?php echo $newUsers; ?></strong>.</p>
-            <a href="../admin/manage_users.php" class="btn btn-primary">Zarządzaj użytkownikami</a>
-            <a href="export_users.php" class="btn btn-success">Eksportuj do CSV</a>
-        </div>
-
-        <!-- Sekcja ogłoszeń -->
-        <div class="col-md-6">
-            <h3>Ogłoszenia</h3>
-            <p>Masz <strong><?php echo $jobCount; ?></strong> opublikowanych ogłoszeń.</p>
-            <p>Nowe ogłoszenia w tym tygodniu: <strong><?php echo $newJobs; ?></strong>.</p>
-            <a href="../admin/manage_jobs.php" class="btn btn-secondary">Zarządzaj ogłoszeniami</a>
-        </div>
-    </div>
-
-    <hr>
-
-    <!-- Statystyki strony -->
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <h4>Wyświetlenia strony</h4>
-            <p><strong><?php echo $siteViews; ?></strong></p>
-        </div>
-        <div class="col-md-4">
-            <h4>Nowi użytkownicy</h4>
-            <p><strong><?php echo $newUsers; ?></strong></p>
-        </div>
-        <div class="col-md-4">
-            <h4>Nowe ogłoszenia</h4>
-            <p><strong><?php echo $newJobs; ?></strong></p>
-        </div>
-    </div>
-
-    <hr>
-
-    <!-- Sekcja ustawień strony -->
-    <div class="mt-4">
-        <h3>Ustawienia strony</h3>
-        <?php if (isset($successMessage)): ?>
-            <div class="alert alert-success">
-                <?php echo $successMessage; ?>
+        <!-- Menu boczne -->
+        <div class="col-md-2 col-lg-2 sidebar">
+            <div class="sidebar-header">
+                <h2>Panel Admina</h2>
             </div>
-        <?php endif; ?>
-        <form method="POST" enctype="multipart/form-data">
-            <!-- Tytuł strony -->
-            <div class="mb-3">
-                <label for="site_title" class="form-label">Tytuł strony</label>
-                <input type="text" name="site_title" id="site_title" class="form-control" value="<?php echo htmlspecialchars($currentSettings['title']); ?>" required>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="dashboard.php">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../admin/manage_users.php">
+                        <i class="fas fa-users"></i> Użytkownicy
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../admin/manage_jobs.php">
+                        <i class="fas fa-briefcase"></i> Ogłoszenia
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="site_settings.php">
+                        <i class="fas fa-cogs"></i> Ustawienia
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="reports.php">
+                        <i class="fas fa-chart-line"></i> Raporty
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Główna zawartość -->
+        <div class="col-md-10 col-lg-10 main-content">
+            <h1>Witaj w Panelu Administracyjnym</h1>
+            <p>Wybierz sekcję z menu po lewej stronie, aby rozpocząć zarządzanie systemem.</p>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <h3>Statystyki</h3>
+                    <ul class="list-group">
+                        <li class="list-group-item">Użytkownicy: <strong><?php echo $userCount; ?></strong></li>
+                        <li class="list-group-item">Ogłoszenia: <strong><?php echo $jobCount; ?></strong></li>
+                        <li class="list-group-item">Wyświetlenia strony: <strong><?php echo $siteViews; ?></strong></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h3>Nowości</h3>
+                    <ul class="list-group">
+                        <li class="list-group-item">Nowi użytkownicy: <strong><?php echo $newUsers; ?></strong></li>
+                        <li class="list-group-item">Nowe ogłoszenia: <strong><?php echo $newJobs; ?></strong></li>
+                    </ul>
+                </div>
             </div>
 
-            <!-- Logo strony -->
-            <div class="mb-3">
-                <label for="site_logo" class="form-label">Logo strony</label>
-                <input type="file" name="site_logo" id="site_logo" class="form-control">
-                <small class="text-muted">Bieżące logo:</small>
-                <?php if (file_exists("../../img/" . $currentSettings['logo'])): ?>
-                    <img src="/img/<?php echo htmlspecialchars($currentSettings['logo']); ?>" alt="Logo" style="height: 50px;">
-                <?php else: ?>
-                    <p>Brak logo</p>
+            <!-- Ustawienia strony -->
+            <div class="mt-4">
+                <h3>Ustawienia strony</h3>
+                <?php if (isset($successMessage)): ?>
+                    <div class="alert alert-success">
+                        <?php echo $successMessage; ?>
+                    </div>
                 <?php endif; ?>
-            </div>
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="site_title" class="form-label">Tytuł strony</label>
+                        <input type="text" name="site_title" id="site_title" class="form-control" value="<?php echo htmlspecialchars($currentSettings['title']); ?>" required>
+                    </div>
 
-            <!-- Kategorie -->
-            <div class="mb-3">
-                <label for="categories" class="form-label">Kategorie i podkategorie</label>
-                <textarea name="categories" id="categories" class="form-control" rows="6"><?php echo htmlspecialchars(implode("\n", $currentSettings['categories'])); ?></textarea>
-                <small class="text-muted">Wpisz kategorie oddzielone nową linią. Przykład:</small>
-                <pre class="bg-light p-2 mt-2">Budowa domu
+                    <div class="mb-3">
+                        <label for="site_logo" class="form-label">Logo strony</label>
+                        <input type="file" name="site_logo" id="site_logo" class="form-control">
+                        <small class="text-muted">Bieżące logo:</small>
+                        <?php if (file_exists("../../img/" . $currentSettings['logo'])): ?>
+                            <img src="/img/<?php echo htmlspecialchars($currentSettings['logo']); ?>" alt="Logo" style="height: 50px;">
+                        <?php else: ?>
+                            <p>Brak logo</p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="categories" class="form-label">Kategorie i podkategorie</label>
+                        <textarea name="categories" id="categories" class="form-control" rows="6"><?php echo htmlspecialchars(implode("\n", $currentSettings['categories'])); ?></textarea>
+                        <small class="text-muted">Wpisz kategorie oddzielone nową linią. Przykład:</small>
+                        <pre class="bg-light p-2 mt-2">Budowa domu
 - Elektryk
 - Hydraulik
 Meble i zabudowa</pre>
-            </div>
+                    </div>
 
-            <!-- Zapisz ustawienia -->
-            <button type="submit" class="btn btn-success">Zapisz zmiany</button>
-        </form>
+                    <button type="submit" class="btn btn-success">Zapisz zmiany</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 

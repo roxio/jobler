@@ -33,6 +33,9 @@ $users = $userModel->getAllUsers();
                     <th>Email</th>
                     <th>Rola</th>
                     <th>Data utworzenia</th>
+                    <th>Adres IP (Rejestracja)</th>
+                    <th>Adres IP (Ostatnie logowanie)</th>
+                    <th>Status konta</th>
                     <th>Akcje</th>
                 </tr>
             </thead>
@@ -47,9 +50,23 @@ $users = $userModel->getAllUsers();
                         <td><?php echo htmlspecialchars($user['email']); ?></td>
                         <td><?php echo htmlspecialchars($user['role']); ?></td>
                         <td><?php echo htmlspecialchars($user['created_at']); ?></td>
+                        <td><?php echo htmlspecialchars($user['registration_ip']); ?></td>
+                        <td><?php echo htmlspecialchars($user['last_login_ip']); ?></td>
+                        <td>
+                            <!-- Status konta -->
+                            <?php if ($user['status'] == 'active'): ?>
+                                <span class="badge badge-success">Aktywne</span>
+                            <?php else: ?>
+                                <span class="badge badge-danger">Nieaktywne</span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <a href="../admin/edit_user.php?id=<?php echo $user['id']; ?>" class="btn btn-warning">Edytuj</a>
                             <a href="../admin/delete_user.php?id=<?php echo $user['id']; ?>" class="btn btn-danger" onclick="return confirm('Na pewno chcesz usunąć tego użytkownika?')">Usuń</a>
+                            <!-- Przycisk do dezaktywacji konta -->
+                            <?php if ($user['status'] == 'active'): ?>
+                                <a href="../admin/deactivate_user.php?id=<?php echo $user['id']; ?>" class="btn btn-secondary" onclick="return confirm('Na pewno chcesz dezaktywować to konto?')">Dezaktywuj</a>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>

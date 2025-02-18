@@ -27,15 +27,28 @@ class Report {
     }
 
     // Dodanie raportu aktywności użytkownika
-    public function addUserActivityReport($userId, $activityType, $details) {
-        $query = "INSERT INTO user_activity_reports (user_id, activity_type, timestamp, details) 
-                  VALUES (:user_id, :activity_type, NOW(), :details)";
-        $stmt = $this->pdo->prepare($query);
-        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
-        $stmt->bindParam(':activity_type', $activityType, PDO::PARAM_STR);
-        $stmt->bindParam(':details', $details, PDO::PARAM_STR);
-        return $stmt->execute();
+public function addUserActivityReport($userId, $activityType, $details) {
+    // Sprawdzamy, czy użytkownik istnieje
+    $checkQuery = "SELECT COUNT(*) FROM users WHERE id = :user_id";
+    $stmt = $this->pdo->prepare($checkQuery);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->execute();
+    $userExists = $stmt->fetchColumn() > 0;
+
+    // Jeśli użytkownik nie istnieje, nie dodawaj raportu
+    if (!$userExists) {
+        throw new Exception("Użytkownik o ID $userId nie istnieje.");
     }
+
+    // Jeśli użytkownik istnieje, dodaj raport
+    $query = "INSERT INTO user_activity_reports (user_id, activity_type, timestamp, details) 
+              VALUES (:user_id, :activity_type, NOW(), :details)";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->bindParam(':activity_type', $activityType, PDO::PARAM_STR);
+    $stmt->bindParam(':details', $details, PDO::PARAM_STR);
+    return $stmt->execute();
+}
 
     // Dodanie raportu aktywności ogłoszenia
     public function addJobReport($jobId, $activityType, $details) {

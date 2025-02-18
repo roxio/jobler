@@ -24,13 +24,17 @@ class User {
         // Hashowanie hasła
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
+        // Pobranie adresu IP rejestracji
+        $registrationIp = $_SERVER['REMOTE_ADDR'];
+
         // Wstawianie nowego użytkownika do bazy
-        $sql = "INSERT INTO users (email, password, role, created_at, updated_at) 
-                VALUES (:email, :password, :role, NOW(), NOW())";
+        $sql = "INSERT INTO users (email, password, role, created_at, updated_at, registration_ip, status) 
+                VALUES (:email, :password, :role, NOW(), NOW(), :registration_ip, 'active')";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':password', $hashedPassword);
         $stmt->bindParam(':role', $role);
+        $stmt->bindParam(':registration_ip', $registrationIp);
 
         if ($stmt->execute()) {
             // Pobierz ID nowo zarejestrowanego użytkownika
@@ -56,6 +60,10 @@ class User {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
+            // Zaktualizowanie IP przy logowaniu
+            $lastLoginIp = $_SERVER['REMOTE_ADDR'];
+            $this->updateLastLoginIp($user['id'], $lastLoginIp);
+
             // Zwrócenie danych użytkownika, jeśli logowanie się powiodło
             return $user;
         }
@@ -70,7 +78,7 @@ class User {
 
     // Pobranie danych użytkownika na podstawie ID
     public function getUserById($userId) {
-        $sql = "SELECT * FROM users WHERE id = :user_id";
+        $sql = "SELECT id, email, role, created_at, updated_at, registration_ip, last_login_ip, status FROM users WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':user_id', $userId);
         $stmt->execute();
@@ -97,12 +105,12 @@ class User {
     }
 
     // Pobranie wszystkich użytkowników (np. do panelu administracyjnego)
-    public function getAllUsers() {
-        $sql = "SELECT * FROM users";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+public function getAllUsers() {
+    $sql = "SELECT id, email, name, role, created_at, updated_at, registration_ip, last_login_ip, status FROM users";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
     // Sprawdzanie roli użytkownika
     public function getUserRole($userId) {
@@ -136,12 +144,32 @@ class User {
         $stmt->bindParam(':user_id', $userId);
         return $stmt->execute();
     }
-	// Usuwanie wielu użytkowników
-	public function deleteUsers($userIds) {
-    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-    $query = "DELETE FROM users WHERE id IN ($placeholders)";
-    $stmt = $this->db->prepare($query);
-    $stmt->execute($userIds);
-}
+
+    // Usuwanie wielu użytkowników
+    public function deleteUsers($userIds) {
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $query = "DELETE FROM users WHERE id IN ($placeholders)";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($userIds);
+    }
+
+    // Dezaktywuj użytkownika
+    public function deactivateUser($userId) {
+        $query = "UPDATE users SET status = 'inactive' WHERE id = :user_id";
+        $stmt = $this->pdo->prepare($query);
+        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    // Aktualizowanie adresu IP ostatniego logowania
+    public function updateLastLoginIp($userId, $lastLoginIp) {
+        $sql = "UPDATE users SET last_login_ip = :last_login_ip WHERE id = :user_id";
+        $stmt = $this->pdo->prepare($sql);
+
+        $stmt->bindParam(':last_login_ip', $lastLoginIp);
+        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+
+        return $stmt->execute();
+    }
 }
 ?>

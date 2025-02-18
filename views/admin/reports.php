@@ -26,57 +26,63 @@ if ($jobId) {
 
 include '../partials/header.php';
 ?>
+
 <h1>Raporty</h1>
 
+<!-- Przyciski lub linki do generowania nowych raportów -->
 <div>
-    <?php if ($userId): ?>
-        <h3>Raporty aktywności użytkowników (ID użytkownika: <?php echo $userId; ?>)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID użytkownika</th>
-                    <th>Typ aktywności</th>
-                    <th>Data</th>
-                    <th>Szczegóły</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($userReports as $report): ?>
-                    <tr>
-                        <td><?php echo $report['user_id']; ?></td>
-                        <td><?php echo $report['activity_type']; ?></td>
-                        <td><?php echo $report['timestamp']; ?></td>
-                        <td><?php echo $report['details']; ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php endif; ?>
-
-    <?php if ($jobId): ?>
-        <h3>Raporty ogłoszeń (ID ogłoszenia: <?php echo $jobId; ?>)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID ogłoszenia</th>
-                    <th>Typ aktywności</th>
-                    <th>Data</th>
-                    <th>Szczegóły</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($jobReports as $report): ?>
-                    <tr>
-                        <td><?php echo $report['job_id']; ?></td>
-                        <td><?php echo $report['activity_type']; ?></td>
-                        <td><?php echo $report['timestamp']; ?></td>
-                        <td><?php echo $report['details']; ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php endif; ?>
+    <a href="generate_report.php" class="btn btn-primary">Generuj raport</a>
 </div>
+
+<!-- Wyświetlanie raportów użytkowników -->
+<?php if ($userId): ?>
+    <h3>Raporty aktywności użytkowników (ID użytkownika: <?php echo $userId; ?>)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID użytkownika</th>
+                <th>Typ aktywności</th>
+                <th>Data</th>
+                <th>Szczegóły</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($userReports as $report): ?>
+                <tr>
+                    <td><?php echo $report['user_id']; ?></td>
+                    <td><?php echo $report['activity_type']; ?></td>
+                    <td><?php echo $report['timestamp']; ?></td>
+                    <td><?php echo $report['details']; ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
+
+<!-- Wyświetlanie raportów ogłoszeń -->
+<?php if ($jobId): ?>
+    <h3>Raporty ogłoszeń (ID ogłoszenia: <?php echo $jobId; ?>)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID ogłoszenia</th>
+                <th>Typ aktywności</th>
+                <th>Data</th>
+                <th>Szczegóły</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($jobReports as $report): ?>
+                <tr>
+                    <td><?php echo $report['job_id']; ?></td>
+                    <td><?php echo $report['activity_type']; ?></td>
+                    <td><?php echo $report['timestamp']; ?></td>
+                    <td><?php echo $report['details']; ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
 
 <?php
 include '../partials/footer.php';

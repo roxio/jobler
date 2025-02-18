@@ -6,13 +6,16 @@ require_once 'models/User.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = $_POST['password'];
-    $role = 'user'; // Domyślnie użytkownik
+    $name = $_POST['name'];
+    $username = $_POST['username'];
+    $role = $_POST['role']; // Możliwość wyboru roli (user/executor)
+    $phone = isset($_POST['phone']) ? $_POST['phone'] : ''; // Pole telefoniczne, opcjonalne
 
     // Tworzenie instancji klasy User
     $user = new User();
 
     // Rejestracja użytkownika
-    $result = $user->register($email, $password, $role);  // Zmieniliśmy sposób wywołania metody
+    $result = $user->register($email, $password, $name, $username, $role, $phone);  // Zmieniliśmy sposób wywołania metody
     
     if (isset($result['success'])) {
         // Jeśli rejestracja zakończyła się sukcesem, przekieruj użytkownika
@@ -53,12 +56,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                         <form action="register.php" method="POST">
                             <div class="mb-3">
+                                <label for="name" class="form-label">Imię:</label>
+                                <input type="text" name="name" id="name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Nazwa użytkownika:</label>
+                                <input type="text" name="username" id="username" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
                                 <label for="email" class="form-label">Email:</label>
                                 <input type="email" name="email" id="email" class="form-control" required>
                             </div>
                             <div class="mb-3">
                                 <label for="password" class="form-label">Hasło:</label>
                                 <input type="password" name="password" id="password" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Rola:</label>
+                                <select name="role" id="role" class="form-select" required>
+                                    <option value="user">Zleceniodawca</option>
+                                    <option value="executor">Wykonawca</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Telefon (opcjonalnie):</label>
+                                <input type="text" name="phone" id="phone" class="form-control">
                             </div>
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">Zarejestruj się</button>

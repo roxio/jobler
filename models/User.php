@@ -10,40 +10,40 @@ class User {
     }
 
     // Rejestracja użytkownika
-    public function register($email, $password, $role = 'user') {
-        // Sprawdzanie, czy użytkownik już istnieje
-        $sql = "SELECT * FROM users WHERE email = :email";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':email', $email);
-        $stmt->execute();
+    public function register($email, $password, $name, $username, $role = 'user', $phone = '') {
+    // Sprawdzanie, czy użytkownik już istnieje
+    $sql = "SELECT * FROM users WHERE email = :email OR username = :username";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':email', $email);
+    $stmt->bindParam(':username', $username);
+    $stmt->execute();
 
-        if ($stmt->rowCount() > 0) {
-            return ['error' => 'Użytkownik o tym adresie email już istnieje.'];
-        }
-
-        // Hashowanie hasła
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-        // Pobranie adresu IP rejestracji
-        $registrationIp = $_SERVER['REMOTE_ADDR'];
-
-        // Wstawianie nowego użytkownika do bazy
-        $sql = "INSERT INTO users (email, password, role, created_at, updated_at, registration_ip, status) 
-                VALUES (:email, :password, :role, NOW(), NOW(), :registration_ip, 'active')";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':email', $email);
-        $stmt->bindParam(':password', $hashedPassword);
-        $stmt->bindParam(':role', $role);
-        $stmt->bindParam(':registration_ip', $registrationIp);
-
-        if ($stmt->execute()) {
-            // Pobierz ID nowo zarejestrowanego użytkownika
-            $userId = $this->pdo->lastInsertId();
-            return ['success' => 'Rejestracja zakończona pomyślnie.', 'id' => $userId, 'role' => $role];
-        }
-
-        return ['error' => 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.'];
+    if ($stmt->rowCount() > 0) {
+        return ['error' => 'Użytkownik o tym adresie email lub nazwie użytkownika już istnieje.'];
     }
+
+    // Hashowanie hasła
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+    // Wstawianie nowego użytkownika do bazy
+    $sql = "INSERT INTO users (email, password, name, username, role, phone, created_at, updated_at) 
+            VALUES (:email, :password, :name, :username, :role, :phone, NOW(), NOW())";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':email', $email);
+    $stmt->bindParam(':password', $hashedPassword);
+    $stmt->bindParam(':name', $name);
+    $stmt->bindParam(':username', $username);
+    $stmt->bindParam(':role', $role);
+    $stmt->bindParam(':phone', $phone);
+
+    if ($stmt->execute()) {
+        // Pobierz ID nowo zarejestrowanego użytkownika
+        $userId = $this->pdo->lastInsertId();
+        return ['success' => 'Rejestracja zakończona pomyślnie.', 'id' => $userId, 'role' => $role];
+    }
+
+    return ['error' => 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.'];
+}
 
     // Logowanie użytkownika
     public function login($email, $password) {

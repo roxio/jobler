@@ -41,27 +41,27 @@ class User {
         return ['error' => 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.'];
     }
 
-// Logowanie użytkownika
-public function login($email, $password) {
-    // Sprawdzanie, czy użytkownik istnieje
-    $sql = "SELECT * FROM users WHERE email = :email";
-    $stmt = $this->pdo->prepare($sql);
-    $stmt->bindParam(':email', $email);
+    // Logowanie użytkownika
+    public function login($email, $password) {
+        // Sprawdzanie, czy użytkownik istnieje
+        $sql = "SELECT * FROM users WHERE email = :email";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':email', $email);
 
-    if (!$stmt->execute()) {
-        // Jeśli wystąpił błąd w zapytaniu SQL
-        return false;
+        if (!$stmt->execute()) {
+            // Jeśli wystąpił błąd w zapytaniu SQL
+            return false;
+        }
+
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && password_verify($password, $user['password'])) {
+            // Zwrócenie danych użytkownika, jeśli logowanie się powiodło
+            return $user;
+        }
+
+        return false; // Zwrócenie false, jeśli logowanie nie powiodło się
     }
-
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($user && password_verify($password, $user['password'])) {
-        // Zwrócenie danych użytkownika, jeśli logowanie się powiodło
-        return $user;
-    }
-
-    return false; // Zwrócenie false, jeśli logowanie nie powiodło się
-}
 
     // Sprawdzanie, czy użytkownik jest zalogowany
     public function isLoggedIn() {
@@ -120,5 +120,28 @@ public function login($email, $password) {
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchColumn();
     }
+
+    // Pobranie liczby nowych użytkowników w ostatnich 30 dniach
+    public function getNewUsersCount() {
+        $sql = "SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    // Usuwanie użytkownika
+    public function deleteUser($userId) {
+        $sql = "DELETE FROM users WHERE id = :user_id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':user_id', $userId);
+        return $stmt->execute();
+    }
+	// Usuwanie wielu użytkowników
+	public function deleteUsers($userIds) {
+    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+    $query = "DELETE FROM users WHERE id IN ($placeholders)";
+    $stmt = $this->db->prepare($query);
+    $stmt->execute($userIds);
+}
 }
 ?>

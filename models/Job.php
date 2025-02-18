@@ -137,4 +137,13 @@ class Job {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result['total'];
     }
+
+    // Nowa metoda: Pobieranie liczby nowych ogłoszeń w ciągu ostatnich 30 dni
+    public function getNewJobsCount() {
+        $sql = "SELECT COUNT(*) FROM jobs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
 }
+?>

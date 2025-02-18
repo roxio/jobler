@@ -28,6 +28,11 @@
               <a class="nav-link" href="../admin/dashboard.php">Panel Administracyjny</a>
             </li>
           <?php endif; ?>
+		  <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'executor'): ?>
+            <li class="nav-item">
+              <a class="nav-link" href="../executor/dashboard.php">Panel Wykonawcy</a>
+            </li>
+          <?php endif; ?>
                 <li class="nav-item">
                     <a class="nav-link" href="/views/user/dashboard.php">Panel użytkownika</a>
                 </li>

@@ -37,12 +37,12 @@ include '../partials/header.php';
         <div class="col-md-6">
             <h3>Dostępne oferty</h3>
             <p>Masz <strong><?php echo $availableOffersCount; ?></strong> dostępnych ofert do rozważenia.</p>
-            <a href="/executor/offer_list.php" class="btn btn-primary">Zobacz oferty</a>
+            <a href="../executor/offer_list.php" class="btn btn-primary">Zobacz oferty</a>
         </div>
         <div class="col-md-6">
             <h3>Odpowiedz na oferty</h3>
             <p>Sprawdź oferty, na które jeszcze nie odpowiedziałeś.</p>
-            <a href="/executor/respond_offer.php" class="btn btn-secondary">Odpowiedz na oferty</a>
+            <a href="../executor/respond_offer.php" class="btn btn-secondary">Odpowiedz na oferty</a>
         </div>
     </div>
 </div>

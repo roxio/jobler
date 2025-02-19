@@ -42,7 +42,7 @@ include '../partials/header.php';
         <div class="col-md-6">
             <h3>Odpowiedz na oferty</h3>
             <p>Sprawdź oferty, na które jeszcze nie odpowiedziałeś.</p>
-            <a href="../executor/respond_offer.php" class="btn btn-secondary">Odpowiedz na oferty</a>
+            <a href="../executor/responded_offers.php" class="btn btn-secondary">Odpowiedz na oferty</a>
         </div>
     </div>
 </div>

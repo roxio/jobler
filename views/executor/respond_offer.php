@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $response = $executor->respondToJob($executorId, $jobId, $messageContent);
 
     if ($response) {
-        // Jeśli odpowiedź została wysłana, przekieruj do listy ofert
-        header('Location: ../executor/offer_list.php');
+        // Przekierowanie do listy odpowiedzianych ofert
+        header('Location: ../executor/responded_offers.php');
         exit;
     } else {
         $error = "Wystąpił błąd podczas wysyłania odpowiedzi. Spróbuj ponownie.";

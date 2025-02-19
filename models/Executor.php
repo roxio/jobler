@@ -83,5 +83,20 @@ public function getResponsesForUserJobs($userId) {
         $stmt->bindParam(':executor_id', $executorId, PDO::PARAM_INT);
         return $stmt->execute();
     }
+	// Responded offers obsługa
+	public function getRespondedJobs($executorId) {
+    $query = "SELECT jobs.title, jobs.description, responses.created_at AS response_date
+              FROM jobs
+              INNER JOIN responses ON jobs.id = responses.job_id
+              WHERE responses.executor_id = :executor_id
+              ORDER BY responses.created_at DESC";
+
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindParam(':executor_id', $executorId, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 }
 ?>

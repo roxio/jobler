@@ -97,6 +97,15 @@ public function getResponsesForUserJobs($userId) {
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+public function hasRespondedToJob($executorId, $jobId) {
+    $query = "SELECT COUNT(*) FROM responses WHERE executor_id = :executor_id AND job_id = :job_id";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindParam(':executor_id', $executorId, PDO::PARAM_INT);
+    $stmt->bindParam(':job_id', $jobId, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchColumn() > 0; // Zwraca true, jeśli odpowiedź istnieje
+}
 
 }
 ?>

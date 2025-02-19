@@ -18,7 +18,7 @@ $jobDetails = $executor->getJobDetails($jobId);
 
 if (!$jobDetails) {
     // Jeśli ogłoszenie nie istnieje
-    header('Location: /executor/offer_list.php');
+    header('Location: ../executor/offer_list.php');
     exit;
 }
 
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($response) {
         // Jeśli odpowiedź została wysłana, przekieruj do listy ofert
-        header('Location: /executor/offer_list.php');
+        header('Location: ../executor/offer_list.php');
         exit;
     } else {
         $error = "Wystąpił błąd podczas wysyłania odpowiedzi. Spróbuj ponownie.";

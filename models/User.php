@@ -174,6 +174,32 @@ public function getAllUsers() {
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
 
         return $stmt->execute();
-    }
+}
+	public function getResponsesForUserJobs($userId) {
+    $query = "
+        SELECT 
+            j.title AS title,
+            r.message AS message,
+            r.created_at AS created_at,
+            u.name AS executor_name
+        FROM 
+            jobs j
+        INNER JOIN 
+            responses r ON j.id = r.job_id
+        INNER JOIN 
+            users u ON r.executor_id = u.id
+        WHERE 
+            j.user_id = :user_id
+        ORDER BY 
+            r.created_at DESC
+    ";
+
+   $stmt = $this->pdo->prepare($query);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 }
 ?>

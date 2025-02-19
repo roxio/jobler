@@ -20,14 +20,32 @@ class Executor {
     }
 
     // Odpowiadanie na ofertę (wysyłanie wiadomości do użytkownika)
-    public function respondToJob($executorId, $jobId, $messageContent) {
-        $sql = "INSERT INTO messages (executor_id, job_id, content, sent_at) VALUES (:executor_id, :job_id, :content, NOW())";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':executor_id', $executorId);
-        $stmt->bindParam(':job_id', $jobId);
-        $stmt->bindParam(':content', $messageContent);
-        return $stmt->execute();
-    }
+	public function respondToJob($executorId, $jobId, $message) {
+    $query = "INSERT INTO responses (job_id, executor_id, message) VALUES (:job_id, :executor_id, :message)";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindParam(':job_id', $jobId);
+    $stmt->bindParam(':executor_id', $executorId);
+    $stmt->bindParam(':message', $message);
+
+    return $stmt->execute();
+}
+
+public function getResponsesForUserJobs($userId) {
+    $query = "
+        SELECT r.message, r.created_at, j.title, e.name AS executor_name
+        FROM responses r
+        JOIN jobs j ON r.job_id = j.id
+        JOIN executors e ON r.executor_id = e.id
+        WHERE j.user_id = :user_id
+        ORDER BY r.created_at DESC
+    ";
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':user_id', $userId);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 
     // Pobieranie odpowiedzi na ofertę (wszystkich wiadomości przypisanych do ogłoszenia)
     public function getJobResponses($jobId) {

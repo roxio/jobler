@@ -15,6 +15,12 @@ if (!isset($_SESSION['user_id'])) {
 $userId = $_SESSION['user_id'];
 $userName = $_SESSION['user_name'];
 
+// Tworzenie instancji modelu User
+$userModel = new User();
+
+// Pobierz odpowiedzi na ogłoszenia użytkownika
+$responses = $userModel->getResponsesForUserJobs($userId);
+
 // Include nagłówek
 include('../partials/header.php');
 ?>
@@ -40,9 +46,37 @@ include('../partials/header.php');
             </div>
         </div>
 
-        <!-- Lista ogłoszeń -->
+        <!-- Lista ogłoszeń i odpowiedzi -->
         <div class="col-md-8">
-            <?php include('job_view.php'); ?>
+            <!-- Sekcja odpowiedzi na oferty -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3>Odpowiedzi na Twoje ogłoszenia</h3>
+                </div>
+                <div class="card-body">
+                    <?php if (empty($responses)): ?>
+                        <p>Brak odpowiedzi na Twoje ogłoszenia.</p>
+                    <?php else: ?>
+                        <ul class="list-group">
+                            <?php foreach ($responses as $response): ?>
+                                <li class="list-group-item">
+                                    <h5>Ogłoszenie: <?php echo htmlspecialchars($response['title']); ?></h5>
+                                    <p><strong>Wykonawca:</strong> <?php echo htmlspecialchars($response['executor_name']); ?></p>
+                                    <p><strong>Treść odpowiedzi:</strong> <?php echo nl2br(htmlspecialchars($response['message'])); ?></p>
+                                    <p>
+                                        <small>
+                                            <strong>Data odpowiedzi:</strong> <?php echo date('d-m-Y H:i', strtotime($response['created_at'])); ?>
+                                        </small>
+                                    </p>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Sekcja innych elementów (opcjonalna) -->
+            <!-- Możesz tu dodać listę innych funkcjonalności, np. historię ogłoszeń -->
         </div>
     </div>
 </div>

@@ -9,7 +9,7 @@
     <!-- Link do Bootstrap (lub innego frameworka CSS, jeśli używasz) -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <!-- Możesz dodać tutaj własne style CSS -->
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="../../css/style.css">
 </head>
 <body>
 

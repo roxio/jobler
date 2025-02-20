@@ -33,12 +33,8 @@ CREATE TABLE `jobs` (
 --
 
 INSERT INTO `jobs` (`id`, `user_id`, `title`, `description`, `status`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Potrzebuję pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-16 09:33:39'),
-(2, 1, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-16 09:33:27'),
-(3, 4, 'test 12', 'test 12', 'open', '2025-02-16 10:54:15', '2025-02-16 10:54:15'),
-(4, 4, 'test 14', 'test 144', 'open', '2025-02-16 10:54:45', '2025-02-16 10:54:45'),
-(6, 5, 'executor oglosznei', 'executor ogloszenie tresc', 'open', '2025-02-16 13:54:22', '2025-02-16 13:54:22'),
-(9, 6, 'test 1122', 'test 1122', 'open', '2025-02-16 15:17:51', '2025-02-16 21:07:28');
+(1, 6, 'Potrzebuję pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:23'),
+(2, 6, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:26');
 
 -- --------------------------------------------------------
 
@@ -62,19 +58,15 @@ CREATE TABLE `job_reports` (
 
 CREATE TABLE `messages` (
   `id` int(11) NOT NULL,
+  `job_id` int(11) NOT NULL,
   `sender_id` int(11) NOT NULL,
   `receiver_id` int(11) NOT NULL,
+  `content` text NOT NULL,
   `message` text NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `read_status` tinyint(1) DEFAULT 0,
+  `conversation_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `messages`
---
-
-INSERT INTO `messages` (`id`, `sender_id`, `receiver_id`, `message`, `created_at`) VALUES
-(1, 1, 2, 'Witam, chciałbym umówić się na spotkanie w sprawie zlecenia.', '2025-02-16 09:00:18'),
-(2, 2, 1, 'Dziękuję za wiadomość. Proszę podać termin spotkania.', '2025-02-16 09:00:18');
 
 -- --------------------------------------------------------
 
@@ -104,14 +96,6 @@ CREATE TABLE `responses` (
   `message` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `responses`
---
-
-INSERT INTO `responses` (`id`, `job_id`, `executor_id`, `message`, `created_at`) VALUES
-(1, 1, 2, 'Jestem zainteresowany tym zleceniem. Proszę o kontakt.', '2025-02-16 09:00:18'),
-(2, 2, 2, 'Chętnie podejmę się SEO dla Twojej strony.', '2025-02-16 09:00:18');
 
 -- --------------------------------------------------------
 
@@ -173,9 +157,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `name`, `username`, `updated_at`, `registration_ip`, `last_login_ip`, `status`, `phone`) VALUES
-(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-02-16 10:00:29', 'admin1', 'admin2', '2025-02-18 19:37:59', NULL, '127.0.0.1', 'active', NULL),
+(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', 'admin1', 'admin2', '2025-02-18 20:43:45', NULL, '127.0.0.1', 'active', NULL),
 (5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', 'exe1', 'exe2', '2025-02-18 20:20:40', NULL, '127.0.0.1', 'active', NULL),
-(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', 'user1', 'user2', '2025-02-18 20:19:46', NULL, '127.0.0.1', 'active', NULL);
+(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', 'user1', 'user2', '2025-02-18 20:19:46', NULL, '127.0.0.1', 'active', NULL),
+(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', 'exe2', 'exe4', '2025-02-18 20:20:40', NULL, '127.0.0.1', 'active', NULL);
 
 -- --------------------------------------------------------
 
@@ -273,7 +258,7 @@ ALTER TABLE `user_activity_reports`
 -- AUTO_INCREMENT for table `jobs`
 --
 ALTER TABLE `jobs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `job_reports`
@@ -285,7 +270,7 @@ ALTER TABLE `job_reports`
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `pages`
@@ -297,7 +282,7 @@ ALTER TABLE `pages`
 -- AUTO_INCREMENT for table `responses`
 --
 ALTER TABLE `responses`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `site_settings`
@@ -315,7 +300,7 @@ ALTER TABLE `site_stats`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `user_activity_reports`

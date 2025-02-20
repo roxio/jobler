@@ -9,35 +9,57 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Pobieranie danych z URL
-$jobId = isset($_GET['job_id']) ? (int)$_GET['job_id'] : null;
-$executorId = isset($_GET['executor_id']) ? (int)$_GET['executor_id'] : null;
 $userId = $_SESSION['user_id'];
+$conversationId = isset($_GET['conversation_id']) ? $_GET['conversation_id'] : null;
+$jobId = isset($_GET['job_id']) ? (int)$_GET['job_id'] : null;
 
-// Jeśli nie ma job_id lub executor_id, to zakończ działanie
-if (!$jobId || !$executorId) {
-    die('Nieprawidłowe parametry.');
+if (!$conversationId) {
+    die('Nieprawidłowy identyfikator konwersacji.');
 }
 
-// Generowanie conversation_id na podstawie user_id i executor_id
-$conversationId = min($userId, $executorId) . "_" . max($userId, $executorId);
-
-// Tworzenie instancji modeli
 $messageModel = new Message();
 $userModel = new User();
 
-// Pobieranie wiadomości z bazy danych na podstawie conversation_id
-$messages = $messageModel->getConversation($userId, $executorId, $conversationId);
+// Pobranie wiadomości na podstawie conversation_id
+$messages = $messageModel->getConversationById($conversationId);
+
+// Jeśli job_id nie został przekazany w URL, spróbuj wywnioskować go z pierwszej wiadomości
+if (!$jobId) {
+    if (!empty($messages)) {
+         $jobId = $messages[0]['job_id'];
+    } else {
+         die('Nieprawidłowy identyfikator ogłoszenia.');
+    }
+}
 
 // Obsługa formularza wysyłania wiadomości
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
     $messageContent = trim($_POST['message']);
 
     if (!empty($messageContent)) {
-        // Jeśli użytkownik wysyła wiadomość do wykonawcy
-        $messageModel->sendMessage($userId, $executorId, $messageContent, $jobId);
-        // Przekierowanie z powrotem do strony rozmowy
-        header("Location: conversation.php?job_id=$jobId&executor_id=$executorId");
+        // Próba rozbicia conversation_id na dwie części
+        $parts = explode('_', $conversationId);
+        if (count($parts) == 2) {
+            list($id1, $id2) = $parts;
+            // Ustalanie, który z identyfikatorów jest odbiorcą
+            $receiverId = ($userId == $id1) ? $id2 : $id1;
+        } else {
+            // Jeśli conversation_id nie ma oczekiwanego formatu, wywnioskuj odbiorcę z pierwszej wiadomości
+            if (!empty($messages)) {
+                $firstMessage = $messages[0];
+                // Jeśli pierwszy komunikat został wysłany przez zalogowanego użytkownika,
+                // odbiorcą będzie druga strona, w przeciwnym razie – druga strona to nadawca.
+                $receiverId = ($firstMessage['sender_id'] == $userId) 
+                              ? $firstMessage['receiver_id'] 
+                              : $firstMessage['sender_id'];
+            } else {
+                die('Nieprawidłowy format conversation_id.');
+            }
+        }
+
+        $messageModel->sendMessage($userId, $receiverId, $messageContent, $jobId);
+        // Przekierowanie z powrotem do konwersacji
+        header("Location: conversation.php?conversation_id={$conversationId}&job_id={$jobId}");
         exit;
     }
 }
@@ -46,7 +68,7 @@ include('../partials/header.php');
 ?>
 
 <div class="container">
-    <h3>Rozmowa z wykonawcą</h3>
+    <h3>Rozmowa</h3>
 
     <div class="messages">
         <?php if (empty($messages)): ?>

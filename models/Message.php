@@ -66,6 +66,28 @@ class Message {
         $stmt->bindParam(':message_id', $messageId, PDO::PARAM_INT);
         return $stmt->execute();
     }
+public function getConversationById($conversationId)
+{
+    $query = $this->pdo->prepare("
+        SELECT m.*, 
+               u1.name AS sender_name, 
+               u2.name AS receiver_name,
+               m.content AS message_content
+        FROM messages m
+        LEFT JOIN users u1 ON m.sender_id = u1.id
+        LEFT JOIN users u2 ON m.receiver_id = u2.id
+        WHERE m.conversation_id = :conversationId
+        ORDER BY m.created_at ASC
+    ");
+    $query->bindParam(':conversationId', $conversationId, PDO::PARAM_STR);
+    $query->execute();
+
+    return $query->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+
+
 }
 
 ?>

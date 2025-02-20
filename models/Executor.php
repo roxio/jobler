@@ -99,14 +99,72 @@ public function getResponsesForUserJobs($userId) {
 }
 
 public function hasRespondedToJob($executorId, $jobId) {
-    $query = "SELECT COUNT(*) FROM responses WHERE executor_id = :executor_id AND job_id = :job_id";
-    $stmt = $this->pdo->prepare($query);
-    $stmt->bindParam(':executor_id', $executorId, PDO::PARAM_INT);
-    $stmt->bindParam(':job_id', $jobId, PDO::PARAM_INT);
-    $stmt->execute();
+    try {
+        // Sprawdzenie, czy istnieje odpowiedź w tabeli responses
+        $queryResponses = "
+            SELECT r.id AS response_id, r.executor_id, r.job_id
+            FROM responses r
+            WHERE r.executor_id = :executorId AND r.job_id = :jobId
+            LIMIT 1
+        ";
+        $stmtResponses = $this->pdo->prepare($queryResponses);
+        $stmtResponses->bindParam(':executorId', $executorId, PDO::PARAM_INT);
+        $stmtResponses->bindParam(':jobId', $jobId, PDO::PARAM_INT);
+        $stmtResponses->execute();
+        $response = $stmtResponses->fetch(PDO::FETCH_ASSOC);
+        error_log("Response from responses table for executor_id {$executorId}, job_id {$jobId}: " . print_r($response, true));
 
-    return $stmt->fetchColumn() > 0; // Zwraca true, jeśli odpowiedź istnieje
+        // Pobranie szczegółów ogłoszenia, aby uzyskać user_id właściciela ogłoszenia (odbiorcy)
+        $jobDetails = $this->getJobDetails($jobId);
+        if (!$jobDetails) {
+            return false;
+        }
+        $receiverId = $jobDetails['user_id'];
+
+        // Obliczenie conversation_id wg schematu: min(executorId, receiverId)_max(executorId, receiverId)
+        $computedConversationId = min($executorId, $receiverId) . "_" . max($executorId, $receiverId);
+
+        // Sprawdzenie, czy istnieje konwersacja w tabeli messages
+        $queryMessages = "
+            SELECT m.conversation_id 
+            FROM messages m
+            WHERE m.job_id = :jobId
+              AND m.conversation_id = :conversationId
+            LIMIT 1
+        ";
+        $stmtMessages = $this->pdo->prepare($queryMessages);
+        $stmtMessages->bindParam(':jobId', $jobId, PDO::PARAM_INT);
+        $stmtMessages->bindParam(':conversationId', $computedConversationId, PDO::PARAM_STR);
+        $stmtMessages->execute();
+        $message = $stmtMessages->fetch(PDO::FETCH_ASSOC);
+        error_log("Message from messages table for job_id {$jobId}, computedConversationId {$computedConversationId}: " . print_r($message, true));
+
+        if ($message) {
+            // Konwersacja istnieje – zwracamy conversation_id
+            return [
+                'response_id' => $response ? $response['response_id'] : null,
+                'conversation_id' => $message['conversation_id'],
+            ];
+        }
+
+        if ($response) {
+            // Oferta została złożona, ale konwersacja jeszcze nie rozpoczęta
+            return [
+                'response_id' => $response['response_id'],
+                'conversation_id' => null,
+            ];
+        }
+
+        // Ani odpowiedzi, ani konwersacji nie ma
+        return false;
+    } catch (PDOException $e) {
+        error_log("Database error: " . $e->getMessage());
+        throw $e;
+    }
 }
+
+
+
 
 }
 ?>

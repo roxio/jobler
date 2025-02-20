@@ -14,23 +14,29 @@ $jobId = isset($_GET['job_id']) ? (int)$_GET['job_id'] : null;
 $executorId = isset($_GET['executor_id']) ? (int)$_GET['executor_id'] : null;
 $userId = $_SESSION['user_id'];
 
+// Jeśli nie ma job_id lub executor_id, to zakończ działanie
 if (!$jobId || !$executorId) {
     die('Nieprawidłowe parametry.');
 }
+
+// Generowanie conversation_id na podstawie user_id i executor_id
+$conversationId = min($userId, $executorId) . "_" . max($userId, $executorId);
 
 // Tworzenie instancji modeli
 $messageModel = new Message();
 $userModel = new User();
 
-// Pobieranie wiadomości między użytkownikiem a wykonawcą
-$messages = $messageModel->getConversation($userId, $executorId, $jobId);
+// Pobieranie wiadomości z bazy danych na podstawie conversation_id
+$messages = $messageModel->getConversation($userId, $executorId, $conversationId);
 
 // Obsługa formularza wysyłania wiadomości
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
     $messageContent = trim($_POST['message']);
 
     if (!empty($messageContent)) {
+        // Jeśli użytkownik wysyła wiadomość do wykonawcy
         $messageModel->sendMessage($userId, $executorId, $messageContent, $jobId);
+        // Przekierowanie z powrotem do strony rozmowy
         header("Location: conversation.php?job_id=$jobId&executor_id=$executorId");
         exit;
     }

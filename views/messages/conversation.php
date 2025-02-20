@@ -50,7 +50,7 @@ include('../partials/header.php');
                 <?php foreach ($messages as $msg): ?>
                     <li class="list-group-item <?php echo $msg['sender_id'] == $userId ? 'text-end' : ''; ?>">
                         <p><strong><?php echo htmlspecialchars($msg['sender_name']); ?>:</strong></p>
-                        <p><?php echo nl2br(htmlspecialchars($msg['message'])); ?></p>
+                        <p><?php echo nl2br(htmlspecialchars($msg['message_content'])); ?></p>
                         <small><?php echo date('d-m-Y H:i', strtotime($msg['created_at'])); ?></small>
                     </li>
                 <?php endforeach; ?>

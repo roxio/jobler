@@ -60,15 +60,22 @@ include('../partials/header.php');
                         <ul class="list-group">
                             <?php foreach ($responses as $response): ?>
                                 <li class="list-group-item">
-                                    <h5>Ogłoszenie: <?php echo htmlspecialchars($response['title']); ?></h5>
-                                    <p><strong>Wykonawca:</strong> <?php echo htmlspecialchars($response['executor_name']); ?></p>
-                                    <p><strong>Treść odpowiedzi:</strong> <?php echo nl2br(htmlspecialchars($response['message'])); ?></p>
-                                    <p>
-                                        <small>
-                                            <strong>Data odpowiedzi:</strong> <?php echo date('d-m-Y H:i', strtotime($response['created_at'])); ?>
-                                        </small>
-                                    </p>
-                                </li>
+    <h5>Ogłoszenie: <?php echo htmlspecialchars($response['title']); ?></h5>
+    <p><strong>Wykonawca:</strong> <?php echo htmlspecialchars($response['executor_name']); ?></p>
+    <p><strong>Treść odpowiedzi:</strong> <?php echo nl2br(htmlspecialchars($response['message'])); ?></p>
+    <p>
+        <small>
+            <strong>Data odpowiedzi:</strong> <?php echo date('d-m-Y H:i', strtotime($response['created_at'])); ?>
+        </small>
+    </p>
+    <?php if (isset($response['executor_id'])): ?>
+    <a href="../messages/conversation.php?job_id=<?php echo $response['job_id']; ?>&executor_id=<?php echo $response['executor_id']; ?>" class="btn btn-sm btn-primary">Przejdź do konwersacji</a>
+<?php else: ?>
+    <span class="text-danger">Brak wykonawcy</span>
+<?php endif; ?>
+
+</li>
+
                             <?php endforeach; ?>
                         </ul>
                     <?php endif; ?>

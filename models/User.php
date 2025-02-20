@@ -181,7 +181,9 @@ public function getAllUsers() {
             j.title AS title,
             r.message AS message,
             r.created_at AS created_at,
-            u.name AS executor_name
+            u.name AS executor_name,
+            r.executor_id AS executor_id, -- Dodane pole executor_id
+            j.id AS job_id -- Dla poprawnego przekierowania do konwersacji
         FROM 
             jobs j
         INNER JOIN 
@@ -194,12 +196,13 @@ public function getAllUsers() {
             r.created_at DESC
     ";
 
-   $stmt = $this->pdo->prepare($query);
+    $stmt = $this->pdo->prepare($query);
     $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
     $stmt->execute();
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 
 }
 ?>

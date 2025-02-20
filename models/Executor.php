@@ -85,7 +85,7 @@ public function getResponsesForUserJobs($userId) {
     }
 	// Responded offers obsługa
 	public function getRespondedJobs($executorId) {
-    $query = "SELECT jobs.title, jobs.description, responses.created_at AS response_date
+    $query = "SELECT jobs.id, jobs.title, jobs.description, responses.created_at AS response_date
               FROM jobs
               INNER JOIN responses ON jobs.id = responses.job_id
               WHERE responses.executor_id = :executor_id
@@ -97,6 +97,7 @@ public function getResponsesForUserJobs($userId) {
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 public function hasRespondedToJob($executorId, $jobId) {
     $query = "SELECT COUNT(*) FROM responses WHERE executor_id = :executor_id AND job_id = :job_id";
     $stmt = $this->pdo->prepare($query);

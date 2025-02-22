@@ -27,6 +27,13 @@ if ($jobId) {
 include '../partials/header.php';
 ?>
 
+<div class="container-fluid">
+    <div class="row">
+           <!-- Menu boczne -->
+        <?php include 'sidebar.php'; ?>
+
+        <!-- Główna zawartość -->
+        <div class="col-md-10 col-lg-10 main-content">
 <h1>Raporty</h1>
 
 <!-- Przyciski lub linki do generowania nowych raportów -->
@@ -83,7 +90,7 @@ include '../partials/header.php';
         </tbody>
     </table>
 <?php endif; ?>
-
+</div></div></div>
 <?php
 include '../partials/footer.php';
 ?>

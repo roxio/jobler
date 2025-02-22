@@ -84,7 +84,10 @@ public function getConversationById($conversationId)
 
     return $query->fetchAll(PDO::FETCH_ASSOC);
 }
-
+public function getAllConversations() {
+    $query = $this->pdo->query("SELECT DISTINCT conversation_id, job_id FROM messages ORDER BY created_at DESC");
+    return $query->fetchAll(PDO::FETCH_ASSOC);
+}
 
 
 

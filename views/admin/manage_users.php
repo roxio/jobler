@@ -10,7 +10,14 @@ $users = $userModel->getAllUsers();
 
 <?php include '../partials/header.php'; ?>
 
-<div class="container">
+
+<div class="container-fluid">
+    <div class="row">
+           <!-- Menu boczne -->
+        <?php include 'sidebar.php'; ?>
+
+        <!-- Główna zawartość -->
+        <div class="col-md-10 col-lg-10 main-content">
     <h1>Zarządzaj użytkownikami</h1>
 
     <!-- Wyświetlanie komunikatów o sukcesie lub błędzie -->
@@ -80,5 +87,5 @@ $users = $userModel->getAllUsers();
         <p>Brak użytkowników w systemie.</p>
     <?php endif; ?>
 </div>
-
+</div></div>
 <?php include '../partials/footer.php'; ?>

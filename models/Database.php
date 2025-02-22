@@ -1,34 +1,33 @@
 <?php
 
 class Database {
-    // Static variable to hold the PDO connection instance
-    private static $pdo;
+    private static $pdo;  // Statyczne połączenie z bazą danych
 
-    // Method to obtain a PDO connection. It creates a new connection if one doesn't exist.
+    // Metoda do uzyskiwania połączenia z bazą danych
     public static function getConnection() {
+        // Sprawdzenie, czy połączenie już istnieje
         if (self::$pdo == null) {
             try {
-                // Create a new PDO connection with the specified DSN, username, and password.
+                // Tworzenie połączenia z bazą danych
                 self::$pdo = new PDO(
-                    'mysql:host=localhost;dbname=jobler', // Change this to your database host and name
-                    'root', // Change this to your database username
-                    ''      // Change this to your database password
+                    'mysql:host=localhost;dbname=jobler',  // Zmień na swoje dane bazy
+                    'root',  // Zmień na swoją nazwę użytkownika
+                    ''   // Zmień na swoje hasło
                 );
-                // Set error mode to throw exceptions
+                // Ustawienie trybu błędów
                 self::$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                // Set default fetch mode to associative array
-                self::$pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+                self::$pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC); // Domyślny tryb pobierania danych
+
             } catch (PDOException $e) {
-                // Terminate the script and display an error message if the connection fails
+                // Zatrzymanie skryptu i wyświetlenie błędu w przypadku nieudanego połączenia
                 die("Connection failed: " . $e->getMessage());
             }
         }
 
-        // Return the PDO connection instance
-        return self::$pdo;
+        return self::$pdo;  // Zwrócenie instancji połączenia
     }
 
-    // Method to close the PDO connection (optional but useful)
+    // Zamykanie połączenia (opcjonalne, ale warto mieć)
     public static function closeConnection() {
         self::$pdo = null;
     }

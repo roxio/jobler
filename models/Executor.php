@@ -162,6 +162,16 @@ public function hasRespondedToJob($executorId, $jobId) {
         throw $e;
     }
 }
+// Pobieranie salda konta wykonawcy
+public function getExecutorBalance($executorId) {
+    $sql = "SELECT account_balance FROM users WHERE id = :executor_id";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':executor_id', $executorId, PDO::PARAM_INT);
+    $stmt->execute();
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result ? $result['account_balance'] : 0;
+}
+
 
 
 

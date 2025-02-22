@@ -10,13 +10,14 @@ class Job {
     }
 
     // Dodawanie nowego ogłoszenia
-    public function createJob($userId, $title, $description) {
-        $sql = "INSERT INTO jobs (user_id, title, description, status, created_at, updated_at) 
-                VALUES (:user_id, :title, :description, 'open', NOW(), NOW())";
+    public function createJob($userId, $title, $description, $pointsRequired) {
+        $sql = "INSERT INTO jobs (user_id, title, description, points_required, status, created_at, updated_at) 
+                VALUES (:user_id, :title, :description, :points_required, 'open', NOW(), NOW())";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':user_id', $userId);
         $stmt->bindParam(':title', $title);
         $stmt->bindParam(':description', $description);
+        $stmt->bindParam(':points_required', $pointsRequired, PDO::PARAM_INT);
         return $stmt->execute();
     }
 
@@ -42,11 +43,12 @@ class Job {
     }
 
     // Edytowanie ogłoszenia
-    public function updateJob($jobId, $title, $description, $status) {
-        $sql = "UPDATE jobs SET title = :title, description = :description, status = :status, updated_at = NOW() WHERE id = :job_id";
+    public function updateJob($jobId, $title, $description, $status, $pointsRequired) {
+        $sql = "UPDATE jobs SET title = :title, description = :description, points_required = :points_required, status = :status, updated_at = NOW() WHERE id = :job_id";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':title', $title);
         $stmt->bindParam(':description', $description);
+        $stmt->bindParam(':points_required', $pointsRequired, PDO::PARAM_INT);
         $stmt->bindParam(':status', $status);
         $stmt->bindParam(':job_id', $jobId);
         return $stmt->execute();

@@ -23,23 +23,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Pobierz dane z formularza
     $title = $_POST['title'];
     $description = $_POST['description'];
+    $pointsRequired = $_POST['points_required']; // Nowe pole na punkty
 
     // Sprawdź, czy wszystkie pola są wypełnione
-    if (empty($title) || empty($description)) {
+    if (empty($title) || empty($description) || empty($pointsRequired)) {
         $error = 'Wszystkie pola są wymagane.';
     } else {
-        // Pobierz ID użytkownika z sesji
-        $userId = $_SESSION['user_id'];
-
-        // Dodaj ogłoszenie do bazy danych
-        $result = $jobModel->createJob($userId, $title, $description);
-
-        if ($result) {
-            // Przekierowanie do panelu użytkownika po pomyślnym dodaniu ogłoszenia
-            header('Location: ../user/dashboard.php');
-            exit;
+        // Sprawdź, czy liczba punktów jest w poprawnym zakresie (1-10)
+        if ($pointsRequired < 1 || $pointsRequired > 10) {
+            $error = 'Liczba punktów musi być w zakresie od 1 do 10.';
         } else {
-            $error = 'Wystąpił błąd podczas dodawania ogłoszenia. Spróbuj ponownie.';
+            // Pobierz ID użytkownika z sesji
+            $userId = $_SESSION['user_id'];
+
+            // Dodaj ogłoszenie do bazy danych
+            $result = $jobModel->createJob($userId, $title, $description, $pointsRequired);
+
+            if ($result) {
+                // Przekierowanie do panelu użytkownika po pomyślnym dodaniu ogłoszenia
+                header('Location: ../user/dashboard.php');
+                exit;
+            } else {
+                $error = 'Wystąpił błąd podczas dodawania ogłoszenia. Spróbuj ponownie.';
+            }
         }
     }
 }
@@ -65,6 +71,10 @@ include('../partials/header.php');
         <div class="form-group">
             <label for="description">Opis ogłoszenia</label>
             <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="points_required">Wymagana liczba punktów dla wykonawcy</label>
+            <input type="number" class="form-control" id="points_required" name="points_required" min="1" max="10" value="1" required>
         </div>
         <button type="submit" class="btn btn-primary">Dodaj ogłoszenie</button>
     </form>

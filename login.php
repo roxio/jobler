@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_role'] = $loginResult['role']; // Rola użytkownika
             $_SESSION['user_email'] = $loginResult['email']; // Email użytkownika
             $_SESSION['user_name'] = $loginResult['name']; // Zapisz nazwę użytkownika w sesji
+			$_SESSION['user_account_balance'] = $loginResult['account_balance'];  //Stan konta zapisany w sesji
             
             header('Location: /'); // Przekierowanie na stronę główną po zalogowaniu
             exit;

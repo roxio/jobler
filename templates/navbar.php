@@ -67,6 +67,9 @@
             <a class="nav-link" href="/register.php">Zarejestruj się</a>
           </li>
         <?php endif; ?>
+		<?php if (isset($_SESSION['user_account_balance'])): ?>
+		<li class="nav-item"><a class="nav-link" href="/register.php">Stan konta: <?= $_SESSION['user_account_balance'] ?> punktów</a></li>
+<?php endif; ?>
       </ul>
     </div>
   </div>

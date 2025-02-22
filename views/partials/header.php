@@ -42,6 +42,9 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/logout.php">Wyloguj</a>
                 </li>
+				
+				
+
             </ul>
         </div>
     </div>

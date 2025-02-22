@@ -50,13 +50,16 @@ include '../partials/header.php';
                     <p class="mb-1"><?php echo nl2br(htmlspecialchars($job['description'])); ?></p>
                     <small>Data utworzenia: <?php echo date('d-m-Y', strtotime($job['created_at'])); ?></small>
                     <br>
+                    <!-- Wyświetlanie wymaganej liczby punktów -->
+                    <small>Wymagane punkty: <?php echo htmlspecialchars($job['points_required']); ?></small>
+                    <br>
                     <?php if ($conversationExists): ?>
-    <a href="../messages/conversation.php?conversation_id=<?php echo $responseStatus['conversation_id']; ?>" class="btn btn-secondary mt-2">Przejdź do konwersacji</a>
-<?php elseif ($hasResponded): ?>
-    <button class="btn btn-secondary mt-2" disabled>Odpowiedź wysłana</button>
-<?php else: ?>
-    <a href="respond_offer.php?job_id=<?php echo $job['id']; ?>" class="btn btn-primary mt-2">Odpowiedz na ofertę</a>
-<?php endif; ?>
+                        <a href="../messages/conversation.php?conversation_id=<?php echo $responseStatus['conversation_id']; ?>" class="btn btn-secondary mt-2">Przejdź do konwersacji</a>
+                    <?php elseif ($hasResponded): ?>
+                        <button class="btn btn-secondary mt-2" disabled>Odpowiedź wysłana</button>
+                    <?php else: ?>
+                        <a href="respond_offer.php?job_id=<?php echo $job['id']; ?>" class="btn btn-primary mt-2">Odpowiedz na ofertę</a>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>

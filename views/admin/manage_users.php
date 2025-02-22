@@ -20,14 +20,16 @@ $users = $userModel->getAllUsers();
         <div class="col-md-10 col-lg-10 main-content">
     <h1>Zarządzaj użytkownikami</h1>
 
-    <!-- Wyświetlanie komunikatów o sukcesie lub błędzie -->
-    <?php if (isset($_GET['status'])): ?>
-        <?php if ($_GET['status'] == 'deleted'): ?>
-            <div class="alert alert-success">Wybrani użytkownicy zostali pomyślnie usunięci.</div>
-        <?php elseif ($_GET['status'] == 'error'): ?>
-            <div class="alert alert-danger">Nie zaznaczono żadnych użytkowników do usunięcia.</div>
-        <?php endif; ?>
+<!-- Wyświetlanie komunikatów o sukcesie lub błędzie -->
+<?php if (isset($_GET['status'])): ?>
+    <?php if ($_GET['status'] == 'deleted'): ?>
+        <div class="alert alert-success">Wybrani użytkownicy zostali pomyślnie usunięci.</div>
+    <?php elseif ($_GET['status'] == 'activated'): ?>
+        <div class="alert alert-success">Konto użytkownika zostało pomyślnie aktywowane.</div>
+    <?php elseif ($_GET['status'] == 'error'): ?>
+        <div class="alert alert-danger">Wystąpił błąd. Spróbuj ponownie.</div>
     <?php endif; ?>
+<?php endif; ?>
 
     <!-- Formularz do usuwania wybranych użytkowników -->
     <form method="POST" action="../admin/delete_users.php">
@@ -72,8 +74,11 @@ $users = $userModel->getAllUsers();
                             <a href="../admin/delete_user.php?id=<?php echo $user['id']; ?>" class="btn btn-danger" onclick="return confirm('Na pewno chcesz usunąć tego użytkownika?')">Usuń</a>
                             <!-- Przycisk do dezaktywacji konta -->
                             <?php if ($user['status'] == 'active'): ?>
-                                <a href="../admin/deactivate_user.php?id=<?php echo $user['id']; ?>" class="btn btn-secondary" onclick="return confirm('Na pewno chcesz dezaktywować to konto?')">Dezaktywuj</a>
-                            <?php endif; ?>
+        <a href="../admin/deactivate_user.php?id=<?php echo $user['id']; ?>" class="btn btn-secondary" onclick="return confirm('Na pewno chcesz dezaktywować to konto?')">Dezaktywuj</a>
+    <?php else: ?>
+        <!-- Przycisk do aktywacji konta -->
+        <a href="../admin/activate_user.php?id=<?php echo $user['id']; ?>" class="btn btn-success" onclick="return confirm('Na pewno chcesz aktywować to konto?')">Aktywuj</a>
+    <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>

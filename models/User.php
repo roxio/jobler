@@ -49,31 +49,36 @@ class User {
     return ['error' => 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.'];
 }
 
-    // Logowanie użytkownika
-    public function login($email, $password) {
-        // Sprawdzanie, czy użytkownik istnieje
-        $sql = "SELECT * FROM users WHERE email = :email";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':email', $email);
+// Logowanie użytkownika
+public function login($email, $password) {
+    // Sprawdzanie, czy użytkownik istnieje
+    $sql = "SELECT * FROM users WHERE email = :email";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':email', $email);
 
-        if (!$stmt->execute()) {
-            // Jeśli wystąpił błąd w zapytaniu SQL
-            return false;
-        }
-
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($user && password_verify($password, $user['password'])) {
-            // Zaktualizowanie IP przy logowaniu
-            $lastLoginIp = $_SERVER['REMOTE_ADDR'];
-            $this->updateLastLoginIp($user['id'], $lastLoginIp);
-
-            // Zwrócenie danych użytkownika, jeśli logowanie się powiodło
-            return $user;
-        }
-
-        return false; // Zwrócenie false, jeśli logowanie nie powiodło się
+    if (!$stmt->execute()) {
+        // Jeśli wystąpił błąd w zapytaniu SQL
+        return false;
     }
+
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Sprawdzanie, czy konto jest aktywne
+    if ($user && $user['status'] !== 'active') {
+        return ['error' => 'Konto zostało zablokowane przez administratora.'];
+    }
+
+    if ($user && password_verify($password, $user['password'])) {
+        // Zaktualizowanie IP przy logowaniu
+        $lastLoginIp = $_SERVER['REMOTE_ADDR'];
+        $this->updateLastLoginIp($user['id'], $lastLoginIp);
+
+        // Zwrócenie danych użytkownika, jeśli logowanie się powiodło
+        return $user;
+    }
+
+    return false; // Zwrócenie false, jeśli logowanie nie powiodło się
+}
 
     // Sprawdzanie, czy użytkownik jest zalogowany
     public function isLoggedIn() {
@@ -164,6 +169,13 @@ public function getAllUsers() {
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
         return $stmt->execute();
     }
+	// Aktywuj użytkownika
+	public function activateUser($userId) {
+    $query = "UPDATE users SET status = 'active' WHERE id = :user_id AND status = 'inactive'";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    return $stmt->execute();
+}
 
     // Aktualizowanie adresu IP ostatniego logowania
     public function updateLastLoginIp($userId, $lastLoginIp) {

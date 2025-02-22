@@ -14,14 +14,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $loginResult = $user->login($email, $password);
 
     if ($loginResult !== false) {
-        // Jeśli logowanie się powiodło, zapisz dane użytkownika w sesji
-        $_SESSION['user_id'] = $loginResult['id']; // ID użytkownika
-        $_SESSION['user_role'] = $loginResult['role']; // Rola użytkownika
-        $_SESSION['user_email'] = $loginResult['email']; // Email użytkownika
-        $_SESSION['user_name'] = $loginResult['name']; // Zapisz nazwę użytkownika w sesji
-        
-        header('Location: /'); // Przekierowanie na stronę główną po zalogowaniu
-        exit;
+        // Sprawdzanie, czy konto jest aktywne
+        if (isset($loginResult['error'])) {
+            // Jeśli konto zostało zablokowane
+            $error = $loginResult['error'];
+        } else {
+            // Jeśli logowanie się powiodło, zapisz dane użytkownika w sesji
+            $_SESSION['user_id'] = $loginResult['id']; // ID użytkownika
+            $_SESSION['user_role'] = $loginResult['role']; // Rola użytkownika
+            $_SESSION['user_email'] = $loginResult['email']; // Email użytkownika
+            $_SESSION['user_name'] = $loginResult['name']; // Zapisz nazwę użytkownika w sesji
+            
+            header('Location: /'); // Przekierowanie na stronę główną po zalogowaniu
+            exit;
+        }
     } else {
         // Jeśli logowanie nie powiodło się
         $error = "Nieprawidłowy login lub hasło.";

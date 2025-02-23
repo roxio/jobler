@@ -154,5 +154,19 @@ public function getNewJobsPerDay() {
     return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 }
 
+//Musze tu posprzątać
+public function searchJobs($searchTerm) {
+    $sql = "SELECT id, title, description, status, created_at FROM jobs 
+            WHERE id LIKE :search OR title LIKE :search OR description LIKE :search 
+            ORDER BY created_at DESC";
+    
+    $stmt = $this->pdo->prepare($sql);
+    $likeTerm = "%".$searchTerm."%";
+    $stmt->bindParam(':search', $likeTerm, PDO::PARAM_STR);
+    $stmt->execute();
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 }
 ?>

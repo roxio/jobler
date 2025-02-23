@@ -88,7 +88,10 @@ public function getAllConversations() {
     $query = $this->pdo->query("SELECT DISTINCT conversation_id, job_id FROM messages ORDER BY created_at DESC");
     return $query->fetchAll(PDO::FETCH_ASSOC);
 }
-
+public function countConversations() {
+    $sql = "SELECT COUNT(DISTINCT conversation_id) AS total FROM messages";
+    return $this->pdo->query($sql)->fetchColumn();
+}
 
 
 }

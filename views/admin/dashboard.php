@@ -54,8 +54,7 @@ $pendingAlerts = [
     <h5 class="mb-1"><i class="bi bi-info-square"></i> Dashboard</h5>
 	</div>
                 <div class="card-body">
-				
-				 <!-- Alerty -->
+			
                             <?php if ($pendingAlerts['pending_changes'] > 0): ?>
                                 <div class="alert alert-warning">
                                     <strong>Uwaga!</strong> Masz oczekujące zmiany statusu konta: <?= $pendingAlerts['pending_changes']; ?>

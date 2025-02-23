@@ -147,5 +147,12 @@ class Job {
         $stmt->execute();
         return $stmt->fetchColumn();
     }
+	
+// Dla charts
+public function getNewJobsPerDay() {
+    $sql = "SELECT DATE(created_at) as date, COUNT(*) as count FROM jobs WHERE created_at > NOW() - INTERVAL 7 DAY GROUP BY DATE(created_at)";
+    return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+}
+
 }
 ?>

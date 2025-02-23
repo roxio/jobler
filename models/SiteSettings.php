@@ -78,5 +78,15 @@ class SiteSettings {
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute(['views' => $views]);
     }
+	
+	// Errors? Jakie errors?
+public function getSiteErrors() {
+        $query = "SELECT COUNT(*) AS error_count FROM system_logs WHERE log_level = 'ERROR'";
+        $stmt = $this->pdo->query($query); // Używamy query() do wykonania zapytania
+
+        // Zwrócenie wyniku z użyciem fetch(PDO::FETCH_ASSOC)
+        $row = $stmt->fetch(PDO::FETCH_ASSOC); // Poprawiona metoda
+        return $row['error_count'];
+    }	
 }
 ?>

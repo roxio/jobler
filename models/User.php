@@ -286,6 +286,11 @@ public function changeUserRole($user_id, $new_role) {
     $stmt = $this->pdo->prepare($query);
     return $stmt->execute([':new_role' => $new_role, ':user_id' => $user_id]);
 }
+// Dla charts
+public function getNewUsersPerDay() {
+    $sql = "SELECT DATE(created_at) as date, COUNT(*) as count FROM users WHERE created_at > NOW() - INTERVAL 7 DAY GROUP BY DATE(created_at)";
+    return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+}
 
 }
 ?>

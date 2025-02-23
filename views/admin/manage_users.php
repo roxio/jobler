@@ -25,27 +25,10 @@ $totalPages = ceil($total_users / $limit);
         <div class="col-md-12 col-lg-12 main-content">
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">🛠️ Admin Panel</h5>
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
 					<?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                     <nav class="nav">
-                        <a class="nav-link" href="dashboard.php">
-                            <i class="fas fa-tachometer-alt fa-lg"></i> Dashboard
-                        </a>
-                        <a class="nav-link" href="manage_users.php">
-                            <i class="fas fa-users fa-lg"></i> Użytkownicy
-                        </a>
-                        <a class="nav-link" href="manage_jobs.php">
-                            <i class="fas fa-briefcase fa-lg"></i> Ogłoszenia
-                        </a>
-                        <a class="nav-link" href="manage_conversations.php">
-                            <i class="fas fa-comments fa-lg"></i> Konwersacje
-                        </a>
-                        <a class="nav-link" href="site_settings.php">
-                            <i class="fas fa-cogs fa-lg"></i> Ustawienia
-                        </a>
-                        <a class="nav-link" href="reports.php">
-                            <i class="fas fa-chart-line fa-lg"></i> Raporty
-                        </a>
+					<?php include 'sidebar.php'; ?>
                     </nav>
 					<?php endif; ?>
                 </div>
@@ -72,7 +55,7 @@ $totalPages = ceil($total_users / $limit);
 
                     <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="mb-1">👥 Zarządzaj użytkownikami</h5>
+    <h5 class="mb-1"><i class="bi bi-people"></i> Zarządzaj użytkownikami</h5>
     <nav class="nav">
         <form method="GET" class="d-flex">
 		<div class="col-auto me-2 ">

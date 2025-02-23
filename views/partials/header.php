@@ -12,6 +12,7 @@
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Możesz dodać tutaj własne style CSS -->
     <link rel="stylesheet" href="../../css/style.css">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -84,9 +85,7 @@
   <button class="btn btn-light d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
     <i class="fas fa-bars"></i> Menu
 </button>
-
 </nav>
 <script src=".https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <div class="container mt-4">
 

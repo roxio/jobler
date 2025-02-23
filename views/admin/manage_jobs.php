@@ -1,4 +1,5 @@
 <?php
+session_start();
 include_once('../../models/Job.php');
 
 // Utwórz instancję klasy Job
@@ -12,11 +13,8 @@ $jobs = $jobModel->getAllJobs(); // Zakładam, że masz metodę getAllJobs() w m
 
 <div class="container-fluid">
     <div class="row">
-           <!-- Menu boczne -->
-        <?php include 'sidebar.php'; ?>
-
         <!-- Główna zawartość -->
-        <div class="col-md-10 col-lg-10 main-content">
+        <div class="col-md-12 col-lg-12 main-content">
     <h1>Zarządzaj ogłoszeniami</h1>
 
     <?php if (!empty($jobs)) : ?>

@@ -1,4 +1,5 @@
 <?php
+session_start();
 include_once('../../models/Report.php');
 include_once('../../models/Database.php');
 

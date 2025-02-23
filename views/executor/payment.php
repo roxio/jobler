@@ -10,22 +10,28 @@ if (!isset($_SESSION['user_id'])) {
 $executorId = $_SESSION['user_id'];
 $executor = new Executor();
 
-// Pobranie salda konta wykonawcy
-$executorBalance = $executor->getExecutorBalance($executorId);
+// Sprawdzenie, czy użytkownik ma rolę "executor"
+if (!$executor->isExecutor($executorId)) {
+    $error = "Niestety nie jesteś wykonawcą, nie możesz doładować konta i odpowiadać w ofertach innych uzytkowników. </br>
+              <a href='../../views/user/change_account.php' class='btn btn-link'>Zmień rodzaj konta</a>";
+} else {
+    // Pobranie salda konta wykonawcy
+    $executorBalance = $executor->getExecutorBalance($executorId);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $pointsToAdd = (int) $_POST['points'];
-    
-    // Sprawdzamy, czy użytkownik wybrał odpowiednią liczbę punktów (większą niż 0)
-    if ($pointsToAdd > 0) {
-        // Wartość do zapłaty (1 punkt = 1 zł)
-        $paymentAmount = $pointsToAdd;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $pointsToAdd = (int) $_POST['points'];
+        
+        // Sprawdzamy, czy użytkownik wybrał odpowiednią liczbę punktów (większą niż 0)
+        if ($pointsToAdd > 0) {
+            // Wartość do zapłaty (1 punkt = 1 zł)
+            $paymentAmount = $pointsToAdd;
 
-        // Przekierowanie do strony płatności PayPal z kwotą do zapłaty
-        header("Location: https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=TWÓJ_EMAIL_PAYPAL&item_name=Doładowanie konta wykonawcy&amount=$paymentAmount&currency_code=PLN&return=http://localhost/confirmation.php&cancel_return=http://localhost/cancel.php");
-        exit;
-    } else {
-        $error = "Wybierz liczbę punktów do doładowania.";
+            // Przekierowanie do strony płatności PayPal z kwotą do zapłaty
+            header("Location: https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=TWÓJ_EMAIL_PAYPAL&item_name=Doładowanie konta wykonawcy&amount=$paymentAmount&currency_code=PLN&return=http://localhost/confirmation.php&cancel_return=http://localhost/cancel.php");
+            exit;
+        } else {
+            $error = "Wybierz liczbę punktów do doładowania.";
+        }
     }
 }
 
@@ -37,17 +43,19 @@ include '../partials/header.php';
 
     <?php if (isset($error)): ?>
         <div class="alert alert-danger">
-            <?php echo htmlspecialchars($error); ?>
+            <?php echo $error; ?>
         </div>
     <?php endif; ?>
 
-    <form action="payment.php" method="POST">
-        <div class="mb-3">
-            <label for="points" class="form-label">Ilość punktów:</label>
-            <input type="number" name="points" id="points" class="form-control" min="1" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Przejdź do płatności</button>
-    </form>
+    <?php if (!isset($error)): ?>
+        <form action="payment.php" method="POST">
+            <div class="mb-3">
+                <label for="points" class="form-label">Ilość punktów:</label>
+                <input type="number" name="points" id="points" class="form-control" min="1" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Przejdź do płatności</button>
+        </form>
+    <?php endif; ?>
 </div>
 
 <?php include '../partials/footer.php'; ?>

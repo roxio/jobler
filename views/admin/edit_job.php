@@ -1,4 +1,5 @@
 <?php
+session_start();
 // Załaduj model Job
 include_once('../../models/Job.php');
 

@@ -1,4 +1,7 @@
 <?php
+// Rozpocznij sesję
+session_start();
+
 include_once('../../models/User.php');
 include_once('../../models/Job.php');
 include_once('../../models/SiteSettings.php');
@@ -9,27 +12,22 @@ $settingsModel = new SiteSettings();
 // Utwórz obiekty modelu
 $userModel = new User();
 $jobModel = new Job();
-//$settingsModel = new SiteSettings();
 
-// Pobierz liczbę użytkowników i ogłoszeń
+// Pobierz statystyki
 $userCount = $userModel->getUserCount();
 $jobCount = $jobModel->getJobCount();
-$newUsers = $userModel->getNewUsersCount(); // Nowi użytkownicy
-$newJobs = $jobModel->getNewJobsCount();   // Nowe ogłoszenia
-$siteViews = $settingsModel->getSiteViews(); // Wyświetlenia strony
-
+$newUsers = $userModel->getNewUsersCount();
+$newJobs = $jobModel->getNewJobsCount();
+$siteViews = $settingsModel->getSiteViews();
+$pendingChanges = $userModel->getPendingAccountChangesCount(); // Nowe zgłoszenia zmiany statusu konta
 ?>
 
 <?php include '../partials/header.php'; ?>
 
-
 <div class="container-fluid">
     <div class="row">
-        <!-- Menu boczne -->
-        <?php include 'sidebar.php'; ?>
-
         <!-- Główna zawartość -->
-        <div class="col-md-10 col-lg-10 main-content">
+        <div class="col-md-12 col-lg-12 main-content">
             <h1>Witaj w Panelu Administracyjnym</h1>
             <p>Wybierz sekcję z menu po lewej stronie, aby rozpocząć zarządzanie systemem.</p>
 
@@ -47,6 +45,14 @@ $siteViews = $settingsModel->getSiteViews(); // Wyświetlenia strony
                     <ul class="list-group">
                         <li class="list-group-item">Nowi użytkownicy: <strong><?php echo $newUsers; ?></strong></li>
                         <li class="list-group-item">Nowe ogłoszenia: <strong><?php echo $newJobs; ?></strong></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h3>Zgłoszenia</h3>
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            Zmiany statusu konta: <strong><?php echo $pendingChanges; ?></strong>
+                        </li>
                     </ul>
                 </div>
             </div>

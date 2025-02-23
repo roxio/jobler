@@ -1,4 +1,7 @@
-<?php include_once('../../models/SiteSettings.php');
+<?php 
+session_start();
+include_once('../../models/SiteSettings.php');
+
 $settingsModel = new SiteSettings();
 
 // Pobierz bieżące ustawienia strony
@@ -44,10 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container-fluid">
     <div class="row">
    <!-- Menu boczne -->
-        <?php include 'sidebar.php'; ?>
-
         <!-- Główna zawartość -->
-        <div class="col-md-10 col-lg-10 main-content">
+        <div class="col-md-12 col-lg-12 main-content">
             <!-- Ustawienia strony -->
             <div class="mt-4">
                 <h3>Ustawienia strony</h3>

@@ -1,4 +1,5 @@
 <?php
+session_start();
 include_once('../../models/Report.php');
 include_once('../../models/Database.php'); // Połączenie z bazą danych
 
@@ -29,11 +30,8 @@ include '../partials/header.php';
 
 <div class="container-fluid">
     <div class="row">
-           <!-- Menu boczne -->
-        <?php include 'sidebar.php'; ?>
-
         <!-- Główna zawartość -->
-        <div class="col-md-10 col-lg-10 main-content">
+        <div class="col-md-12 col-lg-12 main-content">
 <h1>Raporty</h1>
 
 <!-- Przyciski lub linki do generowania nowych raportów -->

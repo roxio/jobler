@@ -171,8 +171,15 @@ public function getExecutorBalance($executorId) {
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     return $result ? $result['account_balance'] : 0;
 }
+// Czy jestem wykonawcą
+public function isExecutor($userId) {
+    $query = "SELECT role FROM users WHERE id = ?";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->execute([$userId]);
+    $role = $stmt->fetchColumn();
 
-
+    return $role === 'executor';
+}
 
 
 

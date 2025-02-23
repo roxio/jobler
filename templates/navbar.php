@@ -41,10 +41,10 @@
         <!-- Logowanie/rejestracja lub wylogowanie -->
         <?php if (isset($_SESSION['user_id'])): ?>
           <li class="nav-item">
-            <a class="nav-link" href="views/user/dashboard.php">Dashboard</a>
+            <a class="nav-link" href="views/user/dashboard.php">Panel użytkownika</a>
           </li>
 
-          <?php if (isset($_SESSION['ole']) && $_SESSION['role'] === 'admin'): ?>
+          <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
             <li class="nav-item">
               <a class="nav-link" href="views/admin/dashboard.php">Panel Administracyjny</a>
             </li>
@@ -68,7 +68,7 @@
           </li>
         <?php endif; ?>
 		<?php if (isset($_SESSION['user_account_balance'])): ?>
-		<li class="nav-item"><a class="nav-link" href="/register.php">Stan konta: <?= $_SESSION['user_account_balance'] ?> punktów</a></li>
+		<li class="nav-item"><a class="nav-link" href="../../views/executor/payment.php">Stan konta: <?= $_SESSION['user_account_balance'] ?> punktów</a></li>
 <?php endif; ?>
       </ul>
     </div>
@@ -76,4 +76,4 @@
 </nav>
 
 <!-- Bootstrap JS Bundle (dla obsługi dropdown) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src=".https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

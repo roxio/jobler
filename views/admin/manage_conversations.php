@@ -1,4 +1,5 @@
 <?php
+session_start();
 include_once('../../models/Message.php');
 
 $messageModel = new Message();
@@ -11,11 +12,8 @@ $conversations = $messageModel->getAllConversations();
 
 <div class="container-fluid">
     <div class="row">
-           <!-- Menu boczne -->
-        <?php include 'sidebar.php'; ?>
-
         <!-- Główna zawartość -->
-        <div class="col-md-10 col-lg-10 main-content">
+        <div class="col-md-12 col-lg-12 main-content">
             <h1>Zarządzanie konwersacjami</h1>
 
             <!-- Lista konwersacji -->

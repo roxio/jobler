@@ -158,5 +158,3 @@ var newUsersChart = new Chart(ctx1, {
     </div>
 </div>
 <?php include '../partials/footer.php'; ?>
-
-<?php include '../partials/footer.php'; ?>

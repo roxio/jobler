@@ -19,44 +19,91 @@ if ($currentSettings === null) {
 // Obsługa formularza aktualizacji ustawień
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newTitle = $_POST['site_title'];
-    $newLogo = $_FILES['site_logo']['name'];
-    $categories = $_POST['categories'];
+    $newLogo = isset($_FILES['site_logo']['name']) ? $_FILES['site_logo']['name'] : null;
 
     // Aktualizacja tytułu strony
     $settingsModel->updateTitle($newTitle);
 
     // Aktualizacja logo (jeśli zostało przesłane)
-    if (!empty($newLogo)) {
-        $targetDir = "../../img/";
-        $targetFile = $targetDir . basename($newLogo);
-        move_uploaded_file($_FILES['site_logo']['tmp_name'], $targetFile);
+    if (!empty($newLogo) && isset($_FILES['site_logo']['tmp_name']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+    $targetDir = "../../img/";
+    $targetFile = $targetDir . basename($newLogo);
+    
+    if (move_uploaded_file($_FILES['site_logo']['tmp_name'], $targetFile)) {
         $settingsModel->updateLogo($newLogo);
+    } else {
+        $errorMessage = "Nie udało się przesłać pliku.";
     }
+}
 
     // Aktualizacja kategorii
-    $settingsModel->updateCategories($categories);
+
 
     // Odśwież dane
     $currentSettings = $settingsModel->getSettings();
     $successMessage = "Ustawienia zostały zaktualizowane!";
 }
+
+$allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+
+if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+    $fileType = mime_content_type($_FILES['site_logo']['tmp_name']);
+
+    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (in_array($fileType, $allowedTypes)) {
+        move_uploaded_file($_FILES['site_logo']['tmp_name'], $targetFile);
+        $settingsModel->updateLogo($newLogo);
+    } else {
+        echo "Nieprawidłowy format pliku!";
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
+    $name = $_POST['category_name'];
+    $parent_id = $_POST['parent_category'] ? (int) $_POST['parent_category'] : null;
+
+    if (!empty($name)) {
+        $settingsModel->addCategory($name, $parent_id);
+        $successMessage = "Dodano nową kategorię!";
+    } else {
+        $errorMessage = "Nazwa kategorii nie może być pusta!";
+    }
+}
+
 ?>
 
 <?php include '../partials/header.php'; ?>
 
 <div class="container-fluid">
     <div class="row">
-   <!-- Menu boczne -->
-        <!-- Główna zawartość -->
         <div class="col-md-12 col-lg-12 main-content">
-            <!-- Ustawienia strony -->
-            <div class="mt-4">
-                <h3>Ustawienia strony</h3>
+            <div class="card shadow">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
+					<?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                    <nav class="nav">
+					<?php include 'sidebar.php'; ?>
+                    </nav>
+					<?php endif; ?>
+                </div>
+
+                <div class="card-body">
+				
+				 <div class="card shadow">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-1"><i class="bi bi-info-square"></i> Ustawienia strony</h3></h5>
+	</div>
+                <div class="card-body">
+			
                 <?php if (isset($successMessage)): ?>
                     <div class="alert alert-success">
                         <?php echo $successMessage; ?>
                     </div>
                 <?php endif; ?>
+				
+				<div class="row">
+                <div class="col-md-4">
+				
                 <form method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="site_title" class="form-label">Tytuł strony</label>
@@ -73,22 +120,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <p>Brak logo</p>
                         <?php endif; ?>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="categories" class="form-label">Kategorie i podkategorie</label>
-                        <textarea name="categories" id="categories" class="form-control" rows="6"><?php echo htmlspecialchars(implode("\n", $currentSettings['categories'])); ?></textarea>
-                        <small class="text-muted">Wpisz kategorie oddzielone nową linią. Przykład:</small>
-                        <pre class="bg-light p-2 mt-2">Budowa domu
-- Elektryk
-- Hydraulik
-Meble i zabudowa</pre>
-                    </div>
-
-                    <button type="submit" class="btn btn-success">Zapisz zmiany</button>
+ <button type="submit" class="btn btn-success">Zapisz zmiany</button>
                 </form>
+				</div>
+				
+				
+                <div class="col-md-4">
+                 <?php $categories = $settingsModel->getCategories(); ?>
+<div class="mb-3">
+    <label class="form-label">Kategorie</label>
+    <ul>
+        <?php foreach ($categories as $catId => $category): ?>
+            <li><?php echo htmlspecialchars($category['name']); ?>
+                <?php if (!empty($category['subcategories'])): ?>
+                    <ul>
+                        <?php foreach ($category['subcategories'] as $sub): ?>
+                            <li><?php echo htmlspecialchars($sub['name']); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+</div>
+</div>
+<div class="col-md-4">
+<form method="POST">
+    <div class="mb-3">
+        <label for="category_name" class="form-label">Nazwa kategorii/podkategorii</label>
+        <input type="text" name="category_name" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="parent_category" class="form-label">Kategoria nadrzędna</label>
+        <select name="parent_category" class="form-control">
+            <option value="">Brak (główna kategoria)</option>
+            <?php foreach ($categories as $catId => $category): ?>
+                <option value="<?php echo $catId; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+
+    <button type="submit" name="add_category" class="btn btn-primary">Dodaj kategorię</button>
+</form>
+
             </div>
         </div>
     </div>
-</div>
 
+                        </div>
+                    </div>
+
+				
+        <div class="container">
+            <span class="text-muted">&copy; 2025 System Zleceń - Wszelkie prawa zastrzeżone.</span>
+        </div>
+  
+            </div>	
+        </div>
+    </div>
+</div>
 <?php include '../partials/footer.php'; ?>

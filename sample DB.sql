@@ -15,6 +15,26 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Struktura tabeli dla tabeli `categories`
+--
+
+CREATE TABLE `categories` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `parent_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `categories`
+--
+
+INSERT INTO `categories` (`id`, `name`, `parent_id`) VALUES
+(1, '1 master', NULL),
+(2, 'slave 1', 1);
+
+-- --------------------------------------------------------
+
+--
 -- Struktura tabeli dla tabeli `jobs`
 --
 
@@ -147,7 +167,7 @@ CREATE TABLE `site_settings` (
 --
 
 INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `created_at`, `updated_at`) VALUES
-(1, 'ggg', '1', 'test,', '2025-02-17 21:58:18', '2025-02-17 21:58:33');
+(1, '', '308877065_165788742779003_2444177740663714339_n.jpg', '', '2025-02-17 21:58:18', '2025-02-24 21:09:04');
 
 -- --------------------------------------------------------
 
@@ -238,6 +258,13 @@ CREATE TABLE `user_permissions` (
 --
 
 --
+-- Indeksy dla tabeli `categories`
+--
+ALTER TABLE `categories`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `parent_id` (`parent_id`);
+
+--
 -- Indeksy dla tabeli `jobs`
 --
 ALTER TABLE `jobs`
@@ -324,6 +351,12 @@ ALTER TABLE `user_permissions`
 --
 
 --
+-- AUTO_INCREMENT for table `categories`
+--
+ALTER TABLE `categories`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `jobs`
 --
 ALTER TABLE `jobs`
@@ -398,6 +431,12 @@ ALTER TABLE `user_permissions`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `categories`
+--
+ALTER TABLE `categories`
+  ADD CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`parent_id`) REFERENCES `categories` (`id`);
 
 --
 -- Constraints for table `jobs`

@@ -26,10 +26,16 @@ class SiteSettings {
     }
 
     // Aktualizacja tytułu strony
-    public function updateTitle($title) {
+public function updateTitle($title) {
+    try {
         $stmt = $this->pdo->prepare("UPDATE site_settings SET title = :title WHERE id = 1");
-        $stmt->execute(['title' => $title]);
+        $stmt->execute(['title' => htmlspecialchars(trim($title))]);
+    } catch (PDOException $e) {
+        error_log("Błąd aktualizacji tytułu: " . $e->getMessage());
+        return false;
     }
+    return true;
+}
 
     // Aktualizacja logo strony
     public function updateLogo($logo) {
@@ -88,5 +94,43 @@ public function getSiteErrors() {
         $row = $stmt->fetch(PDO::FETCH_ASSOC); // Poprawiona metoda
         return $row['error_count'];
     }	
+	// Kategorie lecą
+	public function getCategories() {
+    $stmt = $this->pdo->query("SELECT * FROM categories ORDER BY parent_id IS NULL DESC, parent_id, id");
+    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $structuredCategories = [];
+    foreach ($categories as $category) {
+        if ($category['parent_id'] === null) {
+            $structuredCategories[$category['id']] = [
+                'name' => $category['name'],
+                'subcategories' => []
+            ];
+        } else {
+            $structuredCategories[$category['parent_id']]['subcategories'][] = [
+                'id' => $category['id'],
+                'name' => $category['name']
+            ];
+        }
+    }
+
+    return $structuredCategories;
+}
+// Dodaj kategorię
+public function addCategory($name, $parent_id = null) {
+    $stmt = $this->pdo->prepare("INSERT INTO categories (name, parent_id) VALUES (:name, :parent_id)");
+    return $stmt->execute([
+        'name' => htmlspecialchars(trim($name)),
+        'parent_id' => $parent_id
+    ]);
+}
+// Usuń kategorię
+public function deleteCategory($id) {
+    $stmt = $this->pdo->prepare("DELETE FROM categories WHERE id = :id");
+    return $stmt->execute(['id' => $id]);
+}
+
+
+
 }
 ?>

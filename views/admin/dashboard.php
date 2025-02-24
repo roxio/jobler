@@ -30,8 +30,6 @@ $pendingAlerts = [
     'site_errors' => $settingsModel->getSiteErrors() // Załóżmy, że masz funkcję do pobierania błędów
 ];
 ?>
-
-
 <?php include '../partials/header.php'; ?>
 
 <div class="container-fluid">

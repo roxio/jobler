@@ -17,33 +17,6 @@ if ($currentSettings === null) {
 }
 
 // Obsługa formularza aktualizacji ustawień
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $newTitle = $_POST['site_title'];
-    $newLogo = isset($_FILES['site_logo']['name']) ? $_FILES['site_logo']['name'] : null;
-
-    // Aktualizacja tytułu strony
-    $settingsModel->updateTitle($newTitle);
-
-    // Aktualizacja logo (jeśli zostało przesłane)
-    if (!empty($newLogo) && isset($_FILES['site_logo']['tmp_name']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
-    $targetDir = "../../img/";
-    $targetFile = $targetDir . basename($newLogo);
-    
-    if (move_uploaded_file($_FILES['site_logo']['tmp_name'], $targetFile)) {
-        $settingsModel->updateLogo($newLogo);
-    } else {
-        $errorMessage = "Nie udało się przesłać pliku.";
-    }
-}
-
-    // Aktualizacja kategorii
-
-
-    // Odśwież dane
-    $currentSettings = $settingsModel->getSettings();
-    $successMessage = "Ustawienia zostały zaktualizowane!";
-}
-
 $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
 
 if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
@@ -58,15 +31,39 @@ if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
-    $name = $_POST['category_name'];
-    $parent_id = $_POST['parent_category'] ? (int) $_POST['parent_category'] : null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_type'])) {
+    if ($_POST['form_type'] === 'update_settings') {
+        $newTitle = isset($_POST['site_title']) ? $_POST['site_title'] : null;
+        $newLogo = isset($_FILES['site_logo']['name']) ? $_FILES['site_logo']['name'] : null;
+        
+        if ($newTitle) {
+            $settingsModel->updateTitle($newTitle);
+        }
 
-    if (!empty($name)) {
-        $settingsModel->addCategory($name, $parent_id);
-        $successMessage = "Dodano nową kategorię!";
-    } else {
-        $errorMessage = "Nazwa kategorii nie może być pusta!";
+        if (!empty($newLogo) && isset($_FILES['site_logo']['tmp_name']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+            $targetDir = "../../img/";
+            $targetFile = $targetDir . basename($newLogo);
+            
+            if (move_uploaded_file($_FILES['site_logo']['tmp_name'], $targetFile)) {
+                $settingsModel->updateLogo($newLogo);
+            } else {
+                $errorMessage = "Nie udało się przesłać pliku.";
+            }
+        }
+
+        $successMessage = "Ustawienia zostały zaktualizowane!";
+    }
+
+    if ($_POST['form_type'] === 'add_category') {
+        $name = isset($_POST['category_name']) ? $_POST['category_name'] : '';
+        $parent_id = isset($_POST['parent_category']) ? (int) $_POST['parent_category'] : null;
+
+        if (!empty($name)) {
+            $settingsModel->addCategory($name, $parent_id);
+            $successMessage = "Dodano nową kategorię!";
+        } else {
+            $errorMessage = "Nazwa kategorii nie może być pusta!";
+        }
     }
 }
 
@@ -105,6 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
                 <div class="col-md-4">
 				
                 <form method="POST" enctype="multipart/form-data">
+				<input type="hidden" name="form_type" value="update_settings">
                     <div class="mb-3">
                         <label for="site_title" class="form-label">Tytuł strony</label>
                         <input type="text" name="site_title" id="site_title" class="form-control" value="<?php echo htmlspecialchars($currentSettings['title']); ?>" required>
@@ -146,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
 </div>
 <div class="col-md-4">
 <form method="POST">
+<input type="hidden" name="form_type" value="add_category">
     <div class="mb-3">
         <label for="category_name" class="form-label">Nazwa kategorii/podkategorii</label>
         <input type="text" name="category_name" class="form-control" required>

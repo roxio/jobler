@@ -1,5 +1,4 @@
 <?php
-
 include_once('Database.php');
 
 class SiteSettings {
@@ -116,21 +115,38 @@ public function getSiteErrors() {
 
     return $structuredCategories;
 }
+
 // Dodaj kategorię
 public function addCategory($name, $parent_id = null) {
-    $stmt = $this->pdo->prepare("INSERT INTO categories (name, parent_id) VALUES (:name, :parent_id)");
-    return $stmt->execute([
-        'name' => htmlspecialchars(trim($name)),
-        'parent_id' => $parent_id
+    $db = $this->pdo;
+
+    // Jeśli `parent_id` to 0 lub pusty, ustaw na NULL
+    if (empty($parent_id) || $parent_id == 0) {
+        $parent_id = null;
+    } else {
+        // Sprawdzenie, czy podana kategoria nadrzędna istnieje
+        $stmt = $db->prepare("SELECT id FROM categories WHERE id = :parent_id");
+        $stmt->execute(['parent_id' => $parent_id]);
+        if ($stmt->rowCount() == 0) {
+            throw new Exception("Wybrana kategoria nadrzędna nie istnieje.");
+        }
+    }
+
+    // Dodanie nowej kategorii
+    $stmt = $db->prepare("INSERT INTO categories (name, parent_id) VALUES (:name, :parent_id)");
+    $stmt->execute([
+        'name' => $name,
+        'parent_id' => $parent_id // NULL jeśli główna, liczba jeśli podkategoria
     ]);
+
+    return $db->lastInsertId();
 }
+
 // Usuń kategorię
 public function deleteCategory($id) {
     $stmt = $this->pdo->prepare("DELETE FROM categories WHERE id = :id");
     return $stmt->execute(['id' => $id]);
 }
-
-
 
 }
 ?>

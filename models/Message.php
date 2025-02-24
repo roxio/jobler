@@ -84,15 +84,74 @@ public function getConversationById($conversationId)
 
     return $query->fetchAll(PDO::FETCH_ASSOC);
 }
-public function getAllConversations() {
-    $query = $this->pdo->query("SELECT DISTINCT conversation_id, job_id FROM messages ORDER BY created_at DESC");
-    return $query->fetchAll(PDO::FETCH_ASSOC);
-}
-public function countConversations() {
-    $sql = "SELECT COUNT(DISTINCT conversation_id) AS total FROM messages";
-    return $this->pdo->query($sql)->fetchColumn();
-}
+// Weź konwersacje
+    // Weź konwersacje z opcjonalnym filtrowaniem
+    public function getAllConversations($limit, $offset, $sortColumn, $sortOrder, $search = '') {
+        $sql = "
+            SELECT DISTINCT m.conversation_id, m.job_id, j.title, 
+                   (SELECT LEFT(content, 100) FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) AS latest_message
+            FROM messages m
+            LEFT JOIN jobs j ON m.job_id = j.id
+            WHERE 1
+        ";
 
+        // Filtrowanie po wyszukiwaniej, jeśli podano
+        if (!empty($search)) {
+            $sql .= " AND (m.job_id LIKE :search OR m.conversation_id LIKE :search OR j.title LIKE :search OR (SELECT LEFT(content, 100) FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) LIKE :search)";
+        }
+
+        $sql .= " ORDER BY m.created_at DESC
+                  LIMIT :limit OFFSET :offset";
+        
+        $query = $this->pdo->prepare($sql);
+
+        if (!empty($search)) {
+            $searchTerm = "%" . $search . "%";
+            $query->bindParam(':search', $searchTerm, PDO::PARAM_STR);
+        }
+        
+        $query->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $query->bindParam(':offset', $offset, PDO::PARAM_INT);
+        $query->execute();
+        
+        return $query->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Licz konwersacje
+    public function countConversations($search = '') {
+        $sql = "SELECT COUNT(DISTINCT conversation_id) AS total 
+                FROM messages m
+                LEFT JOIN jobs j ON m.job_id = j.id
+                WHERE 1";
+
+        if (!empty($search)) {
+            $sql .= " AND (m.job_id LIKE :search OR m.conversation_id LIKE :search OR j.title LIKE :search OR (SELECT LEFT(content, 100) FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) LIKE :search)";
+        }
+
+        $query = $this->pdo->prepare($sql);
+
+        if (!empty($search)) {
+            $searchTerm = "%" . $search . "%";
+            $query->bindParam(':search', $searchTerm, PDO::PARAM_STR);
+        }
+
+        return $query->execute() ? $query->fetchColumn() : 0;
+    }
+
+    // Usuwanie konwersacji
+    public function deleteConversations($conversationIds) {
+        try {
+            // Przygotowanie zapytania SQL do usunięcia wybranych konwersacji
+            $placeholders = rtrim(str_repeat('?,', count($conversationIds)), ',');  // Przygotowanie placeholderów dla zapytania
+            $sql = "DELETE FROM conversations WHERE conversation_id IN ($placeholders)";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($conversationIds);
+
+        } catch (PDOException $e) {
+            throw new Exception("Błąd bazy danych: " . $e->getMessage());
+        }
+    }
 
 }
 

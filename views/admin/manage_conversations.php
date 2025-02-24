@@ -11,9 +11,12 @@ $offset = ($page - 1) * $limit;
 $sortColumn = $_GET['sort'] ?? 'conversation_id';
 $sortOrder = $_GET['order'] ?? 'DESC';
 
-// Pobranie konwersacji
-$totalConversations = $messageModel->countConversations();
-$conversations = $messageModel->getAllConversations($limit, $offset, $sortColumn, $sortOrder);
+$search = $_GET['search'] ?? '';
+
+// Pobranie konwersacji z uwzględnieniem wyszukiwania
+$totalConversations = $messageModel->countConversations($search);
+$conversations = $messageModel->getAllConversations($limit, $offset, $sortColumn, $sortOrder, $search);
+
 $totalPages = ceil($totalConversations / $limit);
 ?>
 
@@ -31,9 +34,14 @@ $totalPages = ceil($totalConversations / $limit);
                     </nav>
 					<?php endif; ?>
                 </div>
-
+				<!--obsługa błędów-->
                 <div class="card-body">
-
+<?php if (isset($_SESSION['message'])): ?>
+    <div class="alert alert-<?= $_SESSION['message_type']; ?>" role="alert">
+        <?= $_SESSION['message']; ?>
+    </div>
+    <?php unset($_SESSION['message']); unset($_SESSION['message_type']); ?>
+<?php endif; ?>
 
                 <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
@@ -41,57 +49,84 @@ $totalPages = ceil($totalConversations / $limit);
     <nav class="nav">
                     <!-- Formularz sortowania i paginacji -->
                     <form method="GET" class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="d-flex">
-                            <select name="per_page" class="form-select form-select-sm me-2" onchange="this.form.submit()">
-                                <option value="10" <?= $limit == 10 ? 'selected' : ''; ?>>10</option>
-                                <option value="25" <?= $limit == 25 ? 'selected' : ''; ?>>25</option>
-                                <option value="50" <?= $limit == 50 ? 'selected' : ''; ?>>50</option>
-                            </select>
+    <div class="d-flex">
+        <!-- Pole wyszukiwania -->
+        <input type="text" name="search" class="form-control form-control-sm me-2" 
+               placeholder="Szukaj..." value="<?= htmlspecialchars($search ?? ''); ?>" 
+               onchange="this.form.submit()">
 
-                            <select name="sort" class="form-select form-select-sm me-2">
-                                <option value="job_id" <?= $sortColumn == 'job_id' ? 'selected' : ''; ?>>Job ID</option>
-                                <option value="conversation_id" <?= $sortColumn == 'conversation_id' ? 'selected' : ''; ?>>Conversation ID</option>
-                            </select>
+        <!-- Wybór liczby elementów na stronę -->
+        <select name="per_page" class="form-select form-select-sm me-1" onchange="this.form.submit()">
+            <option value="10" <?= $limit == 10 ? 'selected' : ''; ?>>10</option>
+            <option value="25" <?= $limit == 25 ? 'selected' : ''; ?>>25</option>
+            <option value="50" <?= $limit == 50 ? 'selected' : ''; ?>>50</option>
+        </select>
 
-                            <select name="order" class="form-select form-select-sm me-2">
-                                <option value="ASC" <?= $sortOrder == 'ASC' ? 'selected' : ''; ?>>Rosnąco</option>
-                                <option value="DESC" <?= $sortOrder == 'DESC' ? 'selected' : ''; ?>>Malejąco</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm">🔍</button>
-                    </form>
+        <!-- Wybór kolumny do sortowania -->
+        <select name="sort" class="form-select form-select-sm me-1">
+            <option value="job_id" <?= $sortColumn == 'job_id' ? 'selected' : ''; ?>>Job ID</option>
+            <option value="conversation_id" <?= $sortColumn == 'conversation_id' ? 'selected' : ''; ?>>Conversation ID</option>
+        </select>
+
+        <!-- Wybór porządku sortowania -->
+        <select name="order" class="form-select form-select-sm me-1">
+            <option value="ASC" <?= $sortOrder == 'ASC' ? 'selected' : ''; ?>>Rosnąco</option>
+            <option value="DESC" <?= $sortOrder == 'DESC' ? 'selected' : ''; ?>>Malejąco</option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">🔍</button>
+</form>
+
  </nav>
 </div>
                 <div class="card-body">
                     <!-- Tabela konwersacji -->
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Job ID</th>
-                                    <th>Conversation ID</th>
-                                    <th>Podgląd</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($conversations as $conv) : ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($conv['job_id']); ?></td>
-                                        <td><?php echo htmlspecialchars($conv['conversation_id']); ?></td>
-                                        <td>
-                                            <a href="?conversation_id=<?php echo $conv['conversation_id']; ?>" class="btn btn-primary btn-sm">
-                                                <i class="bi bi-eye"></i> Podgląd
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
+<form method="POST" action="delete_conversations.php">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+          <thead class="table-light">
+    <tr>
+        <th style="width: 1%"><input type="checkbox" id="select-all"></th>
+        <th style="width: 5%">Job</th>
+        <th style="width: 5%">ID</th>
+        <th style="width: 40%">Temat</th> 
+        <th style="width: 40%">Najnowsza wiadomość</th>
+        <th style="width: 10%">Podgląd</th>
+    </tr>
+</thead>
+<tbody>
+    <?php foreach ($conversations as $conv) : ?>
+        <tr>
+            <td><input type="checkbox" name="conversation_ids[]" value="<?= $conv['conversation_id']; ?>"></td>
+            <td><?php echo htmlspecialchars($conv['job_id']); ?></td>
+            <td><?php echo htmlspecialchars($conv['conversation_id']); ?></td>
+            <td><?php echo htmlspecialchars($conv['title']); ?></td>
+            <td><?php echo htmlspecialchars($conv['latest_message']); ?></td> <!-- Wyświetlenie najnowszej wiadomości -->
+            <td>
+                <button type="button" class="btn btn-primary btn-sm view-conversation" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#conversationModal" 
+                        data-conversation-id="<?= htmlspecialchars($conv['conversation_id']); ?>">
+                    <i class="bi bi-eye"></i> Podgląd
+                </button>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+</tbody>
+
+        </table>
+    </div>
+
+
+
+    <!-- Przycisk usuwania -->
+    <div class="d-flex justify-content-between align-items-center">
+        <button type="submit" class="btn btn-danger btn-sm">Usuń zaznaczone</button>
+</form>
+
 
                     <!-- Paginacja -->
-                       <div class="d-flex justify-content-between align-items-center">
-                                    <button type="submit" class="btn btn-danger btn-sm">Usuń zaznaczone</button>
+                   
                                     <div>
                                         <nav aria-label="Page navigation">
                                             <ul class="pagination">
@@ -112,7 +147,7 @@ $totalPages = ceil($totalConversations / $limit);
                                 </div>
                             </form>
                         </div>
-</div></div>
+</div></div></div>
 
 				
         <div class="container">
@@ -147,6 +182,56 @@ $totalPages = ceil($totalConversations / $limit);
                     </div>
                 </div>
             <?php endif; ?>
+			
+			<div class="modal fade" id="conversationModal" tabindex="-1" aria-labelledby="conversationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="conversationModalLabel">Podgląd Konwersacji</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="conversationContent">
+                    <p class="text-muted">Ładowanie wiadomości...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".view-conversation").forEach(button => {
+        button.addEventListener("click", function () {
+            let conversationId = this.getAttribute("data-conversation-id");
+            let modalContent = document.getElementById("conversationContent");
+
+            // Pokazanie komunikatu o ładowaniu
+            modalContent.innerHTML = '<p class="text-muted">Ładowanie wiadomości...</p>';
+
+            // Wysyłanie żądania AJAX do pobrania wiadomości
+            fetch("load_conversation.php?conversation_id=" + conversationId)
+                .then(response => response.text())
+                .then(data => {
+                    modalContent.innerHTML = data;
+                })
+                .catch(error => {
+                    modalContent.innerHTML = '<p class="text-danger">Błąd podczas ładowania wiadomości.</p>';
+                });
+        });
+    });
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Zaznaczanie/odznaczanie wszystkich checkboxów
+    document.getElementById("select-all").addEventListener("change", function () {
+        const checkboxes = document.querySelectorAll('input[name="conversation_ids[]"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+});
+</script>
 
 
 

@@ -15,6 +15,39 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Struktura tabeli dla tabeli `admin_login_history`
+--
+
+CREATE TABLE `admin_login_history` (
+  `id` int(11) NOT NULL,
+  `admin_id` int(11) DEFAULT NULL,
+  `ip_address` varchar(50) DEFAULT NULL,
+  `login_time` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `admin_login_history`
+--
+
+INSERT INTO `admin_login_history` (`id`, `admin_id`, `ip_address`, `login_time`) VALUES
+(1, 4, '127.0.0.1', '2025-02-25 20:57:59'),
+(2, 4, '127.0.0.1', '2025-02-25 20:58:18'),
+(3, 4, '127.0.0.1', '2025-02-25 20:59:38'),
+(4, 4, '127.0.0.1', '2025-02-25 21:05:48'),
+(5, 4, '127.0.0.1', '2025-02-25 21:24:51'),
+(6, 4, '127.0.0.1', '2025-02-25 21:26:08'),
+(7, 4, '127.0.0.1', '2025-02-25 21:26:42'),
+(8, 4, '127.0.0.1', '2025-02-25 21:28:41'),
+(9, 4, '127.0.0.1', '2025-02-25 21:28:43'),
+(10, 4, '127.0.0.1', '2025-02-25 21:31:54'),
+(11, 4, '127.0.0.1', '2025-02-25 21:32:44'),
+(12, 4, '127.0.0.1', '2025-02-25 21:33:36'),
+(13, 4, '127.0.0.1', '2025-02-25 21:35:06'),
+(14, 4, '127.0.0.1', '2025-02-25 21:37:21');
+
+-- --------------------------------------------------------
+
+--
 -- Struktura tabeli dla tabeli `categories`
 --
 
@@ -30,7 +63,14 @@ CREATE TABLE `categories` (
 
 INSERT INTO `categories` (`id`, `name`, `parent_id`) VALUES
 (1, '1 master', NULL),
-(2, 'slave 1', 1);
+(2, 'slave 1', 1),
+(3, 'slave 2', 1),
+(4, 'khhjk', NULL),
+(7, '123', 1),
+(8, 'test', NULL),
+(9, 'nadrzedna', NULL),
+(10, 'pod', 9),
+(11, 'pod', 4);
 
 -- --------------------------------------------------------
 
@@ -150,6 +190,30 @@ INSERT INTO `responses` (`id`, `job_id`, `executor_id`, `message`, `created_at`)
 -- --------------------------------------------------------
 
 --
+-- Struktura tabeli dla tabeli `settings_log`
+--
+
+CREATE TABLE `settings_log` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `change_description` text NOT NULL,
+  `timestamp` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `settings_log`
+--
+
+INSERT INTO `settings_log` (`id`, `user_id`, `change_description`, `timestamp`) VALUES
+(1, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:28:43'),
+(2, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:31:54'),
+(3, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:32:44'),
+(4, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:33:36'),
+(5, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:35:06');
+
+-- --------------------------------------------------------
+
+--
 -- Struktura tabeli dla tabeli `site_settings`
 --
 
@@ -159,15 +223,20 @@ CREATE TABLE `site_settings` (
   `logo` varchar(255) NOT NULL,
   `categories` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `allow_registration` tinyint(1) NOT NULL DEFAULT 0,
+  `smtp_server` varchar(255) DEFAULT NULL,
+  `smtp_port` int(11) DEFAULT NULL,
+  `smtp_username` varchar(255) DEFAULT NULL,
+  `smtp_password` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `site_settings`
 --
 
-INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `created_at`, `updated_at`) VALUES
-(1, '', '308877065_165788742779003_2444177740663714339_n.jpg', '', '2025-02-17 21:58:18', '2025-02-24 21:09:04');
+INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `created_at`, `updated_at`, `allow_registration`, `smtp_server`, `smtp_port`, `smtp_username`, `smtp_password`) VALUES
+(1, 'aaaaaaaaaaaaaaaaa', '308877065_165788742779003_2444177740663714339_n.jpg', '', '2025-02-17 21:58:18', '2025-02-25 21:36:54', 0, 'smtp.example.com', 25, 'user', 'password');
 
 -- --------------------------------------------------------
 
@@ -189,8 +258,22 @@ CREATE TABLE `site_stats` (
 
 CREATE TABLE `system_logs` (
   `id` int(11) NOT NULL,
-  `message` text NOT NULL,
-  `log_level` enum('ERROR','WARNING','INFO') NOT NULL,
+  `log_level` varchar(50) DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
+  `error_time` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `transaction_history`
+--
+
+CREATE TABLE `transaction_history` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `amount` decimal(10,2) DEFAULT NULL,
+  `description` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -258,6 +341,12 @@ CREATE TABLE `user_permissions` (
 --
 
 --
+-- Indeksy dla tabeli `admin_login_history`
+--
+ALTER TABLE `admin_login_history`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indeksy dla tabeli `categories`
 --
 ALTER TABLE `categories`
@@ -308,6 +397,13 @@ ALTER TABLE `responses`
   ADD KEY `executor_id` (`executor_id`);
 
 --
+-- Indeksy dla tabeli `settings_log`
+--
+ALTER TABLE `settings_log`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- Indeksy dla tabeli `site_settings`
 --
 ALTER TABLE `site_settings`
@@ -323,6 +419,12 @@ ALTER TABLE `site_stats`
 -- Indeksy dla tabeli `system_logs`
 --
 ALTER TABLE `system_logs`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indeksy dla tabeli `transaction_history`
+--
+ALTER TABLE `transaction_history`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -351,10 +453,16 @@ ALTER TABLE `user_permissions`
 --
 
 --
+-- AUTO_INCREMENT for table `admin_login_history`
+--
+ALTER TABLE `admin_login_history`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+
+--
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `jobs`
@@ -393,6 +501,12 @@ ALTER TABLE `responses`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
+-- AUTO_INCREMENT for table `settings_log`
+--
+ALTER TABLE `settings_log`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT for table `site_settings`
 --
 ALTER TABLE `site_settings`
@@ -408,6 +522,12 @@ ALTER TABLE `site_stats`
 -- AUTO_INCREMENT for table `system_logs`
 --
 ALTER TABLE `system_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `transaction_history`
+--
+ALTER TABLE `transaction_history`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -469,6 +589,12 @@ ALTER TABLE `payment_reports`
 ALTER TABLE `responses`
   ADD CONSTRAINT `responses_ibfk_1` FOREIGN KEY (`job_id`) REFERENCES `jobs` (`id`),
   ADD CONSTRAINT `responses_ibfk_2` FOREIGN KEY (`executor_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `settings_log`
+--
+ALTER TABLE `settings_log`
+  ADD CONSTRAINT `settings_log_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `user_activity_reports`

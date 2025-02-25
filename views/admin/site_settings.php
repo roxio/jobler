@@ -132,23 +132,45 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
 
                                         <div class="mb-3">
                                             <label for="meta_description" class="form-label">Opis strony (Meta Description)</label>
-                                            <textarea name="meta_description" class="form-control"><?php echo htmlspecialchars($currentSettings['meta_description']); ?></textarea>
+                                            <textarea name="meta_description" class="form-control"><?php echo htmlspecialchars($currentSettings['meta_description'] ?? ''); ?></textarea>
                                         </div>
 
                                         <div class="mb-3">
                                             <label for="meta_keywords" class="form-label">Słowa kluczowe (Meta Keywords)</label>
-                                            <textarea name="meta_keywords" class="form-control"><?php echo htmlspecialchars($currentSettings['meta_keywords']); ?></textarea>
+                                            <textarea name="meta_keywords" class="form-control"><?php echo htmlspecialchars($currentSettings['meta_keywords'] ?? ''); ?></textarea>
                                         </div>
 
-                                        <div class="mb-3">
-                                            <label for="max_ads" class="form-label">Maksymalna liczba ogłoszeń na użytkownika</label>
-                                            <input type="number" name="max_ads" class="form-control" value="<?php echo $currentSettings['max_ads']; ?>">
-                                        </div>
+                                       <div class="mb-3">
+										<label for="max_ads" class="form-label">Maksymalna liczba ogłoszeń na użytkownika</label>
+										<input type="number" name="max_ads" class="form-control" value="<?php echo $currentSettings['max_ads'] ?? 10; ?>"> <!-- Domyślna wartość 10 -->
+										</div>
 
                                         <div class="mb-3">
                                             <label for="promotion_fee" class="form-label">Opłata za promowanie ogłoszeń (w PLN)</label>
-                                            <input type="number" step="0.01" name="promotion_fee" class="form-control" value="<?php echo $currentSettings['promotion_fee']; ?>">
+                                            <input type="number" step="0.01" name="promotion_fee" class="form-control" value="<?php echo $currentSettings['promotion_fee'] ?? 10; ?>">
                                         </div>
+										
+<div class="mb-3">
+    <label for="smtp_server" class="form-label">Serwer SMTP</label>
+    <input type="text" name="smtp_server" id="smtp_server" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_server'] ?? ''); ?>" required>
+</div>
+
+<div class="mb-3">
+    <label for="smtp_port" class="form-label">Port SMTP</label>
+    <input type="text" name="smtp_port" id="smtp_port" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_port'] ?? ''); ?>" required>
+</div>
+
+<div class="mb-3">
+    <label for="smtp_username" class="form-label">Nazwa użytkownika SMTP</label>
+    <input type="text" name="smtp_username" id="smtp_username" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_username'] ?? ''); ?>" required>
+</div>
+
+<div class="mb-3">
+    <label for="smtp_password" class="form-label">Hasło SMTP</label>
+    <input type="password" name="smtp_password" id="smtp_password" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_password'] ?? ''); ?>" required>
+</div>
+
+
 
                                         <button type="submit" class="btn btn-success">Zapisz zmiany</button>
                                     </form>

@@ -96,5 +96,32 @@ class SiteSettings {
         }
         return $structuredCategories;
     }
+	// Logi settings
+	   public function logSettingsChange($userId, $changeDescription, $timestamp) {
+        $query = "INSERT INTO settings_log (user_id, change_description, timestamp) VALUES (:user_id, :change_description, :timestamp)";
+        $stmt = $this->pdo->prepare($query);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->bindParam(':change_description', $changeDescription);
+        $stmt->bindParam(':timestamp', $timestamp);
+        $stmt->execute();
+    }
+	// SMTP update setting
+public function updateSMTPSettings($smtpServer, $smtpPort, $smtpUsername, $smtpPassword) {
+    $sql = "UPDATE site_settings 
+            SET smtp_server = :smtp_server, 
+                smtp_port = :smtp_port, 
+                smtp_username = :smtp_username, 
+                smtp_password = :smtp_password 
+            WHERE id = 1";
+    
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':smtp_server', $smtpServer);
+    $stmt->bindParam(':smtp_port', $smtpPort);
+    $stmt->bindParam(':smtp_username', $smtpUsername);
+    $stmt->bindParam(':smtp_password', $smtpPassword);
+    
+    return $stmt->execute();
+}
+
 }
 ?>

@@ -13,9 +13,8 @@ class SiteSettings {
         $query = $this->pdo->query("SELECT * FROM site_settings LIMIT 1");
         $result = $query->fetch(PDO::FETCH_ASSOC);
 
-        // Dodajemy sprawdzenie, czy wynik jest prawidłowy
         if ($result === false) {
-            return null;  // Zwracamy null lub pustą tablicę, w zależności od tego, jak chcesz obsługiwać ten przypadek
+            return null;  
         }
 
         if (isset($result['categories'])) {
@@ -24,129 +23,78 @@ class SiteSettings {
         return $result;
     }
 
-    // Aktualizacja tytułu strony
-public function updateTitle($title) {
-    try {
-        $stmt = $this->pdo->prepare("UPDATE site_settings SET title = :title WHERE id = 1");
-        $stmt->execute(['title' => htmlspecialchars(trim($title))]);
-    } catch (PDOException $e) {
-        error_log("Błąd aktualizacji tytułu: " . $e->getMessage());
-        return false;
-    }
-    return true;
-}
-
-    // Aktualizacja logo strony
-    public function updateLogo($logo) {
-        $stmt = $this->pdo->prepare("UPDATE site_settings SET logo = :logo WHERE id = 1");
-        $stmt->execute(['logo' => $logo]);
+    // Funkcja do monitorowania błędów
+    public function getSiteErrors() {
+        $query = "SELECT COUNT(*) AS error_count FROM system_logs WHERE log_level = 'ERROR'";
+        $stmt = $this->pdo->query($query);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row['error_count'];
     }
 
-    // Aktualizacja kategorii
-    public function updateCategories($categories) {
-        // Zamiana wierszy na ciąg tekstowy oddzielony przecinkami
-        $categoriesString = implode(',', array_map('trim', explode("\n", $categories)));
-        $stmt = $this->pdo->prepare("UPDATE site_settings SET categories = :categories WHERE id = 1");
-        $stmt->execute(['categories' => $categoriesString]);
+    // Funkcja do logowania transakcji płatniczych
+    public function logTransaction($userId, $amount, $description) {
+        $stmt = $this->pdo->prepare("INSERT INTO transaction_history (user_id, amount, description, created_at) VALUES (:user_id, :amount, :description, NOW())");
+        $stmt->execute([
+            'user_id' => $userId,
+            'amount' => $amount,
+            'description' => $description
+        ]);
     }
 
-    // Pobranie liczby ustawień
-    public function getSettingCount() {
-        $sql = "SELECT COUNT(*) FROM site_settings";
-        $stmt = $this->pdo->query($sql);
-        return $stmt->fetchColumn();
-    }
-
-    // Aktualizacja wszystkich ustawień w jednym wywołaniu
-    public function updateAllSettings($title, $logo, $categories) {
-        $categoriesString = implode(',', array_map('trim', explode("\n", $categories)));
-
-        $stmt = $this->pdo->prepare("UPDATE site_settings SET title = :title, logo = :logo, categories = :categories WHERE id = 1");
-        return $stmt->execute([
-            'title' => $title,
-            'logo' => $logo,
-            'categories' => $categoriesString
+    // Funkcja do logowania logowań administratorów
+    public function logAdminLogin($adminId, $ipAddress) {
+        $stmt = $this->pdo->prepare("INSERT INTO admin_login_history (admin_id, ip_address, login_time) VALUES (:admin_id, :ip_address, NOW())");
+        $stmt->execute([
+            'admin_id' => $adminId,
+            'ip_address' => $ipAddress
         ]);
     }
 
     // Pobieranie liczby odwiedzin strony
     public function getSiteViews() {
-        $sql = "SELECT views FROM site_stats LIMIT 1"; // Zakładamy, że tabela site_stats przechowuje liczbę odwiedzin
+        $sql = "SELECT views FROM site_stats LIMIT 1"; 
         $stmt = $this->pdo->query($sql);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? (int) $result['views'] : 0; // Zwraca liczbę odwiedzin lub 0, jeśli brak danych
+        return $result ? (int) $result['views'] : 0;
     }
 
     // Aktualizacja liczby odwiedzin strony
     public function updateSiteViews($views) {
-        $sql = "UPDATE site_stats SET views = :views WHERE id = 1"; // Zakładamy, że tabela ma jedno stałe ID
+        $sql = "UPDATE site_stats SET views = :views WHERE id = 1";
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute(['views' => $views]);
     }
-	
-	// Errors? Jakie errors?
-public function getSiteErrors() {
-        $query = "SELECT COUNT(*) AS error_count FROM system_logs WHERE log_level = 'ERROR'";
-        $stmt = $this->pdo->query($query); // Używamy query() do wykonania zapytania
 
-        // Zwrócenie wyniku z użyciem fetch(PDO::FETCH_ASSOC)
-        $row = $stmt->fetch(PDO::FETCH_ASSOC); // Poprawiona metoda
-        return $row['error_count'];
-    }	
-	// Kategorie lecą
-	public function getCategories() {
-    $stmt = $this->pdo->query("SELECT * FROM categories ORDER BY parent_id IS NULL DESC, parent_id, id");
-    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $structuredCategories = [];
-    foreach ($categories as $category) {
-        if ($category['parent_id'] === null) {
-            $structuredCategories[$category['id']] = [
-                'name' => $category['name'],
-                'subcategories' => []
-            ];
-        } else {
-            $structuredCategories[$category['parent_id']]['subcategories'][] = [
-                'id' => $category['id'],
-                'name' => $category['name']
-            ];
-        }
+    // Funkcja do dodania kategorii
+    public function addCategory($name, $parent_id = null) {
+        $stmt = $this->pdo->prepare("INSERT INTO categories (name, parent_id) VALUES (:name, :parent_id)");
+        $stmt->execute([
+            'name' => $name,
+            'parent_id' => $parent_id
+        ]);
+        return $this->pdo->lastInsertId();
     }
 
-    return $structuredCategories;
-}
+    // Funkcja do pobierania kategorii
+    public function getCategories() {
+        $stmt = $this->pdo->query("SELECT * FROM categories ORDER BY parent_id IS NULL DESC, parent_id, id");
+        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Dodaj kategorię
-public function addCategory($name, $parent_id = null) {
-    $db = $this->pdo;
-
-    // Jeśli `parent_id` to 0 lub pusty, ustaw na NULL
-    if (empty($parent_id) || $parent_id == 0) {
-        $parent_id = null;
-    } else {
-        // Sprawdzenie, czy podana kategoria nadrzędna istnieje
-        $stmt = $db->prepare("SELECT id FROM categories WHERE id = :parent_id");
-        $stmt->execute(['parent_id' => $parent_id]);
-        if ($stmt->rowCount() == 0) {
-            throw new Exception("Wybrana kategoria nadrzędna nie istnieje.");
+        $structuredCategories = [];
+        foreach ($categories as $category) {
+            if ($category['parent_id'] === null) {
+                $structuredCategories[$category['id']] = [
+                    'name' => $category['name'],
+                    'subcategories' => []
+                ];
+            } else {
+                $structuredCategories[$category['parent_id']]['subcategories'][] = [
+                    'id' => $category['id'],
+                    'name' => $category['name']
+                ];
+            }
         }
+        return $structuredCategories;
     }
-
-    // Dodanie nowej kategorii
-    $stmt = $db->prepare("INSERT INTO categories (name, parent_id) VALUES (:name, :parent_id)");
-    $stmt->execute([
-        'name' => $name,
-        'parent_id' => $parent_id // NULL jeśli główna, liczba jeśli podkategoria
-    ]);
-
-    return $db->lastInsertId();
-}
-
-// Usuń kategorię
-public function deleteCategory($id) {
-    $stmt = $this->pdo->prepare("DELETE FROM categories WHERE id = :id");
-    return $stmt->execute(['id' => $id]);
-}
-
 }
 ?>

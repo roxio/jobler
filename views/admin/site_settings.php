@@ -1,72 +1,80 @@
 <?php 
 session_start();
+include_once('../../models/Database.php'); // Połączenie z bazą danych
 include_once('../../models/SiteSettings.php');
+include_once('../../models/ErrorLogs.php');
+include_once('../../models/TransactionHistory.php');
+include_once('../../models/LoginHistory.php');
 
-$settingsModel = new SiteSettings();
+// Uzyskanie połączenia z bazą danych
+$pdo = Database::getConnection();
+
+// Tworzenie instancji modeli z połączeniem PDO
+$settingsModel = new SiteSettings($pdo);
+$errorLogsModel = new ErrorLogs($pdo); // Przekazanie PDO do klasy ErrorLogs
+$transactionHistoryModel = new TransactionHistory($pdo); // Przekazanie PDO do klasy TransactionHistory
+$loginHistoryModel = new LoginHistory($pdo); // Przekazanie PDO do klasy LoginHistory
 
 // Pobierz bieżące ustawienia strony
 $currentSettings = $settingsModel->getSettings();
 
-// Sprawdzenie, czy ustawienia zostały poprawnie pobrane
 if ($currentSettings === null) {
     $currentSettings = [
         'title' => 'Domyślny tytuł',
         'logo' => 'default-logo.png',
-        'categories' => []
+        'categories' => [],
+        'meta_description' => '',
+        'meta_keywords' => '',
+        'smtp_server' => '',
+        'smtp_port' => '',
+        'smtp_username' => '',
+        'smtp_password' => ''
     ];
 }
 
 // Obsługa formularza aktualizacji ustawień
-$allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-
-if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
-    $fileType = mime_content_type($_FILES['site_logo']['tmp_name']);
-
-    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (in_array($fileType, $allowedTypes)) {
-        move_uploaded_file($_FILES['site_logo']['tmp_name'], $targetFile);
-        $settingsModel->updateLogo($newLogo);
-    } else {
-        echo "Nieprawidłowy format pliku!";
-    }
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_type'])) {
     if ($_POST['form_type'] === 'update_settings') {
-        $newTitle = isset($_POST['site_title']) ? $_POST['site_title'] : null;
-        $newLogo = isset($_FILES['site_logo']['name']) ? $_FILES['site_logo']['name'] : null;
-        
-        if ($newTitle) {
-            $settingsModel->updateTitle($newTitle);
+        // Aktualizacja ustawień SMTP
+        $smtpServer = isset($_POST['smtp_server']) ? $_POST['smtp_server'] : '';
+        $smtpPort = isset($_POST['smtp_port']) ? $_POST['smtp_port'] : '';
+        $smtpUsername = isset($_POST['smtp_username']) ? $_POST['smtp_username'] : '';
+        $smtpPassword = isset($_POST['smtp_password']) ? $_POST['smtp_password'] : '';
+
+        if ($smtpServer && $smtpPort && $smtpUsername && $smtpPassword) {
+            $settingsModel->updateSMTPSettings($smtpServer, $smtpPort, $smtpUsername, $smtpPassword);
+            $successMessage = "Ustawienia SMTP zostały zaktualizowane!";
+        } else {
+            $errorMessage = "Wszystkie pola SMTP muszą być wypełnione!";
         }
 
-        if (!empty($newLogo) && isset($_FILES['site_logo']['tmp_name']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
-            $targetDir = "../../img/";
-            $targetFile = $targetDir . basename($newLogo);
-            
-            if (move_uploaded_file($_FILES['site_logo']['tmp_name'], $targetFile)) {
-                $settingsModel->updateLogo($newLogo);
-            } else {
-                $errorMessage = "Nie udało się przesłać pliku.";
-            }
-        }
+        // Rejestrowanie zmian ustawień
+        $settingsModel->logSettingsChange($_SESSION['user_id'], 'Zaktualizowane ustawienia SMTP', date('Y-m-d H:i:s'));
 
-        $successMessage = "Ustawienia zostały zaktualizowane!";
+        // Inne zmiany w ustawieniach strony
+        // ...
     }
 
-    if ($_POST['form_type'] === 'add_category') {
-        $name = isset($_POST['category_name']) ? $_POST['category_name'] : '';
-        $parent_id = isset($_POST['parent_category']) ? (int) $_POST['parent_category'] : null;
+    // Obsługa błędów - Monitorowanie błędów PHP i MySQL
+    if ($_POST['form_type'] === 'monitor_errors') {
+        $errors = $errorLogsModel->getRecentErrors();
+    }
 
-        if (!empty($name)) {
-            $settingsModel->addCategory($name, $parent_id);
-            $successMessage = "Dodano nową kategorię!";
-        } else {
-            $errorMessage = "Nazwa kategorii nie może być pusta!";
+    // Obsługa transakcji płatniczych
+    if ($_POST['form_type'] === 'log_transaction') {
+        $user_id = isset($_POST['user_id']) ? $_POST['user_id'] : null;
+        $amount = isset($_POST['amount']) ? $_POST['amount'] : 0.0;
+        $description = isset($_POST['description']) ? $_POST['description'] : '';
+
+        if ($user_id && $amount > 0) {
+            $transactionHistoryModel->logTransaction($user_id, $amount, $description, date('Y-m-d H:i:s'));
+            $successMessage = "Transakcja została zapisana!";
         }
     }
 }
 
+// Dodawanie logów logowań administratorów
+$loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date('Y-m-d H:i:s'));
 ?>
 
 <?php include '../partials/header.php'; ?>
@@ -77,106 +85,155 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_type'])) {
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
-					<?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                     <nav class="nav">
-					<?php include 'sidebar.php'; ?>
+                        <?php include 'sidebar.php'; ?>
                     </nav>
-					<?php endif; ?>
+                    <?php endif; ?>
                 </div>
 
                 <div class="card-body">
-				
-				 <div class="card shadow">
+                    <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="mb-1"><i class="bi bi-info-square"></i> Ustawienia strony</h3></h5>
-	</div>
-                <div class="card-body">
-			
-                <?php if (isset($successMessage)): ?>
-                    <div class="alert alert-success">
-                        <?php echo $successMessage; ?>
-                    </div>
-                <?php endif; ?>
-				
-				<div class="row">
-                <div class="col-md-4">
-				
-                <form method="POST" enctype="multipart/form-data">
-				<input type="hidden" name="form_type" value="update_settings">
-                    <div class="mb-3">
-                        <label for="site_title" class="form-label">Tytuł strony</label>
-                        <input type="text" name="site_title" id="site_title" class="form-control" value="<?php echo htmlspecialchars($currentSettings['title']); ?>" required>
-                    </div>
+                            <h5 class="mb-1"><i class="bi bi-info-square"></i> Ustawienia strony</h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (isset($successMessage)): ?>
+                                <div class="alert alert-success">
+                                    <?php echo $successMessage; ?>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <?php if (isset($errorMessage)): ?>
+                                <div class="alert alert-danger">
+                                    <?php echo $errorMessage; ?>
+                                </div>
+                            <?php endif; ?>
+                
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <form method="POST" enctype="multipart/form-data">
+                                        <input type="hidden" name="form_type" value="update_settings">
+                                        <div class="mb-3">
+                                            <label for="site_title" class="form-label">Tytuł strony</label>
+                                            <input type="text" name="site_title" id="site_title" class="form-control" value="<?php echo htmlspecialchars($currentSettings['title']); ?>" required>
+                                        </div>
 
-                    <div class="mb-3">
-                        <label for="site_logo" class="form-label">Logo strony</label>
-                        <input type="file" name="site_logo" id="site_logo" class="form-control">
-                        <small class="text-muted">Bieżące logo:</small>
-                        <?php if (file_exists("../../img/" . $currentSettings['logo'])): ?>
-                            <img src="/img/<?php echo htmlspecialchars($currentSettings['logo']); ?>" alt="Logo" style="height: 50px;">
-                        <?php else: ?>
-                            <p>Brak logo</p>
-                        <?php endif; ?>
-                    </div>
- <button type="submit" class="btn btn-success">Zapisz zmiany</button>
-                </form>
-				</div>
-				
-				
-                <div class="col-md-4">
-                 <?php $categories = $settingsModel->getCategories(); ?>
-<div class="mb-3">
-    <label class="form-label">Kategorie</label>
-    <ul>
-        <?php foreach ($categories as $catId => $category): ?>
-            <li><?php echo htmlspecialchars($category['name']); ?>
-                <?php if (!empty($category['subcategories'])): ?>
-                    <ul>
-                        <?php foreach ($category['subcategories'] as $sub): ?>
-                            <li><?php echo htmlspecialchars($sub['name']); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
-            </li>
-        <?php endforeach; ?>
-    </ul>
-</div>
-</div>
-<div class="col-md-4">
-<form method="POST">
-<input type="hidden" name="form_type" value="add_category">
-    <div class="mb-3">
-        <label for="category_name" class="form-label">Nazwa kategorii/podkategorii</label>
-        <input type="text" name="category_name" class="form-control" required>
-    </div>
+                                        <div class="mb-3">
+                                            <label for="site_logo" class="form-label">Logo strony</label>
+                                            <input type="file" name="site_logo" id="site_logo" class="form-control">
+                                            <small class="text-muted">Bieżące logo:</small>
+                                            <?php if (file_exists("../../img/" . $currentSettings['logo'])): ?>
+                                                <img src="/img/<?php echo htmlspecialchars($currentSettings['logo']); ?>" alt="Logo" style="height: 50px;">
+                                            <?php else: ?>
+                                                <p>Brak logo</p>
+                                            <?php endif; ?>
+                                        </div>
 
-    <div class="mb-3">
-        <label for="parent_category" class="form-label">Kategoria nadrzędna</label>
-        <select name="parent_category" class="form-control">
-            <option value="">Brak (główna kategoria)</option>
-            <?php foreach ($categories as $catId => $category): ?>
-                <option value="<?php echo $catId; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
-            <?php endforeach; ?>
-        </select>
-    </div>
+                                        <div class="mb-3">
+                                            <label for="meta_description" class="form-label">Opis strony (Meta Description)</label>
+                                            <textarea name="meta_description" class="form-control"><?php echo htmlspecialchars($currentSettings['meta_description']); ?></textarea>
+                                        </div>
 
-    <button type="submit" name="add_category" class="btn btn-primary">Dodaj kategorię</button>
-</form>
+                                        <div class="mb-3">
+                                            <label for="meta_keywords" class="form-label">Słowa kluczowe (Meta Keywords)</label>
+                                            <textarea name="meta_keywords" class="form-control"><?php echo htmlspecialchars($currentSettings['meta_keywords']); ?></textarea>
+                                        </div>
 
-            </div>
-        </div>
-    </div>
+                                        <div class="mb-3">
+                                            <label for="max_ads" class="form-label">Maksymalna liczba ogłoszeń na użytkownika</label>
+                                            <input type="number" name="max_ads" class="form-control" value="<?php echo $currentSettings['max_ads']; ?>">
+                                        </div>
 
+                                        <div class="mb-3">
+                                            <label for="promotion_fee" class="form-label">Opłata za promowanie ogłoszeń (w PLN)</label>
+                                            <input type="number" step="0.01" name="promotion_fee" class="form-control" value="<?php echo $currentSettings['promotion_fee']; ?>">
+                                        </div>
+
+                                        <button type="submit" class="btn btn-success">Zapisz zmiany</button>
+                                    </form>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <?php $categories = $settingsModel->getCategories(); ?>
+                                    <div class="mb-3">
+                                        <label class="form-label">Kategorie</label>
+                                        <ul>
+                                            <?php foreach ($categories as $catId => $category): ?>
+                                                <li><?php echo htmlspecialchars($category['name']); ?>
+                                                    <?php if (!empty($category['subcategories'])): ?>
+                                                        <ul>
+                                                            <?php foreach ($category['subcategories'] as $sub): ?>
+                                                                <li><?php echo htmlspecialchars($sub['name']); ?></li>
+                                                            <?php endforeach; ?>
+                                                        </ul>
+                                                    <?php endif; ?>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <form method="POST">
+                                        <input type="hidden" name="form_type" value="add_category">
+                                        <div class="mb-3">
+                                            <label for="category_name" class="form-label">Nazwa kategorii/podkategorii</label>
+                                            <input type="text" name="category_name" class="form-control" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="parent_category" class="form-label">Kategoria nadrzędna</label>
+                                            <select name="parent_category" class="form-control">
+                                                <option value="">Brak (główna kategoria)</option>
+                                                <?php foreach ($categories as $catId => $category): ?>
+                                                    <option value="<?php echo $catId; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+
+                                        <button type="submit" name="add_category" class="btn btn-primary">Dodaj kategorię</button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-				
-        <div class="container">
-            <span class="text-muted">&copy; 2025 System Zleceń - Wszelkie prawa zastrzeżone.</span>
-        </div>
-  
-            </div>	
+                    <div class="card shadow mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-bug"></i> Monitorowanie błędów</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Ostatnie błędy:</h6>
+                            <ul>
+                                <?php 
+                                $errors = $errorLogsModel->getRecentErrors(); 
+                                foreach ($errors as $error): ?>
+                                    <li><?php echo htmlspecialchars($error['error_message']); ?> - <?php echo $error['timestamp']; ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card shadow mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-credit-card"></i> Historia transakcji</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Ostatnie transakcje:</h6>
+                            <ul>
+                                <?php 
+                                $transactions = $transactionHistoryModel->getRecentTransactions(); 
+                                foreach ($transactions as $transaction): ?>
+                                    <li><?php echo htmlspecialchars($transaction['description']); ?> - <?php echo $transaction['amount']; ?> PLN - <?php echo $transaction['timestamp']; ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
 <?php include '../partials/footer.php'; ?>

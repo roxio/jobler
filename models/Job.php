@@ -89,46 +89,54 @@ class Job {
 
     // Dodanie metody do pobierania wszystkich ogłoszeń
     public static function getAllJobs() {
-        $pdo = Database::getConnection();  // Uzyskanie połączenia z bazą danych
+        $pdo = Database::getConnection();
         $sql = "SELECT * FROM jobs";
         $stmt = $pdo->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
+	// Zwraca liczbę ogłoszeń
     public function getJobCount() {
-        $sql = "SELECT COUNT(*) FROM jobs";  // Zmienna zależna od struktury Twojej tabeli
+        $sql = "SELECT COUNT(*) FROM jobs";
         $stmt = $this->pdo->query($sql);
-        return $stmt->fetchColumn();  // Zwraca liczbę ogłoszeń
+        return $stmt->fetchColumn();  
     }
 
+	// Stare
     public static function getJobsWithPagination($limit, $offset) {
-        $pdo = Database::getConnection();  // Uzyskanie połączenia z bazą danych
+        $pdo = Database::getConnection();
         $stmt = $pdo->prepare("SELECT * FROM jobs ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
+	// 	Stare
     public static function getTotalJobs() {
-        $pdo = Database::getConnection();  // Uzyskanie połączenia z bazą danych
+        $pdo = Database::getConnection();
         $stmt = $pdo->query("SELECT COUNT(*) as total FROM jobs");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result['total'];
     }
 
-    // Nowe metody do paginacji z wyszukiwaniem
-    public static function getJobsWithPaginationAndSearch($limit, $offset, $search) {
-        $pdo = Database::getConnection();
-        $sql = "SELECT * FROM jobs WHERE title LIKE :search ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Nowe metody do paginacji z wyszukiwaniem i kategoriami
+	public static function getJobsWithPaginationAndSearch($limit, $offset, $search, $category = null) {
+    $pdo = Database::getConnection();
+    $sql = "SELECT * FROM jobs WHERE title LIKE :search";
+    if ($category) {
+        $sql .= " AND category_id = :category";
     }
+    $sql .= " ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
+    if ($category) {
+        $stmt->bindValue(':category', $category, PDO::PARAM_INT);
+    }
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
     public static function getTotalJobsWithSearch($search) {
         $pdo = Database::getConnection();
@@ -148,25 +156,25 @@ class Job {
         return $stmt->fetchColumn();
     }
 	
-// Dla charts
-public function getNewJobsPerDay() {
-    $sql = "SELECT DATE(created_at) as date, COUNT(*) as count FROM jobs WHERE created_at > NOW() - INTERVAL 7 DAY GROUP BY DATE(created_at)";
-    return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-}
+	// Dla charts
+	public function getNewJobsPerDay() {
+		$sql = "SELECT DATE(created_at) as date, COUNT(*) as count FROM jobs WHERE created_at > NOW() - INTERVAL 7 DAY GROUP BY DATE(created_at)";
+		return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+	}
 
-//Musze tu posprzątać
-public function searchJobs($searchTerm) {
-    $sql = "SELECT id, title, description, status, created_at FROM jobs 
-            WHERE id LIKE :search OR title LIKE :search OR description LIKE :search 
-            ORDER BY created_at DESC";
-    
-    $stmt = $this->pdo->prepare($sql);
-    $likeTerm = "%".$searchTerm."%";
-    $stmt->bindParam(':search', $likeTerm, PDO::PARAM_STR);
-    $stmt->execute();
-    
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+	//Musze tu posprzątać
+	public function searchJobs($searchTerm) {
+		$sql = "SELECT id, title, description, status, created_at FROM jobs 
+				WHERE id LIKE :search OR title LIKE :search OR description LIKE :search 
+				ORDER BY created_at DESC";
+		
+		$stmt = $this->pdo->prepare($sql);
+		$likeTerm = "%".$searchTerm."%";
+		$stmt->bindParam(':search', $likeTerm, PDO::PARAM_STR);
+		$stmt->execute();
+		
+		return $stmt->fetchAll(PDO::FETCH_ASSOC);
+	}
 
 }
 ?>

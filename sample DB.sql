@@ -43,7 +43,11 @@ INSERT INTO `admin_login_history` (`id`, `admin_id`, `ip_address`, `login_time`)
 (11, 4, '127.0.0.1', '2025-02-25 21:32:44'),
 (12, 4, '127.0.0.1', '2025-02-25 21:33:36'),
 (13, 4, '127.0.0.1', '2025-02-25 21:35:06'),
-(14, 4, '127.0.0.1', '2025-02-25 21:37:21');
+(14, 4, '127.0.0.1', '2025-02-25 21:37:21'),
+(15, 4, '127.0.0.1', '2025-02-25 21:39:33'),
+(16, 4, '127.0.0.1', '2025-02-25 21:40:11'),
+(17, 4, '127.0.0.1', '2025-02-25 21:40:13'),
+(18, 4, '127.0.0.1', '2025-02-25 21:40:14');
 
 -- --------------------------------------------------------
 
@@ -86,16 +90,17 @@ CREATE TABLE `jobs` (
   `status` enum('open','in_progress','closed') NOT NULL DEFAULT 'open',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `points_required` int(11) NOT NULL DEFAULT 1
+  `points_required` int(11) NOT NULL DEFAULT 1,
+  `category_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `jobs`
 --
 
-INSERT INTO `jobs` (`id`, `user_id`, `title`, `description`, `status`, `created_at`, `updated_at`, `points_required`) VALUES
-(1, 6, 'Potrzebuję pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:23', 1),
-(2, 6, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:26', 1);
+INSERT INTO `jobs` (`id`, `user_id`, `title`, `description`, `status`, `created_at`, `updated_at`, `points_required`, `category_id`) VALUES
+(1, 6, 'Potrzebuję pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:23', 1, NULL),
+(2, 6, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:26', 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -205,10 +210,6 @@ CREATE TABLE `settings_log` (
 --
 
 INSERT INTO `settings_log` (`id`, `user_id`, `change_description`, `timestamp`) VALUES
-(1, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:28:43'),
-(2, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:31:54'),
-(3, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:32:44'),
-(4, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:33:36'),
 (5, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:35:06');
 
 -- --------------------------------------------------------
@@ -456,7 +457,7 @@ ALTER TABLE `user_permissions`
 -- AUTO_INCREMENT for table `admin_login_history`
 --
 ALTER TABLE `admin_login_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `categories`

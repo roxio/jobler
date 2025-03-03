@@ -2,14 +2,18 @@
 // Rozpocznij sesję
 session_start();
 
-// Załaduj modele
 include_once('../../models/User.php');
+
 
 // Sprawdź, czy użytkownik jest zalogowany
 if (!isset($_SESSION['user_id'])) {
     header('Location: /public/login.php');
     exit;
 }
+
+$pdo = Database::getConnection();
+$categoriesStmt = $pdo->query("SELECT id, name FROM categories");
+$categories = $categoriesStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Pobierz dane użytkownika
 $userId = $_SESSION['user_id'];

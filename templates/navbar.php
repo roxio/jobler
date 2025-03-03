@@ -9,34 +9,23 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto">
-        <!-- Dropdown menu "Usługi" -->
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="servicesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Usługi
-          </a>
-          <ul class="dropdown-menu" aria-labelledby="servicesDropdown">
-            <li><a class="dropdown-item" href="/services/budowa-domu.php">Budowa domu</a></li>
-            <li><a class="dropdown-item" href="/services/elektryk.php">Elektryk</a></li>
-            <li><a class="dropdown-item" href="/services/hydraulik.php">Hydraulik</a></li>
-            <li><a class="dropdown-item" href="/services/malarz.php">Malarz</a></li>
-            <li><a class="dropdown-item" href="/services/meble-i-zabudowa.php">Meble i zabudowa</a></li>
-            <li><a class="dropdown-item" href="/services/motoryzacja.php">Motoryzacja</a></li>
-            <li><a class="dropdown-item" href="/services/ogrod.php">Ogród</a></li>
-            <li><a class="dropdown-item" href="/services/organizacja-imprez.php">Organizacja imprez</a></li>
-            <li><a class="dropdown-item" href="/services/projektowanie.php">Projektowanie</a></li>
-            <li><a class="dropdown-item" href="/services/remont.php">Remont</a></li>
-            <li><a class="dropdown-item" href="/services/sprzatanie.php">Sprzątanie</a></li>
-            <li><a class="dropdown-item" href="/services/szkolenia-jezyki.php">Szkolenia i języki obce</a></li>
-            <li><a class="dropdown-item" href="/services/transport.php">Transport</a></li>
-            <li><a class="dropdown-item" href="/services/uslugi-dla-biznesu.php">Usługi dla biznesu</a></li>
-            <li><a class="dropdown-item" href="/services/montaz-naprawa.php">Montaż i naprawa</a></li>
-            <li><a class="dropdown-item" href="/services/uslugi-finansowe.php">Usługi finansowe</a></li>
-            <li><a class="dropdown-item" href="/services/uslugi-prawne-administracyjne.php">Usługi prawne i administracyjne</a></li>
-            <li><a class="dropdown-item" href="/services/uslugi-zdalne.php">Usługi zdalne</a></li>
-            <li><a class="dropdown-item" href="/services/zdrowie-uroda.php">Zdrowie i uroda</a></li>
-            <li><a class="dropdown-item" href="/services/zlota-raczka.php">Złota rączka</a></li>
-          </ul>
-        </li>
+
+           <!-- Dynamiczne kategorie -->
+ <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Kategorie
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
+                        <li><a class="dropdown-item" href="index.php">Wszystkie</a></li>
+                        <?php foreach ($categories as $category): ?>
+                            <li>
+                                <a class="dropdown-item" href="index.php?category=<?= $category['id'] ?>">
+                                    <?= htmlspecialchars($category['name']) ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </li>
 
         <!-- Logowanie/rejestracja lub wylogowanie -->
         <?php if (isset($_SESSION['user_id'])): ?>
@@ -76,4 +65,4 @@
 </nav>
 
 <!-- Bootstrap JS Bundle (dla obsługi dropdown) -->
-<script src=".https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

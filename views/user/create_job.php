@@ -20,35 +20,31 @@ $error = '';
 
 // Sprawdź, czy formularz został wysłany
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Pobierz dane z formularza
     $title = $_POST['title'];
     $description = $_POST['description'];
-    $pointsRequired = $_POST['points_required']; // Nowe pole na punkty
+    $pointsRequired = $_POST['points_required'];
+    $categoryId = $_POST['category_id'];
 
-    // Sprawdź, czy wszystkie pola są wypełnione
-    if (empty($title) || empty($description) || empty($pointsRequired)) {
+    if (empty($title) || empty($description) || empty($pointsRequired) || empty($categoryId)) {
         $error = 'Wszystkie pola są wymagane.';
     } else {
-        // Sprawdź, czy liczba punktów jest w poprawnym zakresie (1-10)
         if ($pointsRequired < 1 || $pointsRequired > 10) {
             $error = 'Liczba punktów musi być w zakresie od 1 do 10.';
         } else {
-            // Pobierz ID użytkownika z sesji
             $userId = $_SESSION['user_id'];
-
-            // Dodaj ogłoszenie do bazy danych
-            $result = $jobModel->createJob($userId, $title, $description, $pointsRequired);
+            $result = $jobModel->createJob($userId, $title, $description, $pointsRequired, $categoryId);
 
             if ($result) {
-                // Przekierowanie do panelu użytkownika po pomyślnym dodaniu ogłoszenia
                 header('Location: ../user/dashboard.php');
                 exit;
             } else {
-                $error = 'Wystąpił błąd podczas dodawania ogłoszenia. Spróbuj ponownie.';
+                $error = 'Wystąpił błąd podczas dodawania ogłoszenia.';
             }
         }
     }
 }
+
+$categories = $jobModel->getCategories();
 
 // Include nagłówek
 include('../partials/header.php');
@@ -68,12 +64,22 @@ include('../partials/header.php');
             <label for="title">Tytuł ogłoszenia</label>
             <input type="text" class="form-control" id="title" name="title" required>
         </div>
+		<div class="form-group">
+    <label for="category_id">Kategoria</label>
+    <select class="form-control" id="category_id" name="category_id" required>
+        <option value="">Wybierz kategorię</option>
+        <?php foreach ($categories as $category): ?>
+            <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
+        <?php endforeach; ?>
+    </select>
+</div>
+
         <div class="form-group">
-            <label for="description">Opis ogłoszenia</label>
+            <label for="description">Treść ogłoszenia</label>
             <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
         </div>
         <div class="form-group">
-            <label for="points_required">Wymagana liczba punktów dla wykonawcy</label>
+            <label for="points_required">Wymagana liczba punktów od wykonawcy</label>
             <input type="number" class="form-control" id="points_required" name="points_required" min="1" max="10" value="1" required>
         </div>
         <button type="submit" class="btn btn-primary">Dodaj ogłoszenie</button>

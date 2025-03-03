@@ -10,16 +10,26 @@ class Job {
     }
 
     // Dodawanie nowego ogłoszenia
-    public function createJob($userId, $title, $description, $pointsRequired) {
-        $sql = "INSERT INTO jobs (user_id, title, description, points_required, status, created_at, updated_at) 
-                VALUES (:user_id, :title, :description, :points_required, 'open', NOW(), NOW())";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':user_id', $userId);
-        $stmt->bindParam(':title', $title);
-        $stmt->bindParam(':description', $description);
-        $stmt->bindParam(':points_required', $pointsRequired, PDO::PARAM_INT);
-        return $stmt->execute();
-    }
+public function createJob($userId, $title, $description, $pointsRequired, $categoryId) {
+    $sql = "INSERT INTO jobs (user_id, title, description, points_required, category_id, status, created_at, updated_at) 
+            VALUES (:user_id, :title, :description, :points_required, :category_id, 'open', NOW(), NOW())";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':user_id', $userId);
+    $stmt->bindParam(':title', $title);
+    $stmt->bindParam(':description', $description);
+    $stmt->bindParam(':points_required', $pointsRequired, PDO::PARAM_INT);
+    $stmt->bindParam(':category_id', $categoryId, PDO::PARAM_INT);
+    return $stmt->execute();
+}
+
+// Metoda pobierania kategorii
+public function getCategories() {
+    $sql = "SELECT * FROM categories";
+    $stmt = $this->pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+	
+	
 
     // Pobieranie wszystkich ogłoszeń użytkownika
     public function getUserJobs($userId) {

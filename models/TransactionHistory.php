@@ -168,5 +168,17 @@ class TransactionHistory {
         
         return $stmt->execute();
     }
+
+public function getUserTransactions($userId, $limit = 10) {
+    $query = "SELECT * FROM transactions 
+              WHERE user_id = ? 
+              ORDER BY created_at DESC 
+              LIMIT ?";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+    $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 }
 ?>

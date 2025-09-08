@@ -20,8 +20,9 @@ $category = isset($_GET['category']) ? (int)$_GET['category'] : null;
 $offset = ($page - 1) * $limit;
 
 // Pobranie ogłoszeń z limitem, offsetem i opcjonalnym wyszukiwaniem
-$jobs = Job::getJobsWithPaginationAndSearch($limit, $offset, $search, $category);
-$totalJobs = Job::getTotalJobsWithSearch($search, $category);
+$jobModel = new Job();   // zakładam, że Job wymaga PDO w konstruktorze
+$jobs = $jobModel->getJobsWithPaginationAndSearch($limit, $offset, $search, $category);
+$totalJobs = $jobModel->getTotalJobsWithSearch($search, $category);
 
 // Obliczanie liczby stron
 $totalPages = ceil($totalJobs / $limit);

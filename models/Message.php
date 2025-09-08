@@ -163,7 +163,13 @@ public function getConversationById($conversationId)
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     return $row ? (int)$row['cnt'] : 0;
 }
-
+public function sendAdminMessage($adminId, $userId, $subject, $message, $type = 'notification') {
+    $query = "INSERT INTO admin_messages (admin_id, user_id, subject, message, type, created_at) 
+              VALUES (?, ?, ?, ?, ?, NOW())";
+    
+    $stmt = $this->pdo->prepare($query);
+    return $stmt->execute([$adminId, $userId, $subject, $message, $type]);
+}
 }
 
 ?>

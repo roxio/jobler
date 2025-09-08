@@ -230,5 +230,30 @@ class Job {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     return $row ? (int)$row['cnt'] : 0;
 }
+public function getJobsByUserId($userId, $limit = 5) {
+    $query = "SELECT j.*, 0 as offer_count 
+              FROM jobs j 
+              WHERE j.user_id = ? 
+              ORDER BY j.created_at DESC 
+              LIMIT ?";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+    $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+public function getTotalJobsWithSearch($search = '') {
+    if ($search) {
+        $sql = "SELECT COUNT(*) FROM jobs WHERE title LIKE :search OR description LIKE :search";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    } else {
+        $sql = "SELECT COUNT(*) FROM jobs";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchColumn();
+    }
+}
 }
 ?>

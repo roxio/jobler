@@ -66,13 +66,16 @@ class User {
     }
 
     // Pobranie danych użytkownika
-    public function getUserById($userId) {
-        $sql = "SELECT id, email, role, created_at, updated_at, registration_ip, last_login_ip, status, account_balance FROM users WHERE id = :user_id";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':user_id', $userId);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
+public function getUserById($userId) {
+    $sql = "SELECT id, email, name, role, created_at, updated_at, registration_ip, 
+                   last_login_ip, status, account_balance, last_login,
+                   email_verified_at, username, phone, need_change
+            FROM users WHERE id = :user_id";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':user_id', $userId);
+    $stmt->execute();
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
 
     // Aktualizacja danych użytkownika
     public function updateUser($userId, $email) {
@@ -148,6 +151,7 @@ class User {
     public function getPaginatedUsersWithFilters($limit, $offset, $sortColumn, $sortOrder, $search, $statusFilter, $roleFilter, $dateFrom, $dateTo) {
         $whereConditions = [];
         $params = [];
+	
 
         if ($search) {
             $whereConditions[] = "(name LIKE :search OR email LIKE :search OR id LIKE :search)";
@@ -191,6 +195,7 @@ class User {
     public function getTotalUsersWithFilters($search, $statusFilter, $roleFilter, $dateFrom, $dateTo) {
         $whereConditions = [];
         $params = [];
+
 
         if ($search) {
             $whereConditions[] = "(name LIKE :search OR email LIKE :search OR id LIKE :search)";
@@ -390,6 +395,113 @@ public function getRecentActivities($limit = 10) {
     $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+public function countUsersWithJobs() {
+    $sql = "SELECT COUNT(DISTINCT user_id) FROM jobs";
+    $stmt = $this->pdo->query($sql);
+    return $stmt->fetchColumn();
+}
+public function countVerifiedUsers() {
+    $sql = "SELECT COUNT(*) FROM users WHERE status = 'verified'";
+    $stmt = $this->pdo->query($sql);
+    return $stmt->fetchColumn();
+}
+public function getUsersByIds($userIds) {
+    if (empty($userIds)) return [];
+    
+    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+    $query = "SELECT id, name, email, role, status, created_at, last_login, 
+                     account_balance, registration_ip, email_verified_at 
+              FROM users 
+              WHERE id IN ($placeholders) 
+              ORDER BY name";
+    
+    $stmt = $this->pdo->prepare($query);
+    $stmt->execute($userIds);
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function hasActiveJobs($userId) {
+    $query = "SELECT COUNT(*) FROM jobs WHERE user_id = ? AND status = 'active'";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->execute([$userId]);
+    
+    return $stmt->fetchColumn() > 0;
+}
+
+public function hasPendingTransactions($userId) {
+    $query = "SELECT COUNT(*) FROM transactions WHERE user_id = ? AND status = 'pending'";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->execute([$userId]);
+    
+    return $stmt->fetchColumn() > 0;
+}
+
+public function hasActiveConversations($userId) {
+    $query = "SELECT COUNT(*) FROM conversations WHERE user_id = ? AND status = 'active'";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->execute([$userId]);
+    
+    return $stmt->fetchColumn() > 0;
+}
+public function getUserStatistics($userId) {
+    return [
+        'total_jobs' => $this->countUserJobs($userId),
+        'active_jobs' => $this->countUserActiveJobs($userId),
+        'total_transactions' => $this->countUserTransactions($userId),
+        'total_messages' => $this->countUserMessages($userId)
+    ];
+}
+public function getLoginHistory($userId, $limit = 10) {
+    $query = "SELECT * FROM user_login_history 
+              WHERE user_id = ? 
+              ORDER BY login_time DESC 
+              LIMIT ?";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+    $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+private function countUserJobs($userId) {
+    $query = "SELECT COUNT(*) FROM jobs WHERE user_id = ?";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->execute([$userId]);
+    return $stmt->fetchColumn();
+}
+
+private function countUserActiveJobs($userId) {
+    $query = "SELECT COUNT(*) FROM jobs WHERE user_id = ? AND status = 'active'";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->execute([$userId]);
+    return $stmt->fetchColumn();
+}
+
+private function countUserTransactions($userId) {
+    $query = "SELECT COUNT(*) FROM transactions WHERE user_id = ?";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->execute([$userId]);
+    return $stmt->fetchColumn();
+}
+
+private function countUserMessages($userId) {
+    $query = "SELECT COUNT(*) FROM messages WHERE receiver_id = ? OR sender_id = ?";
+    $stmt = $this->pdo->prepare($query);
+    $stmt->execute([$userId, $userId]);
+    return $stmt->fetchColumn();
+}
+public function logLoginAttempt($userId, $ipAddress, $success = true, $userAgent = null) {
+    $query = "INSERT INTO user_login_history (user_id, ip_address, login_time, success, user_agent) 
+              VALUES (:user_id, :ip_address, NOW(), :success, :user_agent)";
+    
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->bindParam(':ip_address', $ipAddress);
+    $stmt->bindParam(':success', $success, PDO::PARAM_BOOL);
+    $stmt->bindParam(':user_agent', $userAgent);
+    
+    return $stmt->execute();
 }
 }
 ?>

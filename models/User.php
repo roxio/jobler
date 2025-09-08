@@ -1,20 +1,16 @@
 <?php
-
 include_once('Database.php');
 
 class User {
     private $pdo;
 
     public function __construct() {
-        $this->pdo = Database::getConnection(); // Połączenie z bazą danych
+        $this->pdo = Database::getConnection();
     }
 
     // Rejestracja użytkownika
     public function register($email, $password, $name, $username, $role = 'user', $phone = '') {
-        // Pobranie adresu IP użytkownika
         $registrationIp = $_SERVER['REMOTE_ADDR'];
-
-        // Sprawdzanie, czy użytkownik już istnieje
         $sql = "SELECT * FROM users WHERE email = :email OR username = :username";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':email', $email);
@@ -25,10 +21,7 @@ class User {
             return ['error' => 'Użytkownik o tym adresie email lub nazwie użytkownika już istnieje.'];
         }
 
-        // Hashowanie hasła
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-        // Wstawianie nowego użytkownika do bazy
         $sql = "INSERT INTO users (email, password, name, username, role, phone, registration_ip, created_at, updated_at) 
                 VALUES (:email, :password, :name, :username, :role, :phone, :registration_ip, NOW(), NOW())";
         $stmt = $this->pdo->prepare($sql);
@@ -41,7 +34,6 @@ class User {
         $stmt->bindParam(':registration_ip', $registrationIp);
 
         if ($stmt->execute()) {
-            // Pobierz ID nowo zarejestrowanego użytkownika
             $userId = $this->pdo->lastInsertId();
             return ['success' => 'Rejestracja zakończona pomyślnie.', 'id' => $userId, 'role' => $role];
         }
@@ -51,41 +43,29 @@ class User {
 
     // Logowanie użytkownika
     public function login($email, $password) {
-        // Sprawdzanie, czy użytkownik istnieje
         $sql = "SELECT * FROM users WHERE email = :email";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':email', $email);
 
         if (!$stmt->execute()) {
-            // Jeśli wystąpił błąd w zapytaniu SQL
             return false;
         }
 
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // Sprawdzanie, czy konto jest aktywne
         if ($user && $user['status'] !== 'active') {
             return ['error' => 'Konto zostało zablokowane przez administratora.'];
         }
 
         if ($user && password_verify($password, $user['password'])) {
-            // Zaktualizowanie IP przy logowaniu
             $lastLoginIp = $_SERVER['REMOTE_ADDR'];
             $this->updateLastLoginIp($user['id'], $lastLoginIp);
-
-            // Zwrócenie danych użytkownika, jeśli logowanie się powiodło
             return $user;
         }
 
-        return false; // Zwrócenie false, jeśli logowanie nie powiodło się
+        return false;
     }
 
-    // Sprawdzanie, czy użytkownik jest zalogowany
-    public function isLoggedIn() {
-        return isset($_SESSION['user_id']);
-    }
-
-    // Pobranie danych użytkownika na podstawie ID
+    // Pobranie danych użytkownika
     public function getUserById($userId) {
         $sql = "SELECT id, email, role, created_at, updated_at, registration_ip, last_login_ip, status, account_balance FROM users WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
@@ -103,7 +83,7 @@ class User {
         return $stmt->execute();
     }
 
-    // Zmiana hasła użytkownika
+    // Zmiana hasła
     public function changePassword($userId, $newPassword) {
         $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
         $sql = "UPDATE users SET password = :password, updated_at = NOW() WHERE id = :user_id";
@@ -113,35 +93,32 @@ class User {
         return $stmt->execute();
     }
 
-public function addPointsToUser($userId, $points) {
-    // Dodanie punktów do konta użytkownika
-    $sql = "UPDATE users SET account_balance = account_balance + :points WHERE id = :user_id";
-    $stmt = $this->pdo->prepare($sql);
-    $stmt->bindParam(':points', $points, PDO::PARAM_STR);  // Zmieniamy na PDO::PARAM_STR, aby obsługiwać float
-    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    // Dodawanie punktów
+    public function addPointsToUser($userId, $points) {
+        $sql = "UPDATE users SET account_balance = account_balance + :points WHERE id = :user_id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':points', $points, PDO::PARAM_STR);
+        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
 
-    return $stmt->execute();  // Zwróci true, jeśli operacja zakończyła się sukcesem
-}
+    // Pobieranie wszystkich użytkowników
+    public function getAllUsers() {
+        $sql = "SELECT id, name, email, role, status, created_at, updated_at, registration_ip, last_login_ip, account_balance, need_change FROM users";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 
-    // Pobranie wszystkich użytkowników (np. do panelu administracyjnego)
-public function getAllUsers() {
-    $sql = "SELECT id, name, email, role, status, created_at, updated_at, registration_ip, last_login_ip, account_balance, need_change FROM users";
-    $stmt = $this->pdo->prepare($sql);
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
- // Metoda do pobierania użytkowników z paginacją, sortowaniem i wyszukiwaniem
+    // Paginacja z wyszukiwaniem
     public function getPaginatedUsers($limit, $offset, $sortColumn, $sortOrder, $search) {
-        $db = Database::getConnection();
-
         $searchQuery = '';
         if ($search) {
-            $searchQuery = "WHERE name LIKE :search OR email LIKE :search";
+            $searchQuery = "WHERE name LIKE :search OR email LIKE :search OR id LIKE :search";
         }
 
         $query = "SELECT * FROM users $searchQuery ORDER BY $sortColumn $sortOrder LIMIT :limit OFFSET :offset";
-        $stmt = $db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         if ($search) {
@@ -151,17 +128,15 @@ public function getAllUsers() {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Metoda do pobierania całkowitej liczby użytkowników
+    // Całkowita liczba użytkowników
     public function getTotalUsers($search) {
-        $db = Database::getConnection();
-
         $searchQuery = '';
         if ($search) {
-            $searchQuery = "WHERE name LIKE :search OR email LIKE :search";
+            $searchQuery = "WHERE name LIKE :search OR email LIKE :search OR id LIKE :search";
         }
 
         $query = "SELECT COUNT(*) FROM users $searchQuery";
-        $stmt = $db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         if ($search) {
             $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
         }
@@ -169,7 +144,121 @@ public function getAllUsers() {
         return $stmt->fetchColumn();
     }
 
-    // Sprawdzanie roli użytkownika
+    // NOWE METODY DLA FILTRÓW I STATYSTYK
+    public function getPaginatedUsersWithFilters($limit, $offset, $sortColumn, $sortOrder, $search, $statusFilter, $roleFilter, $dateFrom, $dateTo) {
+        $whereConditions = [];
+        $params = [];
+
+        if ($search) {
+            $whereConditions[] = "(name LIKE :search OR email LIKE :search OR id LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
+        }
+
+        if ($statusFilter) {
+            $whereConditions[] = "status = :status";
+            $params[':status'] = $statusFilter;
+        }
+
+        if ($roleFilter) {
+            $whereConditions[] = "role = :role";
+            $params[':role'] = $roleFilter;
+        }
+
+        if ($dateFrom) {
+            $whereConditions[] = "created_at >= :date_from";
+            $params[':date_from'] = $dateFrom;
+        }
+
+        if ($dateTo) {
+            $whereConditions[] = "created_at <= :date_to";
+            $params[':date_to'] = $dateTo . ' 23:59:59';
+        }
+
+        $whereClause = $whereConditions ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+        $query = "SELECT * FROM users $whereClause ORDER BY $sortColumn $sortOrder LIMIT :limit OFFSET :offset";
+        $stmt = $this->pdo->prepare($query);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getTotalUsersWithFilters($search, $statusFilter, $roleFilter, $dateFrom, $dateTo) {
+        $whereConditions = [];
+        $params = [];
+
+        if ($search) {
+            $whereConditions[] = "(name LIKE :search OR email LIKE :search OR id LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
+        }
+
+        if ($statusFilter) {
+            $whereConditions[] = "status = :status";
+            $params[':status'] = $statusFilter;
+        }
+
+        if ($roleFilter) {
+            $whereConditions[] = "role = :role";
+            $params[':role'] = $roleFilter;
+        }
+
+        if ($dateFrom) {
+            $whereConditions[] = "created_at >= :date_from";
+            $params[':date_from'] = $dateFrom;
+        }
+
+        if ($dateTo) {
+            $whereConditions[] = "created_at <= :date_to";
+            $params[':date_to'] = $dateTo . ' 23:59:59';
+        }
+
+        $whereClause = $whereConditions ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+        $query = "SELECT COUNT(*) FROM users $whereClause";
+        $stmt = $this->pdo->prepare($query);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    public function countUsersByStatus($status) {
+        $sql = "SELECT COUNT(*) FROM users WHERE status = :status";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':status', $status);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    public function countUsersByRole($role) {
+        $sql = "SELECT COUNT(*) FROM users WHERE role = :role";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':role', $role);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    public function countNewUsersToday() {
+        $sql = "SELECT COUNT(*) FROM users WHERE DATE(created_at) = CURDATE()";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    public function countUsersNeedingAttention() {
+        $sql = "SELECT COUNT(*) FROM users WHERE need_change = 1 OR status = 'inactive'";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
     public function getUserRole($userId) {
         $sql = "SELECT role FROM users WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
@@ -179,14 +268,12 @@ public function getAllUsers() {
         return $user ? $user['role'] : null;
     }
 
-    // Pobranie liczby użytkowników
     public function getUserCount() {
         $sql = "SELECT COUNT(*) FROM users";
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchColumn();
     }
 
-    // Pobranie liczby nowych użytkowników w ostatnich 30 dniach
     public function getNewUsersCount() {
         $sql = "SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
         $stmt = $this->pdo->prepare($sql);
@@ -194,7 +281,6 @@ public function getAllUsers() {
         return $stmt->fetchColumn();
     }
 
-    // Usuwanie użytkownika
     public function deleteUser($userId) {
         $sql = "DELETE FROM users WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
@@ -202,15 +288,13 @@ public function getAllUsers() {
         return $stmt->execute();
     }
 
-    // Usuwanie wielu użytkowników
     public function deleteUsers($userIds) {
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
         $query = "DELETE FROM users WHERE id IN ($placeholders)";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute($userIds);
+        $stmt = $this->pdo->prepare($query);
+        return $stmt->execute($userIds);
     }
 
-    // Dezaktywuj użytkownika
     public function deactivateUser($userId) {
         $query = "UPDATE users SET status = 'inactive' WHERE id = :user_id";
         $stmt = $this->pdo->prepare($query);
@@ -218,7 +302,6 @@ public function getAllUsers() {
         return $stmt->execute();
     }
 
-    // Aktywuj użytkownika
     public function activateUser($userId) {
         $query = "UPDATE users SET status = 'active' WHERE id = :user_id AND status = 'inactive'";
         $stmt = $this->pdo->prepare($query);
@@ -226,71 +309,87 @@ public function getAllUsers() {
         return $stmt->execute();
     }
 
-    // Aktualizowanie adresu IP ostatniego logowania
     public function updateLastLoginIp($userId, $lastLoginIp) {
         $sql = "UPDATE users SET last_login_ip = :last_login_ip WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
-
         $stmt->bindParam(':last_login_ip', $lastLoginIp);
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
-
         return $stmt->execute();
     }
 
     public function getResponsesForUserJobs($userId) {
-        $query = "
-            SELECT 
-                j.title AS title,
-                r.message AS message,
-                r.created_at AS created_at,
-                u.name AS executor_name,
-                r.executor_id AS executor_id, -- Dodane pole executor_id
-                j.id AS job_id -- Dla poprawnego przekierowania do konwersacji
-            FROM 
-                jobs j
-            INNER JOIN 
-                responses r ON j.id = r.job_id
-            INNER JOIN 
-                users u ON r.executor_id = u.id
-            WHERE 
-                j.user_id = :user_id
-            ORDER BY 
-                r.created_at DESC
-        ";
-
+        $query = "SELECT j.title AS title, r.message AS message, r.created_at AS created_at, 
+                 u.name AS executor_name, r.executor_id AS executor_id, j.id AS job_id
+                 FROM jobs j
+                 INNER JOIN responses r ON j.id = r.job_id
+                 INNER JOIN users u ON r.executor_id = u.id
+                 WHERE j.user_id = :user_id
+                 ORDER BY r.created_at DESC";
         $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
-
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-	
-	public function addBalanceToUser($userId, $balanceToAdd) {
-    $sql = "UPDATE users SET account_balance = account_balance + :balance_to_add, updated_at = NOW() WHERE id = :user_id";
-    $stmt = $this->pdo->prepare($sql);
-    $stmt->bindParam(':balance_to_add', $balanceToAdd, PDO::PARAM_STR);
-    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    
+    public function addBalanceToUser($userId, $balanceToAdd) {
+        $sql = "UPDATE users SET account_balance = account_balance + :balance_to_add, updated_at = NOW() WHERE id = :user_id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':balance_to_add', $balanceToAdd, PDO::PARAM_STR);
+        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
 
-    return $stmt->execute();
-}
-// Czy zmienićrodzaj konta
-public function getPendingAccountChangesCount() {
-    $query = "SELECT COUNT(*) FROM users WHERE need_change = 1";
-    $stmt = $this->pdo->prepare($query);
+    public function getPendingAccountChangesCount() {
+        $query = "SELECT COUNT(*) FROM users WHERE need_change = 1";
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    public function changeUserRole($user_id, $new_role) {
+        $query = "UPDATE users SET role = :new_role, need_change = 0 WHERE id = :user_id";
+        $stmt = $this->pdo->prepare($query);
+        return $stmt->execute([':new_role' => $new_role, ':user_id' => $user_id]);
+    }
+
+    public function getNewUsersPerDay() {
+        $sql = "SELECT DATE(created_at) as date, COUNT(*) as count FROM users WHERE created_at > NOW() - INTERVAL 7 DAY GROUP BY DATE(created_at)";
+        return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getLastActivity($userId) {
+        $sql = "SELECT last_login FROM users WHERE id = :user_id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ? $result['last_login'] : null;
+    }
+
+    public function updateLastActivity($userId) {
+        $sql = "UPDATE users SET last_login = NOW() WHERE id = :user_id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':user_id', $userId);
+        return $stmt->execute();
+    }
+
+public function getUnreadReportsCount() {
+    $stmt = $this->pdo->prepare("SELECT COUNT(*) as cnt FROM reports WHERE status = 'unread'");
     $stmt->execute();
-    return $stmt->fetchColumn();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row ? (int)$row['cnt'] : 0;
 }
-// Zmiana roli user executor user
-public function changeUserRole($user_id, $new_role) {
-    $query = "UPDATE users SET role = :new_role, need_change = 0 WHERE id = :user_id";
-    $stmt = $this->pdo->prepare($query);
-    return $stmt->execute([':new_role' => $new_role, ':user_id' => $user_id]);
+public function getRecentActivities($limit = 10) {
+    $stmt = $this->pdo->prepare("
+        SELECT a.*, u.username 
+        FROM user_activities a
+        LEFT JOIN users u ON a.user_id = u.id
+        ORDER BY a.timestamp DESC
+        LIMIT :limit
+    ");
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-// Dla charts
-public function getNewUsersPerDay() {
-    $sql = "SELECT DATE(created_at) as date, COUNT(*) as count FROM users WHERE created_at > NOW() - INTERVAL 7 DAY GROUP BY DATE(created_at)";
-    return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-}
-
 }
 ?>

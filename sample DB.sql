@@ -1,3 +1,12 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1:3306
+-- Generation Time: Wrz 08, 2025 at 06:27 PM
+-- Wersja serwera: 10.4.32-MariaDB
+-- Wersja PHP: 8.2.12
+
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
@@ -47,7 +56,13 @@ INSERT INTO `admin_login_history` (`id`, `admin_id`, `ip_address`, `login_time`)
 (15, 4, '127.0.0.1', '2025-02-25 21:39:33'),
 (16, 4, '127.0.0.1', '2025-02-25 21:40:11'),
 (17, 4, '127.0.0.1', '2025-02-25 21:40:13'),
-(18, 4, '127.0.0.1', '2025-02-25 21:40:14');
+(18, 4, '127.0.0.1', '2025-02-25 21:40:14'),
+(19, 4, '127.0.0.1', '2025-03-03 20:59:46'),
+(20, 4, '127.0.0.1', '2025-09-07 19:53:34'),
+(21, 4, '127.0.0.1', '2025-09-07 19:54:33'),
+(22, 4, '127.0.0.1', '2025-09-08 16:16:31'),
+(23, 4, '127.0.0.1', '2025-09-08 16:16:35'),
+(24, 4, '127.0.0.1', '2025-09-08 16:21:12');
 
 -- --------------------------------------------------------
 
@@ -100,7 +115,8 @@ CREATE TABLE `jobs` (
 
 INSERT INTO `jobs` (`id`, `user_id`, `title`, `description`, `status`, `created_at`, `updated_at`, `points_required`, `category_id`) VALUES
 (1, 6, 'Potrzebuję pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:23', 1, NULL),
-(2, 6, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:26', 1, NULL);
+(2, 6, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:26', 1, NULL),
+(11, 6, 'ogloszenie w kategorii', 'pierwsze w kategorii', 'open', '2025-03-03 20:10:44', '2025-03-03 20:10:44', 1, 1);
 
 -- --------------------------------------------------------
 
@@ -168,6 +184,21 @@ CREATE TABLE `payment_reports` (
   `user_id` int(11) NOT NULL,
   `details` text NOT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `reports`
+--
+
+CREATE TABLE `reports` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `status` enum('unread','in_progress','resolved') DEFAULT 'unread',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -267,6 +298,22 @@ CREATE TABLE `system_logs` (
 -- --------------------------------------------------------
 
 --
+-- Struktura tabeli dla tabeli `transactions`
+--
+
+CREATE TABLE `transactions` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `type` enum('payment','withdrawal','refund') NOT NULL DEFAULT 'payment',
+  `status` enum('pending','completed','failed') NOT NULL DEFAULT 'completed',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `description` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Struktura tabeli dla tabeli `transaction_history`
 --
 
@@ -306,10 +353,24 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `name`, `username`, `updated_at`, `registration_ip`, `last_login_ip`, `status`, `phone`, `account_balance`, `need_change`) VALUES
-(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', 'admin1', 'admin2', '2025-02-18 20:43:45', NULL, '127.0.0.1', 'active', NULL, 0, 0),
+(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', 'admin1', 'admin2', '2025-09-08 16:26:09', NULL, '127.0.0.1', 'active', NULL, 0, 0),
 (5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', 'exe1', 'exe2', '2025-02-23 13:28:11', NULL, '127.0.0.1', 'active', NULL, 12, 0),
-(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', 'user1', 'user2', '2025-02-23 13:28:14', NULL, '127.0.0.1', 'active', NULL, 8, 1),
-(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', 'exe2', 'exe4', '2025-02-23 13:28:17', NULL, '127.0.0.1', 'active', NULL, 13, 0);
+(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', 'user1', 'user2', '2025-09-08 10:18:58', NULL, '127.0.0.1', 'active', NULL, 11, 1),
+(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', 'exe2', 'exe4', '2025-09-07 19:56:08', NULL, '127.0.0.1', 'active', NULL, 13, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `user_activities`
+--
+
+CREATE TABLE `user_activities` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `details` text DEFAULT NULL,
+  `timestamp` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -324,6 +385,13 @@ CREATE TABLE `user_activity_reports` (
   `details` text NOT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_activity_reports`
+--
+
+INSERT INTO `user_activity_reports` (`id`, `user_id`, `activity_type`, `details`, `timestamp`) VALUES
+(4, 4, 'login', 'test', '2025-09-07 19:53:54');
 
 -- --------------------------------------------------------
 
@@ -390,6 +458,13 @@ ALTER TABLE `payment_reports`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indeksy dla tabeli `reports`
+--
+ALTER TABLE `reports`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- Indeksy dla tabeli `responses`
 --
 ALTER TABLE `responses`
@@ -423,6 +498,13 @@ ALTER TABLE `system_logs`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indeksy dla tabeli `transactions`
+--
+ALTER TABLE `transactions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_transactions_user` (`user_id`);
+
+--
 -- Indeksy dla tabeli `transaction_history`
 --
 ALTER TABLE `transaction_history`
@@ -434,6 +516,13 @@ ALTER TABLE `transaction_history`
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `email` (`email`);
+
+--
+-- Indeksy dla tabeli `user_activities`
+--
+ALTER TABLE `user_activities`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indeksy dla tabeli `user_activity_reports`
@@ -457,7 +546,7 @@ ALTER TABLE `user_permissions`
 -- AUTO_INCREMENT for table `admin_login_history`
 --
 ALTER TABLE `admin_login_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -469,7 +558,7 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `jobs`
 --
 ALTER TABLE `jobs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `job_reports`
@@ -493,6 +582,12 @@ ALTER TABLE `pages`
 -- AUTO_INCREMENT for table `payment_reports`
 --
 ALTER TABLE `payment_reports`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `reports`
+--
+ALTER TABLE `reports`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -526,6 +621,12 @@ ALTER TABLE `system_logs`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `transactions`
+--
+ALTER TABLE `transactions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `transaction_history`
 --
 ALTER TABLE `transaction_history`
@@ -538,10 +639,16 @@ ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
+-- AUTO_INCREMENT for table `user_activities`
+--
+ALTER TABLE `user_activities`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `user_activity_reports`
 --
 ALTER TABLE `user_activity_reports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `user_permissions`
@@ -585,6 +692,12 @@ ALTER TABLE `payment_reports`
   ADD CONSTRAINT `payment_reports_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `reports`
+--
+ALTER TABLE `reports`
+  ADD CONSTRAINT `reports_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `responses`
 --
 ALTER TABLE `responses`
@@ -596,6 +709,18 @@ ALTER TABLE `responses`
 --
 ALTER TABLE `settings_log`
   ADD CONSTRAINT `settings_log_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `transactions`
+--
+ALTER TABLE `transactions`
+  ADD CONSTRAINT `fk_transactions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `user_activities`
+--
+ALTER TABLE `user_activities`
+  ADD CONSTRAINT `user_activities_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `user_activity_reports`

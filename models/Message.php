@@ -152,6 +152,17 @@ public function getConversationById($conversationId)
             throw new Exception("Błąd bazy danych: " . $e->getMessage());
         }
     }
+	public function getRecentConversationsCount($days = 7) {
+    $stmt = $this->pdo->prepare("
+        SELECT COUNT(DISTINCT conversation_id) as cnt
+        FROM messages
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+    ");
+    $stmt->bindParam(':days', $days, PDO::PARAM_INT);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row ? (int)$row['cnt'] : 0;
+}
 
 }
 

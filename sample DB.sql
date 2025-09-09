@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Wrz 08, 2025 at 06:27 PM
+-- Generation Time: Wrz 09, 2025 at 12:40 PM
 -- Wersja serwera: 10.4.32-MariaDB
 -- Wersja PHP: 8.2.12
 
@@ -40,29 +40,30 @@ CREATE TABLE `admin_login_history` (
 
 INSERT INTO `admin_login_history` (`id`, `admin_id`, `ip_address`, `login_time`) VALUES
 (1, 4, '127.0.0.1', '2025-02-25 20:57:59'),
-(2, 4, '127.0.0.1', '2025-02-25 20:58:18'),
-(3, 4, '127.0.0.1', '2025-02-25 20:59:38'),
-(4, 4, '127.0.0.1', '2025-02-25 21:05:48'),
-(5, 4, '127.0.0.1', '2025-02-25 21:24:51'),
-(6, 4, '127.0.0.1', '2025-02-25 21:26:08'),
-(7, 4, '127.0.0.1', '2025-02-25 21:26:42'),
-(8, 4, '127.0.0.1', '2025-02-25 21:28:41'),
-(9, 4, '127.0.0.1', '2025-02-25 21:28:43'),
-(10, 4, '127.0.0.1', '2025-02-25 21:31:54'),
-(11, 4, '127.0.0.1', '2025-02-25 21:32:44'),
-(12, 4, '127.0.0.1', '2025-02-25 21:33:36'),
-(13, 4, '127.0.0.1', '2025-02-25 21:35:06'),
-(14, 4, '127.0.0.1', '2025-02-25 21:37:21'),
-(15, 4, '127.0.0.1', '2025-02-25 21:39:33'),
-(16, 4, '127.0.0.1', '2025-02-25 21:40:11'),
-(17, 4, '127.0.0.1', '2025-02-25 21:40:13'),
-(18, 4, '127.0.0.1', '2025-02-25 21:40:14'),
-(19, 4, '127.0.0.1', '2025-03-03 20:59:46'),
-(20, 4, '127.0.0.1', '2025-09-07 19:53:34'),
-(21, 4, '127.0.0.1', '2025-09-07 19:54:33'),
-(22, 4, '127.0.0.1', '2025-09-08 16:16:31'),
-(23, 4, '127.0.0.1', '2025-09-08 16:16:35'),
-(24, 4, '127.0.0.1', '2025-09-08 16:21:12');
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `admin_messages`
+--
+
+CREATE TABLE `admin_messages` (
+  `id` int(11) NOT NULL,
+  `admin_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `type` enum('notification','information','warning','promotion') DEFAULT 'notification',
+  `is_read` tinyint(1) DEFAULT 0,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `admin_messages`
+--
+
+INSERT INTO `admin_messages` (`id`, `admin_id`, `user_id`, `subject`, `message`, `type`, `is_read`, `created_at`) VALUES
+(1, 4, 6, 'test', 'test', 'notification', 0, '2025-09-08 20:54:26');
 
 -- --------------------------------------------------------
 
@@ -241,7 +242,10 @@ CREATE TABLE `settings_log` (
 --
 
 INSERT INTO `settings_log` (`id`, `user_id`, `change_description`, `timestamp`) VALUES
-(5, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:35:06');
+(5, 4, 'Zaktualizowane ustawienia SMTP', '2025-02-25 22:35:06'),
+(6, 4, 'Zaktualizowane ustawienia SMTP', '2025-09-09 09:21:04'),
+(7, 4, 'Zaktualizowane ustawienia strony i SMTP', '2025-09-09 11:43:17'),
+(8, 4, 'Zaktualizowane ustawienia strony i SMTP', '2025-09-09 12:28:38');
 
 -- --------------------------------------------------------
 
@@ -254,6 +258,18 @@ CREATE TABLE `site_settings` (
   `title` varchar(255) NOT NULL,
   `logo` varchar(255) NOT NULL,
   `categories` text DEFAULT NULL,
+  `meta_description` text DEFAULT NULL,
+  `meta_keywords` text DEFAULT NULL,
+  `max_ads` int(11) DEFAULT 10,
+  `promotion_fee` decimal(10,2) DEFAULT 10.00,
+  `facebook_url` varchar(255) DEFAULT NULL,
+  `twitter_url` varchar(255) DEFAULT NULL,
+  `instagram_url` varchar(255) DEFAULT NULL,
+  `linkedin_url` varchar(255) DEFAULT NULL,
+  `contact_email` varchar(255) DEFAULT NULL,
+  `contact_phone` varchar(50) DEFAULT NULL,
+  `contact_address` text DEFAULT NULL,
+  `business_hours` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `allow_registration` tinyint(1) NOT NULL DEFAULT 0,
@@ -267,8 +283,8 @@ CREATE TABLE `site_settings` (
 -- Dumping data for table `site_settings`
 --
 
-INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `created_at`, `updated_at`, `allow_registration`, `smtp_server`, `smtp_port`, `smtp_username`, `smtp_password`) VALUES
-(1, 'aaaaaaaaaaaaaaaaa', '308877065_165788742779003_2444177740663714339_n.jpg', '', '2025-02-17 21:58:18', '2025-02-25 21:36:54', 0, 'smtp.example.com', 25, 'user', 'password');
+INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `meta_description`, `meta_keywords`, `max_ads`, `promotion_fee`, `facebook_url`, `twitter_url`, `instagram_url`, `linkedin_url`, `contact_email`, `contact_phone`, `contact_address`, `business_hours`, `created_at`, `updated_at`, `allow_registration`, `smtp_server`, `smtp_port`, `smtp_username`, `smtp_password`) VALUES
+(1, 'test', '68bff6b54a5ca.png', '', '', '', 10, 10.00, 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'info@jobler.pl', '+48 123 456 789', 'ul. Przykładowa 123, 00-000 Warszawa', 'Pon-Pt: 8:00-18:00', '2025-02-17 21:58:18', '2025-09-09 10:28:38', 0, 'smtp.example.com', 25, 'user', 'password');
 
 -- --------------------------------------------------------
 
@@ -337,14 +353,19 @@ CREATE TABLE `users` (
   `password` varchar(255) NOT NULL,
   `role` enum('user','executor','admin') NOT NULL DEFAULT 'user',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `email_verified_at` datetime DEFAULT NULL,
+  `last_login` datetime DEFAULT NULL,
+  `last_activity` datetime DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `username` varchar(255) NOT NULL,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `registration_ip` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(500) DEFAULT NULL,
   `last_login_ip` varchar(45) DEFAULT NULL,
   `status` enum('active','inactive') DEFAULT 'active',
   `phone` varchar(15) DEFAULT NULL,
   `account_balance` int(11) NOT NULL DEFAULT 0,
+  `avatar` varchar(255) DEFAULT NULL,
   `need_change` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -352,11 +373,11 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `name`, `username`, `updated_at`, `registration_ip`, `last_login_ip`, `status`, `phone`, `account_balance`, `need_change`) VALUES
-(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', 'admin1', 'admin2', '2025-09-08 16:26:09', NULL, '127.0.0.1', 'active', NULL, 0, 0),
-(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', 'exe1', 'exe2', '2025-02-23 13:28:11', NULL, '127.0.0.1', 'active', NULL, 12, 0),
-(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', 'user1', 'user2', '2025-09-08 10:18:58', NULL, '127.0.0.1', 'active', NULL, 11, 1),
-(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', 'exe2', 'exe4', '2025-09-07 19:56:08', NULL, '127.0.0.1', 'active', NULL, 13, 0);
+INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `email_verified_at`, `last_login`, `last_activity`, `name`, `username`, `updated_at`, `registration_ip`, `user_agent`, `last_login_ip`, `status`, `phone`, `account_balance`, `avatar`, `need_change`) VALUES
+(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', NULL, NULL, NULL, 'admin1', 'admin2', '2025-09-08 18:56:12', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0),
+(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe1', 'exe2', '2025-02-23 13:28:11', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0),
+(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'executor', '2025-02-16 13:19:36', NULL, NULL, NULL, 'user1', 'user2', '2025-09-08 20:47:31', NULL, NULL, '127.0.0.1', 'active', NULL, 14, NULL, 0),
+(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe2', 'exe4', '2025-09-07 19:56:08', NULL, NULL, '127.0.0.1', 'active', NULL, 13, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -396,6 +417,22 @@ INSERT INTO `user_activity_reports` (`id`, `user_id`, `activity_type`, `details`
 -- --------------------------------------------------------
 
 --
+-- Struktura tabeli dla tabeli `user_login_history`
+--
+
+CREATE TABLE `user_login_history` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `login_time` datetime DEFAULT NULL,
+  `success` tinyint(1) DEFAULT 1,
+  `user_agent` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Struktura tabeli dla tabeli `user_permissions`
 --
 
@@ -414,6 +451,15 @@ CREATE TABLE `user_permissions` (
 --
 ALTER TABLE `admin_login_history`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indeksy dla tabeli `admin_messages`
+--
+ALTER TABLE `admin_messages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_admin_id` (`admin_id`),
+  ADD KEY `idx_user_id` (`user_id`),
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indeksy dla tabeli `categories`
@@ -532,6 +578,13 @@ ALTER TABLE `user_activity_reports`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indeksy dla tabeli `user_login_history`
+--
+ALTER TABLE `user_login_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_user_login_history_user_id` (`user_id`);
+
+--
 -- Indeksy dla tabeli `user_permissions`
 --
 ALTER TABLE `user_permissions`
@@ -546,7 +599,13 @@ ALTER TABLE `user_permissions`
 -- AUTO_INCREMENT for table `admin_login_history`
 --
 ALTER TABLE `admin_login_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+
+--
+-- AUTO_INCREMENT for table `admin_messages`
+--
+ALTER TABLE `admin_messages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -600,7 +659,7 @@ ALTER TABLE `responses`
 -- AUTO_INCREMENT for table `settings_log`
 --
 ALTER TABLE `settings_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `site_settings`
@@ -651,6 +710,12 @@ ALTER TABLE `user_activity_reports`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT for table `user_login_history`
+--
+ALTER TABLE `user_login_history`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `user_permissions`
 --
 ALTER TABLE `user_permissions`
@@ -659,6 +724,13 @@ ALTER TABLE `user_permissions`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `admin_messages`
+--
+ALTER TABLE `admin_messages`
+  ADD CONSTRAINT `admin_messages_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `admin_messages_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `categories`
@@ -727,6 +799,13 @@ ALTER TABLE `user_activities`
 --
 ALTER TABLE `user_activity_reports`
   ADD CONSTRAINT `user_activity_reports_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `user_login_history`
+--
+ALTER TABLE `user_login_history`
+  ADD CONSTRAINT `fk_user_login_history_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `user_login_history_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `user_permissions`

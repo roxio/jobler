@@ -2,6 +2,11 @@
 session_start();
 require_once 'config/config.php';
 require_once 'models/User.php';
+require_once 'models/SiteSettings.php'; // Dodajemy model ustawień
+
+// Pobieranie ustawień strony
+$siteSettingsModel = new SiteSettings();
+$siteSettings = $siteSettingsModel->getSettings();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
@@ -41,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logowanie</title>
+    <title><?= htmlspecialchars($siteSettings['title'] ?? 'Jobler') ?> - Logowanie</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">

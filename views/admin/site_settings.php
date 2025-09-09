@@ -32,27 +32,88 @@ if ($currentSettings === null) {
     ];
 }
 
-// Obsługa formularza aktualizacji ustawień
+/// Obsługa formularza aktualizacji ustawień
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_type'])) {
     if ($_POST['form_type'] === 'update_settings') {
-        // Aktualizacja ustawień SMTP
-        $smtpServer = isset($_POST['smtp_server']) ? $_POST['smtp_server'] : '';
-        $smtpPort = isset($_POST['smtp_port']) ? $_POST['smtp_port'] : '';
-        $smtpUsername = isset($_POST['smtp_username']) ? $_POST['smtp_username'] : '';
-        $smtpPassword = isset($_POST['smtp_password']) ? $_POST['smtp_password'] : '';
-
-        if ($smtpServer && $smtpPort && $smtpUsername && $smtpPassword) {
-            $settingsModel->updateSMTPSettings($smtpServer, $smtpPort, $smtpUsername, $smtpPassword);
-            $successMessage = "Ustawienia SMTP zostały zaktualizowane!";
+        // Aktualizacja podstawowych ustawień
+        $siteTitle = $_POST['site_title'] ?? '';
+        $metaDescription = $_POST['meta_description'] ?? '';
+        $metaKeywords = $_POST['meta_keywords'] ?? '';
+        $maxAds = $_POST['max_ads'] ?? 10;
+        $promotionFee = $_POST['promotion_fee'] ?? 10;
+        $smtpServer = $_POST['smtp_server'] ?? '';
+        $smtpPort = $_POST['smtp_port'] ?? '';
+        $smtpUsername = $_POST['smtp_username'] ?? '';
+        $smtpPassword = $_POST['smtp_password'] ?? '';
+		$facebookUrl = $_POST['facebook_url'] ?? '';
+		$twitterUrl = $_POST['twitter_url'] ?? '';
+		$instagramUrl = $_POST['instagram_url'] ?? '';
+		$linkedinUrl = $_POST['linkedin_url'] ?? '';
+		$contactEmail = $_POST['contact_email'] ?? '';
+		$contactPhone = $_POST['contact_phone'] ?? '';
+		$contactAddress = $_POST['contact_address'] ?? '';
+		$businessHours = $_POST['business_hours'] ?? '';
+        
+        // Obsługa uploadu logo
+        $logoName = $currentSettings['logo']; // Zachowaj stare logo domyślnie
+        
+        if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = '../../img/';
+            $fileExtension = pathinfo($_FILES['site_logo']['name'], PATHINFO_EXTENSION);
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg'];
+            
+            if (in_array(strtolower($fileExtension), $allowedExtensions)) {
+                // Usuń stare logo (jeśli nie jest domyślne)
+                if ($currentSettings['logo'] !== 'default-logo.png' && file_exists($uploadDir . $currentSettings['logo'])) {
+                    unlink($uploadDir . $currentSettings['logo']);
+                }
+                
+                // Generuj unikalną nazwę pliku
+                $logoName = uniqid() . '.' . $fileExtension;
+                $uploadFile = $uploadDir . $logoName;
+                
+                if (!move_uploaded_file($_FILES['site_logo']['tmp_name'], $uploadFile)) {
+                    $errorMessage = "Błąd podczas uploadu pliku!";
+                    $logoName = $currentSettings['logo']; // Przywróć stare logo
+                }
+            } else {
+                $errorMessage = "Nieprawidłowy format pliku! Dozwolone formaty: " . implode(', ', $allowedExtensions);
+            }
+        }
+        
+        // Przygotuj dane do aktualizacji
+        $settingsData = [
+    'title' => $siteTitle,
+    'logo' => $logoName,
+    'meta_description' => $metaDescription,
+    'meta_keywords' => $metaKeywords,
+    'max_ads' => $maxAds,
+    'promotion_fee' => $promotionFee,
+    'smtp_server' => $smtpServer,
+    'smtp_port' => $smtpPort,
+    'smtp_username' => $smtpUsername,
+    'smtp_password' => $smtpPassword,
+    'facebook_url' => $facebookUrl,
+    'twitter_url' => $twitterUrl,
+    'instagram_url' => $instagramUrl,
+    'linkedin_url' => $linkedinUrl,
+    'contact_email' => $contactEmail,
+    'contact_phone' => $contactPhone,
+    'contact_address' => $contactAddress,
+    'business_hours' => $businessHours
+];
+        
+        // Aktualizuj ustawienia w bazie danych
+        if ($settingsModel->updateSettings($settingsData)) {
+            $successMessage = "Ustawienia strony zostały zaktualizowane!";
+            // Odśwież bieżące ustawienia
+            $currentSettings = $settingsModel->getSettings();
         } else {
-            $errorMessage = "Wszystkie pola SMTP muszą być wypełnione!";
+            $errorMessage = "Błąd podczas aktualizacji ustawień!";
         }
 
         // Rejestrowanie zmian ustawień
-        $settingsModel->logSettingsChange($_SESSION['user_id'], 'Zaktualizowane ustawienia SMTP', date('Y-m-d H:i:s'));
-
-        // Inne zmiany w ustawieniach strony
-        // ...
+        $settingsModel->logSettingsChange($_SESSION['user_id'], 'Zaktualizowane ustawienia strony i SMTP', date('Y-m-d H:i:s'));
     }
 
     // Obsługa błędów - Monitorowanie błędów PHP i MySQL
@@ -121,12 +182,14 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
 
                                         <div class="mb-3">
                                             <label for="site_logo" class="form-label">Logo strony</label>
-                                            <input type="file" name="site_logo" id="site_logo" class="form-control">
+                                            <input type="file" name="site_logo" id="site_logo" class="form-control" accept="image/*">
+                                            <small class="text-muted">Dozwolone formaty: JPG, JPEG, PNG, GIF, SVG</small>
+                                            <br>
                                             <small class="text-muted">Bieżące logo:</small>
                                             <?php if (file_exists("../../img/" . $currentSettings['logo'])): ?>
-                                                <img src="/img/<?php echo htmlspecialchars($currentSettings['logo']); ?>" alt="Logo" style="height: 50px;">
+                                                <img src="/img/<?php echo htmlspecialchars($currentSettings['logo']); ?>" alt="Logo" style="height: 50px; max-width: 200px;" class="mt-2">
                                             <?php else: ?>
-                                                <p>Brak logo</p>
+                                                <p class="text-muted mt-2">Brak logo</p>
                                             <?php endif; ?>
                                         </div>
 
@@ -150,27 +213,66 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
                                             <input type="number" step="0.01" name="promotion_fee" class="form-control" value="<?php echo $currentSettings['promotion_fee'] ?? 10; ?>">
                                         </div>
 										
-<div class="mb-3">
-    <label for="smtp_server" class="form-label">Serwer SMTP</label>
-    <input type="text" name="smtp_server" id="smtp_server" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_server'] ?? ''); ?>" required>
+                                        <div class="mb-3">
+                                            <label for="smtp_server" class="form-label">Serwer SMTP</label>
+                                            <input type="text" name="smtp_server" id="smtp_server" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_server'] ?? ''); ?>" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="smtp_port" class="form-label">Port SMTP</label>
+                                            <input type="text" name="smtp_port" id="smtp_port" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_port'] ?? ''); ?>" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="smtp_username" class="form-label">Nazwa użytkownika SMTP</label>
+                                            <input type="text" name="smtp_username" id="smtp_username" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_username'] ?? ''); ?>" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="smtp_password" class="form-label">Hasło SMTP</label>
+                                            <input type="password" name="smtp_password" id="smtp_password" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_password'] ?? ''); ?>" required>
+                                        </div>
+										
+										<h6 class="mt-4 mb-3 border-bottom pb-2">Social Media</h6>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label for="facebook_url" class="form-label">Facebook URL</label>
+        <input type="url" name="facebook_url" class="form-control" value="<?php echo htmlspecialchars($currentSettings['facebook_url'] ?? ''); ?>">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label for="twitter_url" class="form-label">Twitter URL</label>
+        <input type="url" name="twitter_url" class="form-control" value="<?php echo htmlspecialchars($currentSettings['twitter_url'] ?? ''); ?>">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label for="instagram_url" class="form-label">Instagram URL</label>
+        <input type="url" name="instagram_url" class="form-control" value="<?php echo htmlspecialchars($currentSettings['instagram_url'] ?? ''); ?>">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label for="linkedin_url" class="form-label">LinkedIn URL</label>
+        <input type="url" name="linkedin_url" class="form-control" value="<?php echo htmlspecialchars($currentSettings['linkedin_url'] ?? ''); ?>">
+    </div>
 </div>
 
-<div class="mb-3">
-    <label for="smtp_port" class="form-label">Port SMTP</label>
-    <input type="text" name="smtp_port" id="smtp_port" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_port'] ?? ''); ?>" required>
+<!-- Dane kontaktowe -->
+<h6 class="mt-4 mb-3 border-bottom pb-2">Dane kontaktowe</h6>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label for="contact_email" class="form-label">Email kontaktowy</label>
+        <input type="email" name="contact_email" class="form-control" value="<?php echo htmlspecialchars($currentSettings['contact_email'] ?? 'info@jobler.pl'); ?>">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label for="contact_phone" class="form-label">Telefon</label>
+        <input type="text" name="contact_phone" class="form-control" value="<?php echo htmlspecialchars($currentSettings['contact_phone'] ?? '+48 123 456 789'); ?>">
+    </div>
+    <div class="col-12 mb-3">
+        <label for="contact_address" class="form-label">Adres</label>
+        <textarea name="contact_address" class="form-control"><?php echo htmlspecialchars($currentSettings['contact_address'] ?? 'ul. Przykładowa 123, 00-000 Warszawa'); ?></textarea>
+    </div>
+    <div class="col-12 mb-3">
+        <label for="business_hours" class="form-label">Godziny otwarcia</label>
+        <input type="text" name="business_hours" class="form-control" value="<?php echo htmlspecialchars($currentSettings['business_hours'] ?? 'Pon-Pt: 8:00-18:00'); ?>">
+    </div>
 </div>
-
-<div class="mb-3">
-    <label for="smtp_username" class="form-label">Nazwa użytkownika SMTP</label>
-    <input type="text" name="smtp_username" id="smtp_username" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_username'] ?? ''); ?>" required>
-</div>
-
-<div class="mb-3">
-    <label for="smtp_password" class="form-label">Hasło SMTP</label>
-    <input type="password" name="smtp_password" id="smtp_password" class="form-control" value="<?php echo htmlspecialchars($currentSettings['smtp_password'] ?? ''); ?>" required>
-</div>
-
-
 
                                         <button type="submit" class="btn btn-success">Zapisz zmiany</button>
                                     </form>
@@ -253,6 +355,10 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
                         </div>
                     </div>
                 </div>
+				<div class="container">
+            <span class="text-muted">&copy; 2025 System Zleceń - Wszelkie prawa zastrzeżone.</span>
+			<div class="stupidbottomm"> </div>
+        </div>
             </div>
         </div>
     </div>

@@ -1,14 +1,13 @@
 <?php
-// Rozpocznij sesję
 session_start();
 
 include_once('../../models/User.php');
 include_once('../../models/Job.php');
 include_once('../../models/SiteSettings.php');
 include_once('../../models/Message.php');
-include_once('../../models/TransactionHistory.php'); // Dodano nowy model
-include_once('../../config/config.php'); // Dodaj konfigurację
-
+include_once('../../models/TransactionHistory.php');
+include_once('../../models/Newsletter.php');
+include_once('../../config/config.php');
 
 $settingsModel = new SiteSettings();
 
@@ -17,12 +16,13 @@ $userModel = new User();
 $jobModel = new Job();
 $settingsModel = new SiteSettings($pdo);
 $messageModel = new Message($pdo);
-$transactionModel = new TransactionHistory($pdo); // Dodano nowy model
+$transactionModel = new TransactionHistory($pdo);
+$newsletter = new Newsletter();
 
 // Dla charts
 $newUsersData = $userModel->getNewUsersPerDay();
 $newJobsData = $jobModel->getNewJobsPerDay();
-$revenueData = $transactionModel->getDailyRevenue(); // Nowy wykres przychodów
+$revenueData = $transactionModel->getDailyRevenue();
 
 // Pobierz statystyki
 $userCount = $userModel->getUserCount();
@@ -31,8 +31,10 @@ $newUsers = $userModel->getNewUsersCount();
 $newJobs = $jobModel->getNewJobsCount();
 $siteViews = $settingsModel->getSiteViews();
 $pendingChanges = $userModel->getPendingAccountChangesCount();
-$totalRevenue = $transactionModel->getTotalRevenue(); // Nowa statystyka
-$activeJobs = $jobModel->getActiveJobsCount(); // Nowa statystyka
+$totalRevenue = $transactionModel->getTotalRevenue();
+$activeJobs = $jobModel->getActiveJobsCount();
+// Pobierz statystyki newslettera - TERAZ ZMIENNA $newsletter JEST DOSTĘPNA
+$newsletterStats = $newsletter->getNewsletterStats();
 
 $pendingAlerts = [
     'pending_changes' => $pendingChanges,
@@ -96,9 +98,9 @@ $pendingAlerts = [
                             <span class="badge bg-primary rounded-pill"><?php echo $jobCount; ?></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Aktywne ogłoszenia: 
-                            <span class="badge bg-success rounded-pill"><?php echo $activeJobs; ?></span>
-                        </li>
+    Subskrybenci newslettera: 
+    <span class="badge bg-info rounded-pill"><?php echo $newsletterStats['active'] ?? 0; ?></span>
+</li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             Wyświetlenia strony: 
                             <span class="badge bg-info rounded-pill"><?php echo $siteViews; ?></span>

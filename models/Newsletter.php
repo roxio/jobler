@@ -91,5 +91,70 @@ class Newsletter {
         $stmt = $this->pdo->prepare("UPDATE newsletter_subscriptions SET is_active = FALSE WHERE email = :email");
         return $stmt->execute(['email' => $email]);
     }
+public function getNewsletterStats() {
+    try {
+        $stmt = $this->pdo->prepare("
+            SELECT 
+                COUNT(*) as total,
+                SUM(is_active = 1) as active,
+                SUM(is_active = 0) as inactive,
+                COUNT(DISTINCT user_id) as with_account
+            FROM newsletter_subscriptions
+        ");
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // Zwróć domyślne wartości w przypadku błędu
+        return [
+            'total' => 0,
+            'active' => 0,
+            'inactive' => 0,
+            'with_account' => 0
+        ];
+    }
+}
+
+// Pobierz subskrybentów z paginacją
+public function getSubscribersPaginated($limit, $offset, $search = '') {
+    $sql = "SELECT * FROM newsletter_subscriptions WHERE 1";
+    
+    if (!empty($search)) {
+        $sql .= " AND email LIKE :search";
+    }
+    
+    $sql .= " ORDER BY subscribed_at DESC LIMIT :limit OFFSET :offset";
+    
+    $stmt = $this->pdo->prepare($sql);
+    
+    if (!empty($search)) {
+        $searchTerm = "%$search%";
+        $stmt->bindParam(':search', $searchTerm);
+    }
+    
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Liczba subskrybentów
+public function countSubscribers($search = '') {
+    $sql = "SELECT COUNT(*) FROM newsletter_subscriptions WHERE 1";
+    
+    if (!empty($search)) {
+        $sql .= " AND email LIKE :search";
+    }
+    
+    $stmt = $this->pdo->prepare($sql);
+    
+    if (!empty($search)) {
+        $searchTerm = "%$search%";
+        $stmt->bindParam(':search', $searchTerm);
+    }
+    
+    $stmt->execute();
+    return $stmt->fetchColumn();
+}
 }
 ?>

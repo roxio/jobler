@@ -2,37 +2,30 @@
 session_start();
 require_once 'config/config.php';
 require_once 'models/Job.php';
-require_once 'models/SiteSettings.php'; // Dodajemy model ustawień
+require_once 'models/SiteSettings.php';
 
-// Pobieranie ustawień strony
 $siteSettingsModel = new SiteSettings();
 $siteSettings = $siteSettingsModel->getSettings();
 
-// Pobieranie kategorii z bazy
 $pdo = Database::getConnection();
 $categoriesStmt = $pdo->query("SELECT id, name FROM categories");
 $categories = $categoriesStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Pobieranie liczby wyświetlanych elementów na stronie
 $defaultLimit = 5;
 $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : $defaultLimit;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$view = isset($_GET['view']) ? $_GET['view'] : 'list'; // Widok: list lub grid
-$search = isset($_GET['search']) ? trim($_GET['search']) : ''; // Wyszukiwanie
+$view = isset($_GET['view']) ? $_GET['view'] : 'list';
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $category = isset($_GET['category']) ? (int)$_GET['category'] : null;
 
-// Obliczanie offsetu
 $offset = ($page - 1) * $limit;
 
-// Pobranie ogłoszeń z limitem, offsetem i opcjonalnym wyszukiwaniem
-$jobModel = new Job();   // zakładam, że Job wymaga PDO w konstruktorze
+$jobModel = new Job();
 $jobs = $jobModel->getJobsWithPaginationAndSearch($limit, $offset, $search, $category);
 $totalJobs = $jobModel->getTotalJobsWithSearch($search, $category);
 
-// Obliczanie liczby stron
 $totalPages = ceil($totalJobs / $limit);
 
-// Tworzymy tablicę asocjacyjną kategorii dla łatwiejszego dostępu
 $categoriesMap = [];
 foreach ($categories as $cat) {
     $categoriesMap[$cat['id']] = $cat['name'];
@@ -53,7 +46,6 @@ foreach ($categories as $cat) {
 </head>
 <body>
     <?php 
-    // Przekazanie ustawień strony do navbar.php
     $GLOBALS['siteSettings'] = $siteSettings;
     include 'templates/navbar.php'; 
     ?>
@@ -226,7 +218,6 @@ foreach ($categories as $cat) {
                     </li>
                     
                     <?php 
-                    // Logika wyświetlania numerów stron
                     $startPage = max(1, $page - 2);
                     $endPage = min($totalPages, $startPage + 4);
                     
@@ -251,7 +242,6 @@ foreach ($categories as $cat) {
     </div>
 
     <?php 
-    // Przekazanie ustawień strony do footer.php
     $GLOBALS['siteSettings'] = $siteSettings;
     include 'templates/footer.php'; 
     ?>
@@ -259,9 +249,7 @@ foreach ($categories as $cat) {
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Automatyczne przesyłanie formularza przy zmianie niektórych elementów
         document.getElementById('category').addEventListener('change', function() {
-            // Resetuj stronę na 1 przy zmianie kategorii
             const form = document.getElementById('filter-form');
             const pageInput = document.createElement('input');
             pageInput.type = 'hidden';
@@ -273,7 +261,6 @@ foreach ($categories as $cat) {
         });
         
         document.getElementById('limit').addEventListener('change', function() {
-            // Resetuj stronę na 1 przy zmianie limitu
             const form = document.getElementById('filter-form');
             const pageInput = document.createElement('input');
             pageInput.type = 'hidden';
@@ -284,14 +271,12 @@ foreach ($categories as $cat) {
             form.submit();
         });
         
-        // Zmiana widoku (list/grid) za pomocą przycisków radiowych
         document.querySelectorAll('input[name="view"]').forEach(function(radio) {
             radio.addEventListener('change', function() {
                 document.getElementById('filter-form').submit();
             });
         });
 
-        // Obsługa przycisku "Wyczyść filtry"
         document.querySelectorAll('a[href="index.php"]').forEach(function(link) {
             link.addEventListener('click', function(e) {
                 e.preventDefault();

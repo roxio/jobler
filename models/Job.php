@@ -255,5 +255,137 @@ public function getTotalJobsWithSearch($search = '') {
         return $stmt->fetchColumn();
     }
 }
+public function getJobsWithFilters($limit, $offset, $sortColumn, $sortOrder, $search = '', $statusFilter = '', $categoryFilter = '', $userFilter = '', $dateFrom = '', $dateTo = '') {
+    $whereConditions = [];
+    $params = [];
+
+    if ($search) {
+        $whereConditions[] = "(j.title LIKE :search OR j.description LIKE :search)";
+        $params[':search'] = '%' . $search . '%';
+    }
+
+    if ($statusFilter) {
+        $whereConditions[] = "j.status = :status";
+        $params[':status'] = $statusFilter;
+    }
+
+    if ($categoryFilter) {
+        $whereConditions[] = "j.category_id = :category_id";
+        $params[':category_id'] = $categoryFilter;
+    }
+
+    if ($userFilter) {
+        $whereConditions[] = "j.user_id = :user_id";
+        $params[':user_id'] = $userFilter;
+    }
+
+    if ($dateFrom) {
+        $whereConditions[] = "j.created_at >= :date_from";
+        $params[':date_from'] = $dateFrom;
+    }
+
+    if ($dateTo) {
+        $whereConditions[] = "j.created_at <= :date_to";
+        $params[':date_to'] = $dateTo . ' 23:59:59';
+    }
+
+    $whereClause = $whereConditions ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+
+    // Walidacja kolumny sortowania
+    $allowedSortColumns = ['id', 'title', 'points_required', 'created_at', 'status'];
+    if (!in_array($sortColumn, $allowedSortColumns)) {
+        $sortColumn = 'created_at';
+    }
+
+    // Walidacja kierunku sortowania
+    $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+
+    $query = "SELECT j.*, u.name as user_name, c.name as category_name 
+              FROM jobs j 
+              LEFT JOIN users u ON j.user_id = u.id 
+              LEFT JOIN categories c ON j.category_id = c.id 
+              $whereClause 
+              ORDER BY j.$sortColumn $sortOrder 
+              LIMIT :limit OFFSET :offset";
+    
+    $stmt = $this->pdo->prepare($query);
+    
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    
+    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function countJobsWithFilters($search = '', $statusFilter = '', $categoryFilter = '', $userFilter = '', $dateFrom = '', $dateTo = '') {
+    $whereConditions = [];
+    $params = [];
+
+    if ($search) {
+        $whereConditions[] = "(title LIKE :search OR description LIKE :search)";
+        $params[':search'] = '%' . $search . '%';
+    }
+
+    if ($statusFilter) {
+        $whereConditions[] = "status = :status";
+        $params[':status'] = $statusFilter;
+    }
+
+    if ($categoryFilter) {
+        $whereConditions[] = "category_id = :category_id";
+        $params[':category_id'] = $categoryFilter;
+    }
+
+    if ($userFilter) {
+        $whereConditions[] = "user_id = :user_id";
+        $params[':user_id'] = $userFilter;
+    }
+
+    if ($dateFrom) {
+        $whereConditions[] = "created_at >= :date_from";
+        $params[':date_from'] = $dateFrom;
+    }
+
+    if ($dateTo) {
+        $whereConditions[] = "created_at <= :date_to";
+        $params[':date_to'] = $dateTo . ' 23:59:59';
+    }
+
+    $whereClause = $whereConditions ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+
+    $query = "SELECT COUNT(*) as total FROM jobs $whereClause";
+    $stmt = $this->pdo->prepare($query);
+    
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    
+    $stmt->execute();
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    return $result ? (int)$result['total'] : 0;
+}
+public function countJobsByStatus($status) {
+    $sql = "SELECT COUNT(*) as count FROM jobs WHERE status = ?";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->execute([$status]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result['count'];
+}
+
+public function getJobStats() {
+    $stats = [
+        'total' => $this->countJobs(),
+        'open' => $this->countJobsByStatus('open'),
+        'active' => $this->countJobsByStatus('active'),
+        'closed' => $this->countJobsByStatus('closed'),
+        'inactive' => $this->countJobsByStatus('inactive')
+    ];
+    return $stats;
+}
 }
 ?>

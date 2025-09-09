@@ -76,16 +76,21 @@ $siteTitle = $siteSettings['title'] ?? 'Jobler';
             </div>
 
             <!-- Kategorie -->
-            <div class="col-lg-3 col-md-6 mb-4">
-                <h6 class="text-white mb-3 fw-bold">Newsletter</h6>
-                <p class="text-light opacity-75 small">Zapisz się do naszego newslettera!</p>
-                    <div class="input-group">
-                        <input type="email" class="form-control form-control-sm" placeholder="Twój email" aria-label="Email">
-                        <button class="btn btn-light btn-sm" type="button">
-                            <i class="bi bi-send"></i>
-                        </button>
-                    </div>
-            </div>
+            
+<!-- Newsletter -->
+<div class="col-lg-3 col-md-6 mb-4">
+    <h6 class="text-white mb-3 fw-bold">Newsletter</h6>
+    <p class="text-light opacity-75 small">Zapisz się do naszego newslettera!</p>
+    <form id="newsletterForm">
+        <div class="input-group">
+            <input type="email" name="email" class="form-control form-control-sm" placeholder="Twój email" aria-label="Email" required>
+            <button class="btn btn-light btn-sm" type="submit">
+                <i class="bi bi-send"></i>
+            </button>
+        </div>
+    </form>
+    <div id="newsletterMessage" class="mt-2 small"></div>
+</div>
 
             <!-- Kontakt -->
             <div class="col-lg-4 col-md-6 mb-4">
@@ -155,5 +160,35 @@ $siteTitle = $siteSettings['title'] ?? 'Jobler';
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/scripts.js"></script>
+<script>
+$(document).ready(function() {
+    $('#newsletterForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = $(this).serialize();
+        var messageDiv = $('#newsletterMessage');
+        
+        messageDiv.removeClass('alert-danger alert-success').html('');
+        
+        $.ajax({
+            url: '/subscribe-newsletter.php',
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    messageDiv.addClass('alert alert-success').html(response.message);
+                    $('#newsletterForm')[0].reset();
+                } else {
+                    messageDiv.addClass('alert alert-danger').html(response.message);
+                }
+            },
+            error: function() {
+                messageDiv.addClass('alert alert-danger').html('Wystąpił błąd podczas przetwarzania żądania.');
+            }
+        });
+    });
+});
+</script>
 </body>
 </html>

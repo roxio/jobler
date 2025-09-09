@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Wrz 09, 2025 at 12:40 PM
+-- Generation Time: Wrz 09, 2025 at 12:57 PM
 -- Wersja serwera: 10.4.32-MariaDB
 -- Wersja PHP: 8.2.12
 
@@ -39,7 +39,7 @@ CREATE TABLE `admin_login_history` (
 --
 
 INSERT INTO `admin_login_history` (`id`, `admin_id`, `ip_address`, `login_time`) VALUES
-(1, 4, '127.0.0.1', '2025-02-25 20:57:59'),
+(26, 4, '127.0.0.1', '2025-09-09 06:35:37');
 
 -- --------------------------------------------------------
 
@@ -158,6 +158,21 @@ CREATE TABLE `messages` (
 INSERT INTO `messages` (`id`, `job_id`, `sender_id`, `receiver_id`, `content`, `message`, `created_at`, `read_status`, `conversation_id`) VALUES
 (28, 1, 6, 5, 'test 2', '', '2025-02-22 20:25:46', 0, 5),
 (29, 1, 5, 6, 'odp 3', '', '2025-02-22 20:26:13', 0, 5);
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `newsletter_subscriptions`
+--
+
+CREATE TABLE `newsletter_subscriptions` (
+  `id` int(11) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `subscribed_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `is_active` tinyint(1) DEFAULT 1,
+  `token` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -366,18 +381,19 @@ CREATE TABLE `users` (
   `phone` varchar(15) DEFAULT NULL,
   `account_balance` int(11) NOT NULL DEFAULT 0,
   `avatar` varchar(255) DEFAULT NULL,
-  `need_change` tinyint(1) NOT NULL DEFAULT 0
+  `need_change` tinyint(1) NOT NULL DEFAULT 0,
+  `newsletter_subscription` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `email_verified_at`, `last_login`, `last_activity`, `name`, `username`, `updated_at`, `registration_ip`, `user_agent`, `last_login_ip`, `status`, `phone`, `account_balance`, `avatar`, `need_change`) VALUES
-(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', NULL, NULL, NULL, 'admin1', 'admin2', '2025-09-08 18:56:12', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0),
-(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe1', 'exe2', '2025-02-23 13:28:11', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0),
-(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'executor', '2025-02-16 13:19:36', NULL, NULL, NULL, 'user1', 'user2', '2025-09-08 20:47:31', NULL, NULL, '127.0.0.1', 'active', NULL, 14, NULL, 0),
-(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe2', 'exe4', '2025-09-07 19:56:08', NULL, NULL, '127.0.0.1', 'active', NULL, 13, NULL, 0);
+INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `email_verified_at`, `last_login`, `last_activity`, `name`, `username`, `updated_at`, `registration_ip`, `user_agent`, `last_login_ip`, `status`, `phone`, `account_balance`, `avatar`, `need_change`, `newsletter_subscription`) VALUES
+(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', NULL, NULL, NULL, 'admin1', 'admin2', '2025-09-09 10:53:10', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 1),
+(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe1', 'exe2', '2025-02-23 13:28:11', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0),
+(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'executor', '2025-02-16 13:19:36', NULL, NULL, NULL, 'user1', 'user2', '2025-09-08 20:47:31', NULL, NULL, '127.0.0.1', 'active', NULL, 14, NULL, 0, 0),
+(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe2', 'exe4', '2025-09-07 19:56:08', NULL, NULL, '127.0.0.1', 'active', NULL, 13, NULL, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -489,6 +505,14 @@ ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`),
   ADD KEY `sender_id` (`sender_id`),
   ADD KEY `receiver_id` (`receiver_id`);
+
+--
+-- Indeksy dla tabeli `newsletter_subscriptions`
+--
+ALTER TABLE `newsletter_subscriptions`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indeksy dla tabeli `pages`
@@ -632,6 +656,12 @@ ALTER TABLE `messages`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
+-- AUTO_INCREMENT for table `newsletter_subscriptions`
+--
+ALTER TABLE `newsletter_subscriptions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT for table `pages`
 --
 ALTER TABLE `pages`
@@ -756,6 +786,12 @@ ALTER TABLE `job_reports`
 ALTER TABLE `messages`
   ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `newsletter_subscriptions`
+--
+ALTER TABLE `newsletter_subscriptions`
+  ADD CONSTRAINT `newsletter_subscriptions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `payment_reports`

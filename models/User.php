@@ -503,5 +503,12 @@ public function logLoginAttempt($userId, $ipAddress, $success = true, $userAgent
     
     return $stmt->execute();
 }
+public function updateNewsletterPreference($userId, $preference) {
+    $stmt = $this->pdo->prepare("UPDATE users SET newsletter_subscription = :preference WHERE id = :user_id");
+    return $stmt->execute([
+        'preference' => $preference,
+        'user_id' => $userId
+    ]);
+}
 }
 ?>

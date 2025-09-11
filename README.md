@@ -1,8 +1,9 @@
-Jobler to prosty skrypt do przypisywania zadań, który umożliwia zarządzanie zadaniami w zespole. Użytkownicy mogą tworzyć, przypisywać i śledzić zadania, co ułatwia współpracę i organizację pracy.
+Jobler to prosty skrypt do oferowani i zarządzania usługami. Pozwala na wystawienie zllecenia/oferty, wybór usługodawcy, przyjęcie zlecenia.
+  
 Funkcje
 
     Tworzenie zadań: Użytkownicy mogą tworzyć nowe zadania, określając ich tytuł, opis i termin wykonania.
-    Przypisywanie zadań: Zadania mogą być przypisywane do konkretnych członków zespołu, co pozwala na jasne określenie odpowiedzialności.
+    Przypisywanie zadań: Zadania mogą być przypisywane do konkretnych profili freelancerów.
     Śledzenie postępu: Użytkownicy mogą aktualizować status zadań, co umożliwia monitorowanie postępu prac.
 
 Wymagania systemowe
@@ -50,65 +51,73 @@ Przykładowe dane logowania
         E-mail: user@user.user
         Hasło: test
 
-Licencja
 
-Ten projekt jest objęty licencją GPL-3.0. Szczegóły znajdują się w pliku LICENSE.
+# Jobler
 
+Jobler is a simple script for offering and managing services.  
+It allows you to post a job/offer, choose a service provider, and accept an assignment.
 
-Jobler
+---
 
-Jobler is a simple task assignment script that enables team task management. Users can create, assign, and track tasks, facilitating collaboration and work organization.
-Features
+## Features
 
-    Task Creation: Users can create new tasks by specifying a title, description, and due date.
-    Task Assignment: Tasks can be assigned to specific team members, ensuring clear responsibility.
-    Progress Tracking: Users can update task statuses to monitor workflow progress.
+- **Task creation**: Users can create new tasks by specifying a title, description, and deadline.  
+- **Task assignment**: Tasks can be assigned to specific freelancer profiles.  
+- **Progress tracking**: Users can update task statuses, enabling monitoring of work progress.  
 
-System Requirements
+---
 
-    Web Server: Apache or another compatible server.
-    PHP: Version 7.0 or later.
-    Database: MySQL or another compatible database.
+## System Requirements
 
-Installation
+- **Web Server**: Apache or any compatible server  
+- **PHP**: Version 7.0 or newer  
+- **Database**: MySQL or any compatible database  
 
-    Clone the repository:
+---
 
-git clone https://github.com/roxio/jobler.git
+## Installation
 
-Copy the files to your server and ensure they have the correct permissions.
+1. **Download the repository**
+   ```bash
+   git clone https://github.com/roxio/jobler.git
+   ```
 
-Create a database and import the sample DB.sql file:
+2. **Copy the files** to your server and make sure they have the correct permissions.  
 
-CREATE DATABASE jobler_db;
-USE jobler_db;
-SOURCE /path/to/sample DB.sql;
+3. **Create a database** and import the sample data:
+   ```sql
+   CREATE DATABASE jobler_db;
+   USE jobler_db;
+   SOURCE /path/to/sample DB.sql;
+   ```
 
-Configure database connection in config.php:
+4. **Configure database connection** in `config.php`:
+   ```php
+   <?php
+   $db_host = 'localhost';
+   $db_name = 'jobler_db';
+   $db_user = 'username';
+   $db_pass = 'password';
+   ?>
+   ```
 
-    <?php
-    $db_host = 'localhost';
-    $db_name = 'jobler_db';
-    $db_user = 'your_username';
-    $db_pass = 'your_password';
-    ?>
+5. **Run the application** in your browser:  
+   ```
+   http://yourdomain/jobler
+   ```
 
-    Run the application in a browser by navigating to http://yourdomain/jobler.
+---
 
-Example Login Credentials
+## Sample Login Data
 
-    Administrator:
-        Email: admin@admin.admin
-        Password: test
+### Administrator
+- Email: `admin@admin.admin`  
+- Password: `test`  
 
-    Executor:
-        Email: executor@executor.executor
-        Password: test
+### Executor
+- Email: `executor@executor.executor`  
+- Password: `test`  
 
-    User:
-        Email: user@user.user
-        Password: test
-
-License
-
-This project is licensed under the GPL-3.0 license. Details can be found in the LICENSE file.
+### User
+- Email: `user@user.user`  
+- Password: `test`  

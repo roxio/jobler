@@ -1,7 +1,7 @@
 <?php
 // Pobieranie ustawień strony
-require_once 'config/config.php';
-require_once 'models/SiteSettings.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../models/SiteSettings.php';
 
 $siteSettingsModel = new SiteSettings();
 $siteSettings = $siteSettingsModel->getSettings();

@@ -23,10 +23,10 @@ include_once('../../models/Message.php');
 $userModel = new User();
 $jobModel = new Job();
 $transactionModel = new TransactionHistory($pdo);
-$messageModel = new Message();
+$messageModel = new Message($pdo);
+
 
 try {
-    //Pobierz szczegóły użytkownika
     $user = $userModel->getUserById($userId);
     
      if (!$user) {
@@ -36,10 +36,12 @@ try {
 	
     
     //Pobierz dodatkowe informacje
-    // $userJobs = $jobModel->getJobsByUserId($userId, 5); // Ostatnie 5 ogłoszeń
-     $userTransactions = $transactionModel->getUserTransactions($userId, 10); // Ostatnie 10 transakcji
+    $userJobs = $jobModel->getJobsByUserId($userId, 5);
+     $userTransactions = $transactionModel->getUserTransactions($userId, 5);
      $userStats = $userModel->getUserStatistics($userId);
-     $loginHistory = $userModel->getLoginHistory($userId, 10); // Ostatnie 10 logowań
+     $loginHistory = $userModel->getLoginHistory($userId, 5);
+	//$userConversations = $messageModel->getUserConversations($userId, 5);
+	//$conversationStats = $messageModel->getUserConversationStats($userId);
     
 } catch (Exception $e) {
      error_log("Błąd przy pobieraniu danych użytkownika: " . $e->getMessage());
@@ -194,13 +196,14 @@ if (!empty($user['last_login'])) {
                                     <!-- Szybkie akcje -->
                                     <div class="mt-3">
                                         <form action="add_points.php" method="POST" class="mb-2">
-                                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                                            <input type="hidden" name="user_id" value="<?= $userId ?>">
-                                            <div class="input-group input-group-sm">
-                                                <input type="number" name="points_to_add" class="form-control" placeholder="Punkty" min="1" max="1000" required>
-                                                <button type="submit" class="btn btn-success">Dodaj</button>
-                                            </div>
-                                        </form>
+    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+    <input type="hidden" name="user_id" value="<?= $userId ?>">
+    <div class="input-group input-group-sm">
+        <input type="number" name="points_to_add" class="form-control" placeholder="Punkty" min="1" max="1000" required>
+        <input type="text" name="reason" class="form-control" placeholder="Powód (opcjonalnie)" maxlength="100">
+        <button type="submit" class="btn btn-success">Dodaj</button>
+    </div>
+</form>
 
                                         <?php if (!empty($user['need_change'])): ?>
                                             <form action="change_role.php" method="POST" class="mb-2">
@@ -280,6 +283,7 @@ if (!empty($user['last_login'])) {
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
 
                             <!-- Ostatnie ogłoszenia -->
@@ -378,6 +382,96 @@ if (!empty($user['last_login'])) {
                                 </div>
                             </div>
 
+<!-- Ostatnie konwersacje -->
+<!-- Ostatnie konwersacje -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-chat-dots"></i> Ostatnie konwersacje</h6>
+        <a href="../admin/manage_messages.php?user_id=<?= $userId ?>" class="btn btn-sm btn-outline-primary">
+            Zobacz wszystkie
+        </a>
+    </div>
+    <div class="card-body">
+        <?php 
+        // Pobierz ostatnie 5 zgrupowanych konwersacji użytkownika
+        $userConversations = $messageModel->getGroupedConversationsWithAdvancedFilters(5, 0, ['user_id' => $userId]);
+        ?>
+        
+        <?php if (!empty($userConversations)): ?>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID Konwersacji</th>
+                            <th>Uczestnik</th>
+                            <th>Zlecenie</th>
+                            <th>Ostatnia wiadomość</th>
+                            <th>Wiadomości</th>
+                            <th>Ostatnia aktywność</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($userConversations as $conversation): ?>
+                            <?php
+                            // Określ drugiego uczestnika konwersacji
+                            $otherUserId = ($conversation['sender_id'] == $userId) ? $conversation['receiver_id'] : $conversation['sender_id'];
+                            $otherUserName = ($conversation['sender_id'] == $userId) ? $conversation['receiver_name'] : $conversation['sender_name'];
+                            ?>
+                            <tr>
+                                <td>
+                                    <span class="badge bg-secondary">#<?= safeEcho($conversation['conversation_id']); ?></span>
+                                </td>
+                                <td>
+                                    <a href="view_user.php?id=<?= safeEcho($otherUserId) ?>" class="text-decoration-none">
+                                        <?= safeEcho($otherUserName) ?>
+                                    </a>
+                                </td>
+                                <td>
+                                    <?php if (!empty($conversation['job_id'])): ?>
+                                        <a href="../jobs/view.php?id=<?= safeEcho($conversation['job_id']) ?>" class="text-decoration-none" target="_blank">
+                                            #<?= safeEcho($conversation['job_id']) ?>: <?= safeEcho(mb_substr($conversation['job_title'], 0, 15)) ?><?= mb_strlen($conversation['job_title']) > 15 ? '...' : '' ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted">Brak zlecenia</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php 
+                                    $content = !empty($conversation['last_message_content']) ? $conversation['last_message_content'] : 'Brak treści';
+                                    echo safeEcho(mb_substr($content, 0, 30)) . (mb_strlen($content) > 30 ? '...' : '');
+                                    ?>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info"><?= safeEcho($conversation['message_count']) ?></span>
+                                </td>
+                                <td>
+                                    <small><?= date('Y-m-d H:i', strtotime($conversation['last_activity_date'])) ?></small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-info view-conversation" 
+                                                data-bs-toggle="modal" data-bs-target="#conversationModal" 
+                                                data-conversation-id="<?= safeEcho($conversation['conversation_id']); ?>">
+                                            <i class="bi bi-eye" title="Podgląd konwersacji"></i>
+                                        </button>
+                                        <a href="../messages/view.php?conversation_id=<?= safeEcho($conversation['conversation_id']) ?>" 
+                                           class="btn btn-outline-primary" target="_blank">
+                                            <i class="bi bi-chat" title="Otwórz konwersację"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <p class="text-muted text-center mb-0">Brak konwersacji</p>
+        <?php endif; ?>
+    </div>
+</div>
+
                             <!-- Historia logowań -->
                             <div class="card">
                                 <div class="card-header">
@@ -414,6 +508,8 @@ if (!empty($user['last_login'])) {
                                     <?php endif; ?>
                                 </div>
                             </div>
+												
+							
                         </div>
                     </div>
                 </div>
@@ -464,6 +560,27 @@ if (!empty($user['last_login'])) {
     </div>
 </div>
 
+
+<!-- Modal do podglądu konwersacji -->
+<div class="modal fade" id="conversationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Podgląd konwersacji <span id="modalConversationId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="conversationContent" class="conversation-messages">
+                    <p class="text-center text-muted">Ładowanie wiadomości...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+                <a href="#" id="fullConversationLink" class="btn btn-primary" target="_blank">Pełna konwersacja</a>
+            </div>
+        </div>
+    </div>
+</div>
 <?php include '../partials/footer.php'; ?>
 
 <script>
@@ -473,5 +590,50 @@ document.addEventListener('DOMContentLoaded', function() {
     tooltipTriggerList.map(function(tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+});
+
+function checkUserOnlineStatus(userId) {
+    fetch(`check_online_status.php?user_id=${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.online) {
+                document.querySelector(`#user-status-${userId}`).className = 'badge bg-success';
+                document.querySelector(`#user-status-${userId}`).textContent = 'Online';
+            } else {
+                document.querySelector(`#user-status-${userId}`).className = 'badge bg-secondary';
+                document.querySelector(`#user-status-${userId}`).textContent = 'Offline';
+            }
+        });
+}
+
+// Wywołanie co 30 sekund
+setInterval(() => {
+    checkUserOnlineStatus(<?= $userId ?>);
+}, 30000);
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal do podglądu konwersacji
+    const conversationModal = document.getElementById('conversationModal');
+    if (conversationModal) {
+        conversationModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const conversationId = button.getAttribute('data-conversation-id');
+            
+            document.getElementById('modalConversationId').textContent = '#' + conversationId;
+            document.getElementById('fullConversationLink').href = '../messages/view.php?conversation_id=' + conversationId;
+            
+            // Pobierz zawartość konwersacji przez AJAX
+            fetch('../admin/get_conversation_content.php?conversation_id=' + conversationId)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('conversationContent').innerHTML = data;
+                })
+                .catch(error => {
+                    document.getElementById('conversationContent').innerHTML = 
+                        '<p class="text-danger">Błąd podczas ładowania konwersacji.</p>';
+                });
+        });
+    }
 });
 </script>

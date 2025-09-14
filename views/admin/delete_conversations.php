@@ -1,40 +1,41 @@
 <?php
 session_start();
-include_once('../../models/Message.php');
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['conversation_ids'])) {
-    $messageModel = new Message();
-    
-    // Pobieramy tablicę zaznaczonych identyfikatorów konwersacji
-    $conversationIds = $_POST['conversation_ids'];
-
-    try {
-        // Sprawdzamy, czy została zaznaczona przynajmniej jedna konwersacja
-        if (empty($conversationIds)) {
-            throw new Exception("Nie wybrano żadnej konwersacji do usunięcia.");
-        }
-
-        // Usuwamy konwersacje z bazy danych
-        $messageModel->deleteConversations($conversationIds);
-
-        // Ustawiamy komunikat o sukcesie
-        $_SESSION['message'] = "Konwersacje zostały pomyślnie usunięte.";
-        $_SESSION['message_type'] = 'success';
-
-    } catch (Exception $e) {
-        // Ustawiamy komunikat o błędzie
-        $_SESSION['message'] = "Wystąpił błąd: " . $e->getMessage();
-        $_SESSION['message_type'] = 'danger';
-    }
-
-    // Po zakończeniu przekierowujemy użytkownika z powrotem do strony konwersacji
-    header("Location: manage_conversations.php");
-    exit();
-} else {
-    // Jeśli brak zaznaczonych konwersacji, przekierowujemy z powrotem
-    $_SESSION['message'] = "Nie wybrano żadnej konwersacji.";
-    $_SESSION['message_type'] = 'warning';
-    header("Location: manage_conversations.php");
+if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+    header('HTTP/1.0 403 Forbidden');
     exit();
 }
-?>
+
+include_once('../../config/config.php');
+include_once('../../models/Message.php');
+
+// Sprawdź token CSRF
+if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
+    header('Location: manage_messages.php?status=error&message=csrf_error');
+    exit();
+}
+
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+    header('Location: manage_messages.php?status=error&message=invalid_id');
+    exit();
+}
+
+$conversationId = (int)$_GET['id'];
+$messageModel = new Message($pdo);
+
+try {
+    // Usuń wszystkie wiadomości w konwersacji
+    $sql = "DELETE FROM messages WHERE conversation_id = :conversation_id";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindValue(':conversation_id', $conversationId, PDO::PARAM_INT);
+    $result = $stmt->execute();
+    
+    if ($result) {
+        header('Location: manage_messages.php?status=deleted');
+    } else {
+        header('Location: manage_messages.php?status=error&message=delete_error');
+    }
+} catch (Exception $e) {
+    error_log("Błąd przy usuwaniu konwersacji: " . $e->getMessage());
+    header('Location: manage_messages.php?status=error&message=system_error');
+}

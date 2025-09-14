@@ -1,0 +1,31 @@
+[2025-09-13 20:59:41] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (user4@user4.user4, Marcin). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 21
+[2025-09-13 20:59:42] Użytkownik ID: 12 usunięty przez administratora: admin1
+[2025-09-13 21:25:44] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (deleted_12_1757789981@deleted.com, Usunięty użytkownik). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 0
+[2025-09-13 21:27:08] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (test4@test4.test4, test4). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 2
+[2025-09-13 21:27:13] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (test4@test4.test4, test4). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 2
+[2025-09-13 21:29:59] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (test4@test4.test4, test4). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 2
+[2025-09-13 21:30:11] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (test4@test4.test4, test4). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 2
+[2025-09-13 21:30:16] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (test4@test4.test4, test4). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 2
+[2025-09-13 21:32:29] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 14 (user@user.user2, user1). Ilość ogłoszeń: 0, Ilość transakcji: 0, Saldo: 12
+[2025-09-13 21:34:20] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (test4@test4.test4, test4). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 2
+[2025-09-13 21:37:02] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (test4@test4.test4, test4). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 2
+[2025-09-13 21:41:45] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (test4@test4.test4, test4). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 2
+[2025-09-13 21:41:45] Użytkownik ID: 12 usunięty przez administratora: admin1
+[2025-09-13 21:42:06] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 14 (user@user.user2, user1). Ilość ogłoszeń: 0, Ilość transakcji: 0, Saldo: 12
+[2025-09-13 21:42:06] Użytkownik ID: 14 usunięty przez administratora: admin1
+[2025-09-13 21:50:06] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (deleted_12_1757792505@deleted.com, Usunięty użytkownik). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 0
+[2025-09-13 21:50:06] Użytkownik ID: 12 usunięty przez administratora: admin1. Zamknięto 1/1 ogłoszeń.
+[2025-09-13 21:50:16] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 14 (deleted_14_1757792526@deleted.com, Usunięty użytkownik). Ilość ogłoszeń: 0, Ilość transakcji: 0, Saldo: 0
+[2025-09-13 21:50:17] Użytkownik ID: 14 usunięty przez administratora: admin1. Zamknięto 0/0 ogłoszeń.
+[2025-09-13 21:53:59] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (deleted_12_1757793006@deleted.com, Usunięty użytkownik). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 0
+[2025-09-13 21:53:59] Użytkownik ID: 12 usunięty przez administratora: admin1. Zamknięto 1/1 ogłoszeń.
+[2025-09-13 21:54:09] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 14 (deleted_14_1757793016@deleted.com, Usunięty użytkownik). Ilość ogłoszeń: 0, Ilość transakcji: 0, Saldo: 0
+[2025-09-13 21:54:09] Użytkownik ID: 14 usunięty przez administratora: admin1. Zamknięto 0/0 ogłoszeń.
+[2025-09-13 21:55:09] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (deleted_12_@1757793239, Usunięty użytkownik). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 0
+[2025-09-13 21:55:09] Użytkownik ID: 12 usunięty przez administratora: admin1. Zamknięto 1/1 ogłoszeń.
+[2025-09-13 21:55:15] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 14 (deleted_14_@1757793249, Usunięty użytkownik). Ilość ogłoszeń: 0, Ilość transakcji: 0, Saldo: 0
+[2025-09-13 21:55:15] Użytkownik ID: 14 usunięty przez administratora: admin1. Zamknięto 0/0 ogłoszeń.
+[2025-09-13 21:56:51] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 12 (deleted_12_@1757793309, DELETED). Ilość ogłoszeń: 1, Ilość transakcji: 5, Saldo: 0
+[2025-09-13 21:56:51] Użytkownik ID: 12 usunięty przez administratora: admin1. Zamknięto 1/1 ogłoszeń.
+[2025-09-13 21:56:56] ADMIN DELETE: Admin ID 4 usunął użytkownika ID 14 (deleted_14_@1757793315, DELETED). Ilość ogłoszeń: 0, Ilość transakcji: 0, Saldo: 0
+[2025-09-13 21:56:56] Użytkownik ID: 14 usunięty przez administratora: admin1. Zamknięto 0/0 ogłoszeń.

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Wrz 09, 2025 at 12:57 PM
+-- Generation Time: Wrz 13, 2025 at 08:04 PM
 -- Wersja serwera: 10.4.32-MariaDB
 -- Wersja PHP: 8.2.12
 
@@ -39,7 +39,10 @@ CREATE TABLE `admin_login_history` (
 --
 
 INSERT INTO `admin_login_history` (`id`, `admin_id`, `ip_address`, `login_time`) VALUES
-(26, 4, '127.0.0.1', '2025-09-09 06:35:37');
+(26, 4, '127.0.0.1', '2025-09-09 06:35:37'),
+(37, 4, '127.0.0.1', '2025-09-09 12:55:04'),
+(38, 4, '127.0.0.1', '2025-09-09 12:55:08'),
+(39, 4, '127.0.0.1', '2025-09-11 20:20:48');
 
 -- --------------------------------------------------------
 
@@ -117,7 +120,7 @@ CREATE TABLE `jobs` (
 INSERT INTO `jobs` (`id`, `user_id`, `title`, `description`, `status`, `created_at`, `updated_at`, `points_required`, `category_id`) VALUES
 (1, 6, 'Potrzebuję pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:23', 1, NULL),
 (2, 6, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:26', 1, NULL),
-(11, 6, 'ogloszenie w kategorii', 'pierwsze w kategorii', 'open', '2025-03-03 20:10:44', '2025-03-03 20:10:44', 1, 1);
+(11, 6, 'ogloszenie w kategorii', 'pierwsze w kategorii', '', '2025-03-03 20:10:44', '2025-09-12 09:45:06', 1, 1);
 
 -- --------------------------------------------------------
 
@@ -390,10 +393,11 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `email_verified_at`, `last_login`, `last_activity`, `name`, `username`, `updated_at`, `registration_ip`, `user_agent`, `last_login_ip`, `status`, `phone`, `account_balance`, `avatar`, `need_change`, `newsletter_subscription`) VALUES
-(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', NULL, NULL, NULL, 'admin1', 'admin2', '2025-09-09 10:53:10', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 1),
+(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', NULL, '2025-09-13 19:59:25', NULL, 'admin1', 'admin2', '2025-09-13 17:59:25', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 1),
 (5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe1', 'exe2', '2025-02-23 13:28:11', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0),
-(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'executor', '2025-02-16 13:19:36', NULL, NULL, NULL, 'user1', 'user2', '2025-09-08 20:47:31', NULL, NULL, '127.0.0.1', 'active', NULL, 14, NULL, 0, 0),
-(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe2', 'exe4', '2025-09-07 19:56:08', NULL, NULL, '127.0.0.1', 'active', NULL, 13, NULL, 0, 0);
+(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', NULL, '2025-09-12 12:36:54', NULL, 'user1', 'user2', '2025-09-13 18:00:28', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0),
+(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe2', 'exe4', '2025-09-07 19:56:08', NULL, NULL, '127.0.0.1', 'active', NULL, 13, NULL, 0, 0),
+(12, 'user4@user4.user4', '$2y$10$NHYeFsrYjJAmz0NathhxfOPuMaAgWe7V8dZ0LdtdfXrcqBq/kSe86', 'user', '2025-09-13 18:01:47', NULL, NULL, NULL, 'Marcin', 'makabra', '2025-09-13 18:01:47', '127.0.0.1', NULL, NULL, 'active', '', 0, NULL, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -445,6 +449,17 @@ CREATE TABLE `user_login_history` (
   `user_agent` varchar(500) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_login_history`
+--
+
+INSERT INTO `user_login_history` (`id`, `user_id`, `ip_address`, `login_time`, `success`, `user_agent`, `created_at`) VALUES
+(1, 6, '127.0.0.1', '2025-09-12 12:33:17', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-12 10:33:17'),
+(2, 6, '127.0.0.1', '2025-09-12 12:33:35', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-12 10:33:35'),
+(4, 6, '127.0.0.1', '2025-09-12 12:36:49', 0, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-12 10:36:49'),
+(5, 6, '127.0.0.1', '2025-09-12 12:36:54', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-12 10:36:54'),
+(6, 4, '127.0.0.1', '2025-09-13 19:59:25', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0', '2025-09-13 17:59:25');
 
 -- --------------------------------------------------------
 
@@ -623,7 +638,7 @@ ALTER TABLE `user_permissions`
 -- AUTO_INCREMENT for table `admin_login_history`
 --
 ALTER TABLE `admin_login_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `admin_messages`
@@ -725,7 +740,7 @@ ALTER TABLE `transaction_history`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `user_activities`
@@ -743,7 +758,7 @@ ALTER TABLE `user_activity_reports`
 -- AUTO_INCREMENT for table `user_login_history`
 --
 ALTER TABLE `user_login_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `user_permissions`

@@ -8,7 +8,6 @@ class User {
         $this->pdo = Database::getConnection();
     }
 
-    // Rejestracja użytkownika
     public function register($email, $password, $name, $username, $role = 'user', $phone = '') {
         $registrationIp = $_SERVER['REMOTE_ADDR'];
         $sql = "SELECT * FROM users WHERE email = :email OR username = :username";
@@ -41,7 +40,6 @@ class User {
         return ['error' => 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.'];
     }
 
-    // Logowanie użytkownika
     public function login($email, $password) {
         $sql = "SELECT * FROM users WHERE email = :email";
         $stmt = $this->pdo->prepare($sql);
@@ -65,7 +63,6 @@ class User {
         return false;
     }
 
-    // Pobranie danych użytkownika
 public function getUserById($userId) {
     $sql = "SELECT id, email, name, role, created_at, updated_at, registration_ip, 
                    last_login_ip, status, account_balance, last_login,
@@ -77,7 +74,6 @@ public function getUserById($userId) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-    // Aktualizacja danych użytkownika
     public function updateUser($userId, $email) {
         $sql = "UPDATE users SET email = :email, updated_at = NOW() WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
@@ -86,7 +82,6 @@ public function getUserById($userId) {
         return $stmt->execute();
     }
 
-    // Zmiana hasła
     public function changePassword($userId, $newPassword) {
         $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
         $sql = "UPDATE users SET password = :password, updated_at = NOW() WHERE id = :user_id";
@@ -96,7 +91,6 @@ public function getUserById($userId) {
         return $stmt->execute();
     }
 
-    // Dodawanie punktów
     public function addPointsToUser($userId, $points) {
         $sql = "UPDATE users SET account_balance = account_balance + :points WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
@@ -105,7 +99,6 @@ public function getUserById($userId) {
         return $stmt->execute();
     }
 
-    // Pobieranie wszystkich użytkowników
     public function getAllUsers() {
         $sql = "SELECT id, name, email, role, status, created_at, updated_at, registration_ip, last_login_ip, account_balance, need_change FROM users";
         $stmt = $this->pdo->prepare($sql);
@@ -113,7 +106,6 @@ public function getUserById($userId) {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Paginacja z wyszukiwaniem
     public function getPaginatedUsers($limit, $offset, $sortColumn, $sortOrder, $search) {
         $searchQuery = '';
         if ($search) {
@@ -131,7 +123,6 @@ public function getUserById($userId) {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Całkowita liczba użytkowników
     public function getTotalUsers($search) {
         $searchQuery = '';
         if ($search) {
@@ -147,7 +138,6 @@ public function getUserById($userId) {
         return $stmt->fetchColumn();
     }
 
-    // NOWE METODY DLA FILTRÓW I STATYSTYK
     public function getPaginatedUsersWithFilters($limit, $offset, $sortColumn, $sortOrder, $search, $statusFilter, $roleFilter, $dateFrom, $dateTo) {
         $whereConditions = [];
         $params = [];
@@ -286,12 +276,14 @@ public function getUserById($userId) {
         return $stmt->fetchColumn();
     }
 
-    public function deleteUser($userId) {
-        $sql = "DELETE FROM users WHERE id = :user_id";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':user_id', $userId);
-        return $stmt->execute();
-    }
+public function deleteUser($userId) {  
+		if ($userId == $_SESSION['user_id']) {         
+			throw new Exception("Cannot delete yourself");     }          
+			$sql = "DELETE FROM users WHERE id = :user_id";     
+			$stmt = $this->pdo->prepare($sql);     
+			$stmt->bindParam(':user_id', $userId);     
+		return $stmt->execute(); 
+	}
 
     public function deleteUsers($userIds) {
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
@@ -492,11 +484,14 @@ private function countUserMessages($userId) {
     return $stmt->fetchColumn();
 }
 public function logLoginAttempt($userId, $ipAddress, $success = true, $userAgent = null) {
-    $query = "INSERT INTO user_login_history (user_id, ip_address, login_time, success, user_agent) 
-              VALUES (:user_id, :ip_address, NOW(), :success, :user_agent)";
+    // Jeśli userId jest null, ustawiamy go na 0 lub inny znacznik dla anonimowych prób
+    $logUserId = $userId !== null ? $userId : 0;
     
-    $stmt = $this->pdo->prepare($query);
-    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    $sql = "INSERT INTO user_login_history (user_id, ip_address, login_time, success, user_agent) 
+            VALUES (:user_id, :ip_address, NOW(), :success, :user_agent)";
+    
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':user_id', $logUserId, PDO::PARAM_INT);
     $stmt->bindParam(':ip_address', $ipAddress);
     $stmt->bindParam(':success', $success, PDO::PARAM_BOOL);
     $stmt->bindParam(':user_agent', $userAgent);
@@ -509,6 +504,50 @@ public function updateNewsletterPreference($userId, $preference) {
         'preference' => $preference,
         'user_id' => $userId
     ]);
+}
+public function updateLastLogin($userId) {
+    $sql = "UPDATE users SET last_login = NOW() WHERE id = :user_id";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    return $stmt->execute();
+}
+public function getUserIdByEmail($email) {
+    $sql = "SELECT id FROM users WHERE email = :email";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindParam(':email', $email);
+    $stmt->execute();
+    
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result ? $result['id'] : null;
+}
+public function addPointsWithTransaction($userId, $pointsToAdd, $description = '') {
+    try {
+        $this->pdo->beginTransaction();
+        
+        // Dodaj punkty do salda użytkownika
+        $sql = "UPDATE users SET account_balance = account_balance + :points_to_add, updated_at = NOW() WHERE id = :user_id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindParam(':points_to_add', $pointsToAdd, PDO::PARAM_STR);
+        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        // Zapisz transakcję w historii
+        $transactionSql = "INSERT INTO transactions (user_id, amount, type, description, status, created_at) 
+                          VALUES (:user_id, :amount, 'payment', :description, 'completed', NOW())";
+        $transactionStmt = $this->pdo->prepare($transactionSql);
+        $transactionStmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $transactionStmt->bindParam(':amount', $pointsToAdd, PDO::PARAM_STR);
+        $transactionStmt->bindParam(':description', $description, PDO::PARAM_STR);
+        $transactionStmt->execute();
+        
+        $this->pdo->commit();
+        return true;
+        
+    } catch (Exception $e) {
+        $this->pdo->rollBack();
+        error_log("Błąd przy dodawaniu punktów: " . $e->getMessage());
+        return false;
+    }
 }
 }
 ?>

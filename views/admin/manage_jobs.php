@@ -28,6 +28,10 @@ $searchTerm = isset($_GET['search']) ? trim($_GET['search']) : '';
 $statusFilter = isset($_GET['status_filter']) ? $_GET['status_filter'] : '';
 $categoryFilter = isset($_GET['category_filter']) ? (int)$_GET['category_filter'] : '';
 $userFilter = isset($_GET['user_filter']) ? (int)$_GET['user_filter'] : '';
+$userIdFilter = isset($_GET['user_id']) ? (int)$_GET['user_id'] : '';
+if (!empty($userIdFilter)) {
+    $userFilter = $userIdFilter;
+}
 $dateFrom = isset($_GET['date_from']) ? $_GET['date_from'] : '';
 $dateTo = isset($_GET['date_to']) ? $_GET['date_to'] : '';
 $pointsMin = isset($_GET['points_min']) ? (float)$_GET['points_min'] : '';

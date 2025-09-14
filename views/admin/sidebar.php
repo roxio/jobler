@@ -28,7 +28,7 @@
                 </li>
                 
                 <li class="nav-item">
-                    <a class="nav-link d-flex align-items-center" href="manage_conversations.php">
+                    <a class="nav-link d-flex align-items-center" href="manage_messages.php">
                         <i class="bi bi-chat-dots me-2"></i>
                         <span>Konwersacje</span>
                     </a>

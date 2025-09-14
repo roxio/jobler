@@ -4,9 +4,8 @@ define('DB_HOST', 'localhost');
 define('DB_NAME', 'jobler');
 define('DB_USER', 'root');
 define('DB_PASS', '');
-
-// Ustawienia aplikacji do przeredagowania
 define('APP_URL', 'http://localhost/');
+
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();

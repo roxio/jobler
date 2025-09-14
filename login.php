@@ -23,6 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($loginResult['error'])) {
             // Jeśli konto zostało zablokowane
             $error = $loginResult['error'];
+            
+            // Najpierw znajdź user_id na podstawie emaila
+            $userId = $user->getUserIdByEmail($email);
+            
+            // Logowanie nieudanej próby logowania
+            $user->logLoginAttempt($userId, $_SERVER['REMOTE_ADDR'], false, $_SERVER['HTTP_USER_AGENT']);
         } else {
             // Jeśli logowanie się powiodło, zapisz dane użytkownika w sesji
             $_SESSION['user_id'] = $loginResult['id'];
@@ -31,12 +37,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_name'] = $loginResult['name'];
             $_SESSION['user_account_balance'] = $loginResult['account_balance'];
             
+            // Aktualizacja ostatniego logowania i zapis historii
+            $user->updateLastLogin($loginResult['id']);
+            $user->logLoginAttempt($loginResult['id'], $_SERVER['REMOTE_ADDR'], true, $_SERVER['HTTP_USER_AGENT']);
+            
             header('Location: /');
             exit;
         }
     } else {
         // Jeśli logowanie nie powiodło się
         $error = "Nieprawidłowy login lub hasło.";
+        
+        // Najpierw znajdź user_id na podstawie emaila
+        $userId = $user->getUserIdByEmail($email);
+        
+        // Logowanie nieudanej próby logowania
+        $user->logLoginAttempt($userId, $_SERVER['REMOTE_ADDR'], false, $_SERVER['HTTP_USER_AGENT']);
     }
 }
 ?>

@@ -180,5 +180,79 @@ public function getUserTransactions($userId, $limit = 10) {
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+public function getUserTransactionsWithDetails($userId, $limit = 10) {
+    $query = "SELECT t.*, u.username, u.name 
+              FROM transactions t
+              LEFT JOIN users u ON t.user_id = u.id
+              WHERE t.user_id = :user_id 
+              ORDER BY t.created_at DESC 
+              LIMIT :limit";
+    
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+public function getTransactionsWithFilters($limit, $offset, $sortColumn, $sortOrder, $userId = '') {
+    $sql = "SELECT t.*, u.name as user_name 
+            FROM transactions t 
+            LEFT JOIN users u ON t.user_id = u.id 
+            WHERE 1=1";
+    
+    if (!empty($userId)) {
+        $sql .= " AND t.user_id = :user_id";
+    }
+    
+    $sql .= " ORDER BY $sortColumn $sortOrder LIMIT :limit OFFSET :offset";
+    
+    $stmt = $this->pdo->prepare($sql);
+    
+    if (!empty($userId)) {
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+    }
+    
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function countTransactionsWithFilters($userId = '') {
+    $sql = "SELECT COUNT(*) as count FROM transactions WHERE 1=1";
+    
+    if (!empty($userId)) {
+        $sql .= " AND user_id = :user_id";
+    }
+    
+    $stmt = $this->pdo->prepare($sql);
+    
+    if (!empty($userId)) {
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+    }
+    
+    $stmt->execute();
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    return $result['count'] ?? 0;
+}
+
+public function getUserTransactionStats($userId) {
+    $sql = "SELECT 
+        COUNT(*) as total_count,
+        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income_total,
+        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense_total,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count
+        FROM transactions 
+        WHERE user_id = :user_id";
+    
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
 }
 ?>

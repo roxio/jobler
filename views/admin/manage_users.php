@@ -97,7 +97,11 @@ if (empty($_SESSION['csrf_token'])) {
                         <div class="alert <?php echo ($_GET['status'] == 'error' || $_GET['status'] == 'error_points') ? 'alert-danger' : 'alert-success'; ?> alert-dismissible fade show" role="alert">
                             <?php 
                                 $messages = [
-                                    'deleted' => '✅ Wybrani użytkownicy zostali pomyślnie usunięci.',
+                                    'deleted' => '✅ Użytkownik został pomyślnie usunięty. Zamknięto ' . ($_GET['jobs_closed'] ?? 0) . ' ogłoszeń.',
+    'delete_failed' => '❌ Błąd podczas usuwania użytkownika.',
+    'cannot_delete_self' => '❌ Nie możesz usunąć własnego konta.',
+    'user_not_found' => '❌ Użytkownik nie istnieje.',
+    'system_error' => '❌ Błąd systemowy podczas usuwania.',
                                     'activated' => '✅ Konto użytkownika zostało aktywowane.',
                                     'deactivated' => '✅ Konto użytkownika zostało dezaktywowane.',
                                     'error' => '❌ Wystąpił błąd. Spróbuj ponownie.',
@@ -107,6 +111,7 @@ if (empty($_SESSION['csrf_token'])) {
                                     'export_success' => '✅ Eksport danych zakończony powodzeniem.',
                                     'role_changed' => '✅ Rola użytkownika została zmieniona.',
                                     'message_sent' => '✅ Wiadomość została wysłana.'
+									
                                 ];
                                 echo safeEcho($messages[$_GET['status']] ?? '');
                             ?>
@@ -349,121 +354,141 @@ if (empty($_SESSION['csrf_token'])) {
                                         </thead>
                                         <tbody>
                                             <?php if (!empty($users)): ?>
-                                                <?php foreach ($users as $user) : ?>
-                                                    <tr class="<?= (!empty($user['need_change']) && $user['need_change'] == 1) ? 'table-warning' : ''; ?>">
-                                                        <td>
-                                                            <input type="checkbox" name="user_ids[]" value="<?= safeEcho($user['id']); ?>" class="user-checkbox">
-                                                        </td>
-                                                        <td>
-                                                            <span class="badge bg-secondary">#<?= safeEcho($user['id']); ?></span>
-                                                        </td>
-                                                        <td>
-                                                            <div class="d-flex align-items-center">
-                                                                <div class="flex-shrink-0">
-                                                                    <img src="<?= !empty($user['avatar']) ? safeEcho($user['avatar']) : '../../assets/img/default-avatar.png'; ?>" 
-                                                                         class="rounded-circle me-2" width="32" height="32" alt="Avatar">
-                                                                </div>
-                                                                <div class="flex-grow-1 ms-2">
-                                                                    <div class="fw-bold"><?= safeEcho($user['name']); ?></div>
-                                                                    <small class="text-muted"><?= safeEcho($user['username'] ?? 'Brak nazwy'); ?></small>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td>
-                                                            <?= safeEcho($user['email']); ?>
-                                                            <?php if (!empty($user['email_verified_at'])): ?>
-                                                                <span class="badge bg-success ms-1" title="Email zweryfikowany">✓</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td>
-                                                            <div class="d-flex align-items-center">
-                                                                <span class="badge <?= $user['role'] == 'admin' ? 'bg-danger' : ($user['role'] == 'executor' ? 'bg-warning' : 'bg-primary'); ?> me-2">
-                                                                    <?= safeEcho(ucfirst($user['role'])); ?>
-                                                                </span>
-                                                                <?php if (!empty($user['need_change']) && $user['need_change'] == 1): ?>
-                                                                    <form action="change_role.php" method="POST" class="d-inline">
-                                                                        <input type="hidden" name="user_id" value="<?= safeEcho($user['id']); ?>">
-                                                                        <input type="hidden" name="current_role" value="<?= safeEcho($user['role']); ?>">
-                                                                        <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
-                                                                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Zmień rolę">
-                                                                            <i class="bi bi-arrow-repeat"></i>
-                                                                        </button>
-                                                                    </form>
-                                                                <?php endif; ?>
-                                                            </div>
-                                                        </td>
-                                                        <td>
-                                                            <small><?= date('Y-m-d', strtotime($user['created_at'])) ?></small>
-                                                            <br><small class="text-muted"><?= date('H:i', strtotime($user['created_at'])) ?></small>
-                                                        </td>
-                                                        <td>
-                                                            <?php if (!empty($user['last_login'])): ?>
-                                                                <small><?= date('Y-m-d', strtotime($user['last_login'])) ?></small>
-                                                                <br><small class="text-muted"><?= date('H:i', strtotime($user['last_login'])) ?></small>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">Nigdy</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td>
-                                                            <small class="text-muted"><?= safeEcho($user['registration_ip']); ?></small>
-                                                        </td>
-                                                        <td>
-                                                            <span class="badge <?= $user['status'] == 'active' ? 'bg-success' : 'bg-secondary'; ?>">
-                                                                <?= $user['status'] == 'active' ? 'Aktywny' : 'Nieaktywny'; ?>
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <span class="fw-bold <?= ($user['account_balance'] ?? 0) > 0 ? 'text-success' : 'text-muted'; ?>">
-                                                                <?= number_format($user['account_balance'] ?? 0, 2) ?> pkt
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <div class="btn-group btn-group-sm" role="group">
-                                                                <!-- Dodawanie punktów -->
-                                                                <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addPointsModal" data-user-id="<?= safeEcho($user['id']); ?>" data-user-name="<?= safeEcho($user['name']); ?>">
-                                                                    <i class="bi bi-plus-circle" title="Dodaj punkty"></i>
-                                                                </button>
-                                                                
-                                                                <!-- Edycja -->
-                                                                <a href="../admin/edit_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-warning" title="Edytuj">
-                                                                    <i class="bi bi-pencil"></i>
-                                                                </a>
-                                                                
-                                                                <!-- Podgląd -->
-                                                                <a href="../admin/view_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-info" title="Podgląd">
-                                                                    <i class="bi bi-eye"></i>
-                                                                </a>
-                                                                
-                                                                <!-- Aktywacja/Deaktywacja -->
-                                                                <?php if ($user['status'] == 'active'): ?>
-                                                                    <a href="../admin/deactivate_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-secondary" title="Dezaktywuj" onclick="return confirm('Czy na pewno chcesz dezaktywować tego użytkownika?');">
-                                                                        <i class="bi bi-person-x"></i>
-                                                                    </a>
-                                                                <?php else: ?>
-                                                                    <a href="../admin/activate_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-success" title="Aktywuj">
-                                                                        <i class="bi bi-person-check"></i>
-                                                                    </a>
-                                                                <?php endif; ?>
-                                                                
-                                                                <!-- Usuwanie -->
-                                                                <a href="../admin/delete_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-danger" title="Usuń" onclick="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Ta operacja jest nieodwracalna.');">
-                                                                    <i class="bi bi-trash"></i>
-                                                                </a>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            <?php else: ?>
-                                                <tr>
-                                                    <td colspan="11" class="text-center py-5">
-                                                        <i class="bi bi-people display-4 text-muted"></i>
-                                                        <p class="mt-3">Brak użytkowników spełniających kryteria wyszukiwania</p>
-                                                        <a href="<?= buildUrl(['search' => null, 'status_filter' => null, 'role_filter' => null, 'date_from' => null, 'date_to' => null, 'balance_min' => null, 'balance_max' => null, 'has_jobs' => null, 'is_verified' => null]) ?>" class="btn btn-primary btn-sm">
-                                                            Wyczyść filtry
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            <?php endif; ?>
+    <?php foreach ($users as $user) : 
+        $rowClasses = [];
+        
+        if (!empty($user['need_change']) && $user['need_change'] == 1) {
+            $rowClasses[] = 'table-warning';
+        }
+        
+        if ($user['status'] === 'deleted') {
+            $rowClasses[] = 'table-secondary';
+            $rowClasses[] = 'text-muted';
+        }
+        
+        $rowClass = implode(' ', $rowClasses);
+    ?>
+        <tr class="<?= $rowClass ?>">
+            <td>
+                <input type="checkbox" name="user_ids[]" value="<?= safeEcho($user['id']); ?>" class="user-checkbox">
+            </td>
+            <td>
+                <span class="badge bg-secondary">#<?= safeEcho($user['id']); ?></span>
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <img src="<?= !empty($user['avatar']) ? safeEcho($user['avatar']) : '../../assets/img/default-avatar.png'; ?>" 
+                             class="rounded-circle me-2" width="32" height="32" alt="Avatar">
+                    </div>
+                    <div class="flex-grow-1 ms-2">
+                        <div class="fw-bold"><?= safeEcho($user['name']); ?></div>
+                        <small class="text-muted"><?= safeEcho($user['username'] ?? 'Brak nazwy'); ?></small>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <?= safeEcho($user['email']); ?>
+                <?php if (!empty($user['email_verified_at'])): ?>
+                    <span class="badge bg-success ms-1" title="Email zweryfikowany">✓</span>
+                <?php endif; ?>
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <span class="badge <?= $user['role'] == 'admin' ? 'bg-danger' : ($user['role'] == 'executor' ? 'bg-warning' : 'bg-primary'); ?> me-2">
+                        <?= safeEcho(ucfirst($user['role'])); ?>
+                    </span>
+                    <?php if (!empty($user['need_change']) && $user['need_change'] == 1): ?>
+                        <form action="change_role.php" method="POST" class="d-inline">
+                            <input type="hidden" name="user_id" value="<?= safeEcho($user['id']); ?>">
+                            <input type="hidden" name="current_role" value="<?= safeEcho($user['role']); ?>">
+                            <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
+                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Zmień rolę">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </td>
+            <td>
+                <small><?= date('Y-m-d', strtotime($user['created_at'])) ?></small>
+                <br><small class="text-muted"><?= date('H:i', strtotime($user['created_at'])) ?></small>
+            </td>
+            <td>
+                <?php if (!empty($user['last_login'])): ?>
+                    <small><?= date('Y-m-d', strtotime($user['last_login'])) ?></small>
+                    <br><small class="text-muted"><?= date('H:i', strtotime($user['last_login'])) ?></small>
+                <?php else: ?>
+                    <span class="text-muted">Nigdy</span>
+                <?php endif; ?>
+            </td>
+            <td>
+                <small class="text-muted"><?= safeEcho($user['registration_ip']); ?></small>
+            </td>
+            <td>
+                <span class="badge <?= $user['status'] == 'active' ? 'bg-success' : ($user['status'] == 'deleted' ? 'bg-secondary' : 'bg-warning'); ?>">
+                    <?= $user['status'] == 'active' ? 'Aktywny' : ($user['status'] == 'deleted' ? 'Usunięty' : 'Nieaktywny'); ?>
+                </span>
+            </td>
+            <td>
+                <span class="fw-bold <?= ($user['account_balance'] ?? 0) > 0 ? 'text-success' : 'text-muted'; ?>">
+                    <?= number_format($user['account_balance'] ?? 0, 2) ?> pkt
+                </span>
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm" role="group">
+                    <!-- Dodawanie punktów -->
+                    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addPointsModal" data-user-id="<?= safeEcho($user['id']); ?>" data-user-name="<?= safeEcho($user['name']); ?>">
+                        <i class="bi bi-plus-circle" title="Dodaj punkty"></i>
+                    </button>
+                    
+                    <!-- Edycja -->
+                    <a href="../admin/edit_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-warning" title="Edytuj">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    
+                    <!-- Podgląd -->
+                    <a href="../admin/view_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-info" title="Podgląd">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    
+                    <!-- Aktywacja/Deaktywacja -->
+                    <?php if ($user['status'] == 'active'): ?>
+                        <a href="../admin/deactivate_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-secondary" title="Dezaktywuj" onclick="return confirm('Czy na pewno chcesz dezaktywować tego użytkownika?');">
+                            <i class="bi bi-person-x"></i>
+                        </a>
+                    <?php elseif ($user['status'] == 'inactive'): ?>
+                        <a href="../admin/activate_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-success" title="Aktywuj">
+                            <i class="bi bi-person-check"></i>
+                        </a>
+                    <?php endif; ?>
+                    
+                    <!-- Usuwanie - pokazuj tylko jeśli użytkownik nie jest już usunięty -->
+                    <?php if ($user['status'] !== 'deleted'): ?>
+                        <a href="../admin/delete_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-danger" title="Usuń" onclick="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Ta operacja jest nieodwracalna.');">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    <?php else: ?>
+                        <!-- Przycisk informacyjny dla już usuniętych -->
+                        <button class="btn btn-outline-secondary" title="Użytkownik już usunięty" disabled>
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+<?php else: ?>
+    <tr>
+        <td colspan="11" class="text-center py-5">
+            <i class="bi bi-people display-4 text-muted"></i>
+            <p class="mt-3">Brak użytkowników spełniających kryteria wyszukiwania</p>
+            <a href="<?= buildUrl(['search' => null, 'status_filter' => null, 'role_filter' => null, 'date_from' => null, 'date_to' => null, 'balance_min' => null, 'balance_max' => null, 'has_jobs' => null, 'is_verified' => null]) ?>" class="btn btn-primary btn-sm">
+                Wyczyść filtry
+            </a>
+        </td>
+    </tr>
+<?php endif; ?>
                                         </tbody>
                                     </table>
                                 </div>

@@ -128,7 +128,7 @@ $pendingAlerts = [
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             Nowe konwersacje: 
-                            <span class="badge bg-success rounded-pill"><?php echo $messageModel->getRecentConversationsCount(); ?></span>
+                            <span class="badge bg-success rounded-pill"><?php echo $messageModel->countConversations(); ?></span>
                         </li>
                     </ul>
                 </div>

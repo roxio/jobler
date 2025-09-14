@@ -1,7 +1,7 @@
 <?php
 // Pobieranie ustawień strony
-require_once 'config/config.php';
-require_once 'models/SiteSettings.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../models/SiteSettings.php';
 
 $siteSettingsModel = new SiteSettings();
 $siteSettings = $siteSettingsModel->getSettings();
@@ -48,30 +48,30 @@ $categories = $categoriesStmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- Logowanie/rejestracja lub wylogowanie -->
         <?php if (isset($_SESSION['user_id'])): ?>
           <li class="nav-item">
-            <a class="nav-link" href="views/user/dashboard.php">Panel użytkownika</a>
+            <a class="nav-link" href="../../views/user/dashboard.php">Panel użytkownika</a>
           </li>
 
           <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
             <li class="nav-item">
-              <a class="nav-link" href="views/admin/dashboard.php">Panel Administracyjny</a>
+              <a class="nav-link" href="../../views/admin/dashboard.php">Panel Administracyjny</a>
             </li>
           <?php endif; ?>
 
           <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'executor'): ?>
             <li class="nav-item">
-              <a class="nav-link" href="views/executor/dashboard.php">Dashboard Wykonawcy</a>
+              <a class="nav-link" href="../../views/executor/dashboard.php">Dashboard Wykonawcy</a>
             </li>
           <?php endif; ?>
 
           <li class="nav-item">
-            <a class="nav-link" href="/logout.php">Wyloguj</a>
+            <a class="nav-link" href="../../logout.php">Wyloguj</a>
           </li>
         <?php else: ?>
           <li class="nav-item">
-            <a class="nav-link" href="/login.php">Zaloguj się</a>
+            <a class="nav-link" href="../../login.php">Zaloguj się</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/register.php">Zarejestruj się</a>
+            <a class="nav-link" href="../../register.php">Zarejestruj się</a>
           </li>
         <?php endif; ?>
         

@@ -2,8 +2,7 @@
 session_start();
 require_once '../../models/Executor.php';
 
-if (!isset($_SESSION['user_id']) || !isset($_GET['job_id'])) {
-    // Jeśli użytkownik nie jest zalogowany lub brak ID oferty
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'executor' || !isset($_GET['job_id'])) {
     header('Location: /login.php');
     exit;
 }

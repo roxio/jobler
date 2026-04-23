@@ -372,7 +372,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                                             <span class="badge bg-secondary">#<?= safeEcho($job['id']); ?></span>
                                                         </td>
                                                         <td>
-                                                            <a href="../jobs/view_job.php?id=<?= $job['id'] ?>" target="_blank" class="text-decoration-none">
+                                                            <a href="view_job.php?id=<?= $job['id'] ?>" target="_blank" class="text-decoration-none">
                                                                 <?= htmlspecialchars(mb_substr($job['title'], 0, 40)) . (mb_strlen($job['title']) > 40 ? '...' : '') ?>
                                                             </a>
                                                         </td>
@@ -426,7 +426,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                                                 </a>
                                                                 
                                                                 <!-- Podgląd -->
-                                                                <a href="../jobs/view_job.php?id=<?= safeEcho($job['id']); ?>" target="_blank" class="btn btn-outline-info" title="Podgląd">
+                                                                <a href="view_job.php?id=<?= safeEcho($job['id']); ?>" target="_blank" class="btn btn-outline-info" title="Podgląd">
                                                                     <i class="bi bi-eye"></i>
                                                                 </a>
                                                                 

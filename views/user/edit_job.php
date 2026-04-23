@@ -10,13 +10,13 @@ $jobModel = new Job();
 
 // Sprawdź, czy użytkownik jest zalogowany
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /public/login.php');
+    header('Location: /login.php');
     exit;
 }
 
 // Sprawdź, czy przesłano ID ogłoszenia
 if (!isset($_GET['id'])) {
-    header('Location: /views/user/dashboard.php');
+    header('Location: /views/user/job_list.php');
     exit;
 }
 
@@ -28,7 +28,7 @@ $job = $jobModel->getJobDetails($jobId);
 
 // Sprawdź, czy ogłoszenie należy do użytkownika
 if ($job['user_id'] != $userId) {
-    header('Location: /views/user/dashboard.php');
+    header('Location: /views/user/job_list.php');
     exit;
 }
 
@@ -41,8 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Zaktualizuj ogłoszenie
     $jobModel->updateJob($jobId, $title, $description, $status);
 
-    // Przekieruj na dashboard
-    header('Location: /views/user/dashboard.php');
+    // Przekieruj na listę ogłoszeń
+    header('Location: /views/user/job_list.php');
     exit;
 }
 

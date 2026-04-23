@@ -7,8 +7,7 @@ include_once('../../models/Job.php');
 
 // Sprawdź, czy użytkownik jest zalogowany
 if (!isset($_SESSION['user_id'])) {
-    // Jeśli użytkownik nie jest zalogowany, przekieruj go do strony logowania
-    header('Location: /public/login.php');
+    header('Location: /login.php');
     exit;
 }
 

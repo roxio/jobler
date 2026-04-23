@@ -2,7 +2,7 @@
 session_start();
 require_once '../../models/Executor.php';
 
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'executor') {
     header('Location: /login.php');
     exit;
 }

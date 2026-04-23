@@ -7,7 +7,7 @@ include_once('../../models/User.php');
 
 // Sprawdź, czy użytkownik jest zalogowany
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /public/login.php');
+    header('Location: /login.php');
     exit;
 }
 

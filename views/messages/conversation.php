@@ -7,7 +7,7 @@ require_once('../../models/Message.php');
 require_once('../../models/User.php');
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /public/login.php');
+    header('Location: /login.php');
     exit;
 }
 

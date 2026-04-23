@@ -3,13 +3,13 @@ class Message {
     private $pdo;
     
     public function __construct($pdo = null) {
-        if ($pdo) {
-            $this->pdo = $pdo;
-        } else {
-            include_once('../config/config.php');
-            $this->pdo = $pdo;
-        }
+    if ($pdo) {
+        $this->pdo = $pdo;
+    } else {
+        include_once(dirname(__DIR__) . '/models/Database.php');
+        $this->pdo = Database::getConnection();
     }
+}
 
     public function getUserConversations($userId, $limit = 5) {
     $sql = "SELECT 
@@ -206,13 +206,86 @@ public function getResponsesForJob($jobId, $user1Id, $user2Id) {
     
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-public function getConversationById($conversationId) {
-    $sql = "SELECT * FROM messages WHERE conversation_id = :conversation_id 
-            ORDER BY created_at DESC";
-    $stmt = $this->pdo->prepare($sql);
-    $stmt->bindParam(':conversation_id', $conversationId);
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+public function getConversationById($conversationId, $requestingUserId = null) {
+    $parts = explode('_', $conversationId);
+
+    if (count($parts) === 3) {
+        // Nowy format z job_id
+        $jobId = (int)$parts[0];
+        $id1   = (int)$parts[1];
+        $id2   = (int)$parts[2];
+
+        // Weryfikacja dostępu
+        if ($requestingUserId !== null) {
+            $isParticipant = ($requestingUserId === $id1 || $requestingUserId === $id2);
+            $isAdmin       = $this->isAdmin($requestingUserId);
+            if (!$isParticipant && !$isAdmin) {
+                return false;
+            }
+        }
+
+        $sql = "SELECT m.*,
+                       u1.name AS sender_name,
+                       u2.name AS receiver_name
+                FROM messages m
+                LEFT JOIN users u1 ON m.sender_id = u1.id
+                LEFT JOIN users u2 ON m.receiver_id = u2.id
+                WHERE m.job_id = :job_id
+                  AND (
+                      (m.sender_id = :id1 AND m.receiver_id = :id2)
+                   OR (m.sender_id = :id2b AND m.receiver_id = :id1b)
+                  )
+                ORDER BY m.created_at ASC";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':job_id' => $jobId,
+            ':id1'    => $id1,
+            ':id2'    => $id2,
+            ':id2b'   => $id2,
+            ':id1b'   => $id1,
+        ]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    } elseif (count($parts) === 2) {
+        $id1 = (int)$parts[0];
+        $id2 = (int)$parts[1];
+
+        if ($requestingUserId !== null) {
+            $isParticipant = ($requestingUserId === $id1 || $requestingUserId === $id2);
+            $isAdmin       = $this->isAdmin($requestingUserId);
+            if (!$isParticipant && !$isAdmin) {
+                return false;
+            }
+        }
+
+        $sql = "SELECT m.*,
+                       u1.name AS sender_name,
+                       u2.name AS receiver_name
+                FROM messages m
+                LEFT JOIN users u1 ON m.sender_id = u1.id
+                LEFT JOIN users u2 ON m.receiver_id = u2.id
+                WHERE (m.sender_id = :id1  AND m.receiver_id = :id2)
+                   OR (m.sender_id = :id2b AND m.receiver_id = :id1b)
+                ORDER BY m.created_at ASC";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':id1'  => $id1, ':id2'  => $id2,
+            ':id2b' => $id2, ':id1b' => $id1,
+        ]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    return [];
+}
+
+// Metoda pomocnicza — sprawdź czy użytkownik jest adminem
+private function isAdmin($userId) {
+    $stmt = $this->pdo->prepare("SELECT role FROM users WHERE id = :id");
+    $stmt->execute([':id' => $userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row && $row['role'] === 'admin';
 }
 
 public function countConversations($search = '') {
@@ -460,6 +533,7 @@ public function getGroupedConversationsWithAdvancedFilters($limit, $offset, $fil
     
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 public function countGroupedConversationsWithAdvancedFilters($filters = []) {
     $sql = "SELECT COUNT(DISTINCT conversation_id) as count
             FROM messages m
@@ -517,6 +591,25 @@ public function countGroupedConversationsWithAdvancedFilters($filters = []) {
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     
     return $result['count'] ?? 0;
+}
+public function sendMessage($senderId, $receiverId, $content, $jobId = null) {
+    // conversation_id = job_id + para użytkowników (unikalne dla każdego zlecenia)
+    $convId = $jobId . '_' . min($senderId, $receiverId) . '_' . max($senderId, $receiverId);
+
+    $sql = "INSERT INTO messages 
+                (job_id, sender_id, receiver_id, content, message, conversation_id, created_at, read_status)
+            VALUES 
+                (:job_id, :sender_id, :receiver_id, :content, :message, :conversation_id, NOW(), 0)";
+
+    $stmt = $this->pdo->prepare($sql);
+    return $stmt->execute([
+        ':job_id'          => $jobId,
+        ':sender_id'       => $senderId,
+        ':receiver_id'     => $receiverId,
+        ':content'         => $content,
+        ':message'         => $content,
+        ':conversation_id' => $convId,
+    ]);
 }
 }
 ?>

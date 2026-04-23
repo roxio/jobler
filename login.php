@@ -9,51 +9,37 @@ $siteSettingsModel = new SiteSettings();
 $siteSettings = $siteSettingsModel->getSettings();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'];
+    $email    = $_POST['email'];
     $password = $_POST['password'];
 
-    // Tworzenie obiektu klasy User
-    $user = new User();
-
-    // Wywołanie metody login
+    $user        = new User();
     $loginResult = $user->login($email, $password);
 
-    if ($loginResult !== false) {
-        // Sprawdzanie, czy konto jest aktywne
-        if (isset($loginResult['error'])) {
-            // Jeśli konto zostało zablokowane
-            $error = $loginResult['error'];
-            
-            // Najpierw znajdź user_id na podstawie emaila
-            $userId = $user->getUserIdByEmail($email);
-            
-            // Logowanie nieudanej próby logowania
-            $user->logLoginAttempt($userId, $_SERVER['REMOTE_ADDR'], false, $_SERVER['HTTP_USER_AGENT']);
-        } else {
-            // Jeśli logowanie się powiodło, zapisz dane użytkownika w sesji
-            $_SESSION['user_id'] = $loginResult['id'];
-            $_SESSION['user_role'] = $loginResult['role'];
-            $_SESSION['user_email'] = $loginResult['email'];
-            $_SESSION['user_name'] = $loginResult['name'];
-            $_SESSION['user_account_balance'] = $loginResult['account_balance'];
-            
-            // Aktualizacja ostatniego logowania i zapis historii
-            $user->updateLastLogin($loginResult['id']);
-            $user->logLoginAttempt($loginResult['id'], $_SERVER['REMOTE_ADDR'], true, $_SERVER['HTTP_USER_AGENT']);
-            
-            header('Location: /');
-            exit;
-        }
-    } else {
-        // Jeśli logowanie nie powiodło się
-        $error = "Nieprawidłowy login lub hasło.";
-        
-        // Najpierw znajdź user_id na podstawie emaila
-        $userId = $user->getUserIdByEmail($email);
-        
-        // Logowanie nieudanej próby logowania
-        $user->logLoginAttempt($userId, $_SERVER['REMOTE_ADDR'], false, $_SERVER['HTTP_USER_AGENT']);
+    if ($loginResult !== false && !isset($loginResult['error'])) {
+        // Sukces
+        $_SESSION['user_id']              = $loginResult['id'];
+        $_SESSION['user_role']            = $loginResult['role'];
+        $_SESSION['user_email']           = $loginResult['email'];
+        $_SESSION['user_name']            = $loginResult['name'];
+        $_SESSION['user_account_balance'] = $loginResult['account_balance'];
+
+        $user->updateLastLogin($loginResult['id']);
+        $user->logLoginAttempt($loginResult['id'], $_SERVER['REMOTE_ADDR'], true, $_SERVER['HTTP_USER_AGENT']);
+
+        header('Location: /');
+        exit;
     }
+
+    // Nieudane logowanie — userId może być null jeśli email nie istnieje
+    if (isset($loginResult['error'])) {
+        $error = $loginResult['error'];
+    } else {
+        $error = "Nieprawidłowy login lub hasło.";
+    }
+
+    // Szukamy user_id tylko jeśli email istnieje w bazie — metoda zwróci null jeśli nie
+    $userId = $user->getUserIdByEmail($email); // null gdy brak — to jest OK po poprawce
+    $user->logLoginAttempt($userId, $_SERVER['REMOTE_ADDR'], false, $_SERVER['HTTP_USER_AGENT']);
 }
 ?>
 

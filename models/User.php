@@ -484,18 +484,18 @@ private function countUserMessages($userId) {
     return $stmt->fetchColumn();
 }
 public function logLoginAttempt($userId, $ipAddress, $success = true, $userAgent = null) {
-    // Jeśli userId jest null, ustawiamy go na 0 lub inny znacznik dla anonimowych prób
-    $logUserId = $userId !== null ? $userId : 0;
-    
+    // Jeśli userId jest null lub 0 (nieistniejący użytkownik), wstaw NULL zamiast 0
+    $logUserId = (!empty($userId) && is_numeric($userId)) ? (int)$userId : null;
+
     $sql = "INSERT INTO user_login_history (user_id, ip_address, login_time, success, user_agent) 
             VALUES (:user_id, :ip_address, NOW(), :success, :user_agent)";
-    
+
     $stmt = $this->pdo->prepare($sql);
-    $stmt->bindParam(':user_id', $logUserId, PDO::PARAM_INT);
+    $stmt->bindParam(':user_id',    $logUserId,   PDO::PARAM_INT); // NULL gdy brak użytkownika
     $stmt->bindParam(':ip_address', $ipAddress);
-    $stmt->bindParam(':success', $success, PDO::PARAM_BOOL);
+    $stmt->bindParam(':success',    $success,     PDO::PARAM_BOOL);
     $stmt->bindParam(':user_agent', $userAgent);
-    
+
     return $stmt->execute();
 }
 public function updateNewsletterPreference($userId, $preference) {

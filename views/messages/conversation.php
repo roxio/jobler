@@ -1,29 +1,37 @@
 <?php
 session_start();
+
+require_once('../../config/config.php');
+require_once('../../models/Database.php');
 require_once('../../models/Message.php');
 require_once('../../models/User.php');
 
-// Sprawdzenie, czy użytkownik jest zalogowany
 if (!isset($_SESSION['user_id'])) {
     header('Location: /public/login.php');
     exit;
 }
 
-$userId = $_SESSION['user_id'];
+$userId         = $_SESSION['user_id'];
 $conversationId = isset($_GET['conversation_id']) ? $_GET['conversation_id'] : null;
-$jobId = isset($_GET['job_id']) ? (int)$_GET['job_id'] : null;
+$jobId          = isset($_GET['job_id']) ? (int)$_GET['job_id'] : null;
 
 if (!$conversationId) {
     die('Nieprawidłowy identyfikator konwersacji.');
 }
 
-$messageModel = new Message();
-$userModel = new User();
+$pdo          = Database::getConnection();
+$messageModel = new Message($pdo);
+$userModel    = new User();
 
-// Pobranie wiadomości na podstawie conversation_id
-$messages = $messageModel->getConversationById($conversationId);
+$messages = $messageModel->getConversationById($conversationId, $userId);
 
-// Jeśli job_id nie został przekazany w URL, spróbuj wywnioskować go z pierwszej wiadomości
+if ($messages === false) {
+    http_response_code(403);
+    die('<div class="container mt-5"><div class="alert alert-danger">
+         <i class="bi bi-shield-x"></i> Brak dostępu do tej konwersacji.
+         </div></div>');
+}
+
 if (!$jobId) {
     if (!empty($messages)) {
          $jobId = $messages[0]['job_id'];
@@ -58,7 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
         }
 
         $messageModel->sendMessage($userId, $receiverId, $messageContent, $jobId);
-        // Przekierowanie z powrotem do konwersacji
         header("Location: conversation.php?conversation_id={$conversationId}&job_id={$jobId}");
         exit;
     }
@@ -78,7 +85,7 @@ include('../partials/header.php');
                 <?php foreach ($messages as $msg): ?>
                     <li class="list-group-item <?php echo $msg['sender_id'] == $userId ? 'text-end' : ''; ?>">
                         <p><strong><?php echo htmlspecialchars($msg['sender_name']); ?>:</strong></p>
-                        <p><?php echo nl2br(htmlspecialchars($msg['message_content'])); ?></p>
+                        <p><?php echo nl2br(htmlspecialchars($msg['content'] ?: $msg['message'] ?: '(brak treści)')); ?></p>
                         <small><?php echo date('d-m-Y H:i', strtotime($msg['created_at'])); ?></small>
                     </li>
                 <?php endforeach; ?>

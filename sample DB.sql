@@ -2,8 +2,8 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1:3306
--- Generation Time: Wrz 13, 2025 at 08:04 PM
+-- Host: 127.0.0.1
+-- Generation Time: Apr 23, 2026 at 08:36 AM
 -- Wersja serwera: 10.4.32-MariaDB
 -- Wersja PHP: 8.2.12
 
@@ -42,7 +42,8 @@ INSERT INTO `admin_login_history` (`id`, `admin_id`, `ip_address`, `login_time`)
 (26, 4, '127.0.0.1', '2025-09-09 06:35:37'),
 (37, 4, '127.0.0.1', '2025-09-09 12:55:04'),
 (38, 4, '127.0.0.1', '2025-09-09 12:55:08'),
-(39, 4, '127.0.0.1', '2025-09-11 20:20:48');
+(39, 4, '127.0.0.1', '2025-09-11 20:20:48'),
+(40, 4, '127.0.0.1', '2026-04-23 05:22:03');
 
 -- --------------------------------------------------------
 
@@ -120,7 +121,54 @@ CREATE TABLE `jobs` (
 INSERT INTO `jobs` (`id`, `user_id`, `title`, `description`, `status`, `created_at`, `updated_at`, `points_required`, `category_id`) VALUES
 (1, 6, 'Potrzebuję pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:23', 1, NULL),
 (2, 6, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:26', 1, NULL),
-(11, 6, 'ogloszenie w kategorii', 'pierwsze w kategorii', '', '2025-03-03 20:10:44', '2025-09-12 09:45:06', 1, 1);
+(11, 6, 'ogloszenie w kategorii', 'pierwsze w kategorii', 'open', '2025-03-03 20:10:44', '2026-04-23 05:50:28', 1, 1),
+(12, 6, 'test admina tworzenie', 'test admina tworzenie tresc\r\nążśćńłóęź', 'open', '2026-04-23 05:54:11', '2026-04-23 06:02:48', 1, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `job_change_history`
+--
+
+CREATE TABLE `job_change_history` (
+  `id` int(11) NOT NULL,
+  `job_id` int(11) NOT NULL,
+  `admin_id` int(11) NOT NULL,
+  `change_description` text NOT NULL,
+  `changed_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `job_change_history`
+--
+
+INSERT INTO `job_change_history` (`id`, `job_id`, `admin_id`, `change_description`, `changed_at`) VALUES
+(1, 11, 4, 'Punkty: 1 → 3; Status:  → open', '2026-04-23 05:49:47'),
+(2, 11, 4, 'Punkty: 3 → 1', '2026-04-23 05:50:21'),
+(3, 11, 4, 'Dodano zdjęcie: job_69e9b3244cc80.jpg', '2026-04-23 05:50:28'),
+(4, 12, 4, 'Zlecenie utworzone przez administratora. Status: open, Punkty: 1. Dodano 1 zdjęcie(a).', '2026-04-23 05:54:13'),
+(5, 12, 4, 'Właściciel zmieniony (user_id: 4 → 6)', '2026-04-23 06:02:48');
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `job_images`
+--
+
+CREATE TABLE `job_images` (
+  `id` int(11) NOT NULL,
+  `job_id` int(11) NOT NULL,
+  `filename` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `job_images`
+--
+
+INSERT INTO `job_images` (`id`, `job_id`, `filename`, `created_at`) VALUES
+(1, 11, 'job_69e9b3244cc80.jpg', '2026-04-23 05:50:28'),
+(2, 12, 'job_69e9b405b0b1e.jpg', '2026-04-23 05:54:13');
 
 -- --------------------------------------------------------
 
@@ -160,7 +208,12 @@ CREATE TABLE `messages` (
 
 INSERT INTO `messages` (`id`, `job_id`, `sender_id`, `receiver_id`, `content`, `message`, `created_at`, `read_status`, `conversation_id`) VALUES
 (28, 1, 6, 5, 'test 2', '', '2025-02-22 20:25:46', 0, 5),
-(29, 1, 5, 6, 'odp 3', '', '2025-02-22 20:26:13', 0, 5);
+(29, 1, 5, 6, 'odp 3', '', '2025-02-22 20:26:13', 0, 5),
+(30, 2, 6, 5, 'test', 'test', '2026-04-23 06:20:59', 0, 5),
+(31, 2, 6, 5, 'test', 'test', '2026-04-23 06:21:02', 0, 5),
+(32, 1, 5, 6, 'test', 'test', '2026-04-23 06:22:01', 0, 5),
+(33, 2, 6, 5, 'tets', 'tets', '2026-04-23 06:32:39', 0, 2),
+(34, 1, 6, 5, 'test', 'test', '2026-04-23 06:32:50', 0, 1);
 
 -- --------------------------------------------------------
 
@@ -240,7 +293,9 @@ CREATE TABLE `responses` (
 
 INSERT INTO `responses` (`id`, `job_id`, `executor_id`, `message`, `created_at`) VALUES
 (21, 1, 5, 'odp1', '2025-02-22 20:25:33'),
-(22, 2, 5, 'testttt', '2025-02-22 22:32:17');
+(22, 2, 5, 'testttt', '2025-02-22 22:32:17'),
+(23, 11, 5, 'test', '2026-04-23 06:21:43'),
+(24, 12, 5, 'test', '2026-04-23 06:21:50');
 
 -- --------------------------------------------------------
 
@@ -393,11 +448,9 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `email_verified_at`, `last_login`, `last_activity`, `name`, `username`, `updated_at`, `registration_ip`, `user_agent`, `last_login_ip`, `status`, `phone`, `account_balance`, `avatar`, `need_change`, `newsletter_subscription`) VALUES
-(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', NULL, '2025-09-13 19:59:25', NULL, 'admin1', 'admin2', '2025-09-13 17:59:25', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 1),
-(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe1', 'exe2', '2025-02-23 13:28:11', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0),
-(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', NULL, '2025-09-12 12:36:54', NULL, 'user1', 'user2', '2025-09-13 18:00:28', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0),
-(11, 'executor2@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, NULL, NULL, 'exe2', 'exe4', '2025-09-07 19:56:08', NULL, NULL, '127.0.0.1', 'active', NULL, 13, NULL, 0, 0),
-(12, 'user4@user4.user4', '$2y$10$NHYeFsrYjJAmz0NathhxfOPuMaAgWe7V8dZ0LdtdfXrcqBq/kSe86', 'user', '2025-09-13 18:01:47', NULL, NULL, NULL, 'Marcin', 'makabra', '2025-09-13 18:01:47', '127.0.0.1', NULL, NULL, 'active', '', 0, NULL, 0, 0);
+(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', NULL, '2026-04-23 08:02:19', NULL, 'admin1', 'admin2', '2026-04-23 06:02:19', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 1),
+(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, '2026-04-23 08:21:16', NULL, 'exe1', 'exe2', '2026-04-23 06:21:16', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0),
+(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', NULL, '2026-04-23 08:22:15', NULL, 'user1', 'user2', '2026-04-23 06:22:15', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -442,7 +495,7 @@ INSERT INTO `user_activity_reports` (`id`, `user_id`, `activity_type`, `details`
 
 CREATE TABLE `user_login_history` (
   `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `login_time` datetime DEFAULT NULL,
   `success` tinyint(1) DEFAULT 1,
@@ -459,7 +512,18 @@ INSERT INTO `user_login_history` (`id`, `user_id`, `ip_address`, `login_time`, `
 (2, 6, '127.0.0.1', '2025-09-12 12:33:35', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-12 10:33:35'),
 (4, 6, '127.0.0.1', '2025-09-12 12:36:49', 0, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-12 10:36:49'),
 (5, 6, '127.0.0.1', '2025-09-12 12:36:54', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-12 10:36:54'),
-(6, 4, '127.0.0.1', '2025-09-13 19:59:25', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0', '2025-09-13 17:59:25');
+(6, 4, '127.0.0.1', '2025-09-13 19:59:25', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0', '2025-09-13 17:59:25'),
+(7, 4, '127.0.0.1', '2026-04-20 21:50:14', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0', '2026-04-20 19:50:14'),
+(8, 4, '127.0.0.1', '2026-04-23 07:20:56', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 05:20:56'),
+(10, 4, '127.0.0.1', '2026-04-23 07:51:41', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 05:51:41'),
+(11, 6, '127.0.0.1', '2026-04-23 07:55:25', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 05:55:25'),
+(13, NULL, '127.0.0.1', '2026-04-23 08:00:40', 0, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 06:00:40'),
+(14, 6, '127.0.0.1', '2026-04-23 08:00:51', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 06:00:51'),
+(15, NULL, '127.0.0.1', '2026-04-23 08:01:03', 0, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 06:01:03'),
+(16, 4, '127.0.0.1', '2026-04-23 08:02:21', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 06:02:21'),
+(17, 6, '127.0.0.1', '2026-04-23 08:03:04', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 06:03:04'),
+(18, 5, '127.0.0.1', '2026-04-23 08:21:16', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 06:21:16'),
+(19, 6, '127.0.0.1', '2026-04-23 08:22:15', 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0', '2026-04-23 06:22:15');
 
 -- --------------------------------------------------------
 
@@ -505,6 +569,21 @@ ALTER TABLE `categories`
 ALTER TABLE `jobs`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`);
+
+--
+-- Indeksy dla tabeli `job_change_history`
+--
+ALTER TABLE `job_change_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `job_id` (`job_id`),
+  ADD KEY `admin_id` (`admin_id`);
+
+--
+-- Indeksy dla tabeli `job_images`
+--
+ALTER TABLE `job_images`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `job_id` (`job_id`);
 
 --
 -- Indeksy dla tabeli `job_reports`
@@ -638,7 +717,7 @@ ALTER TABLE `user_permissions`
 -- AUTO_INCREMENT for table `admin_login_history`
 --
 ALTER TABLE `admin_login_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `admin_messages`
@@ -656,7 +735,19 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `jobs`
 --
 ALTER TABLE `jobs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
+-- AUTO_INCREMENT for table `job_change_history`
+--
+ALTER TABLE `job_change_history`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `job_images`
+--
+ALTER TABLE `job_images`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `job_reports`
@@ -668,7 +759,7 @@ ALTER TABLE `job_reports`
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `newsletter_subscriptions`
@@ -698,7 +789,7 @@ ALTER TABLE `reports`
 -- AUTO_INCREMENT for table `responses`
 --
 ALTER TABLE `responses`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `settings_log`
@@ -758,7 +849,7 @@ ALTER TABLE `user_activity_reports`
 -- AUTO_INCREMENT for table `user_login_history`
 --
 ALTER TABLE `user_login_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `user_permissions`
@@ -788,6 +879,19 @@ ALTER TABLE `categories`
 --
 ALTER TABLE `jobs`
   ADD CONSTRAINT `jobs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `job_change_history`
+--
+ALTER TABLE `job_change_history`
+  ADD CONSTRAINT `jch_admin_fk` FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `jch_job_fk` FOREIGN KEY (`job_id`) REFERENCES `jobs` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `job_images`
+--
+ALTER TABLE `job_images`
+  ADD CONSTRAINT `job_images_ibfk_1` FOREIGN KEY (`job_id`) REFERENCES `jobs` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `job_reports`

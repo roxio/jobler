@@ -122,7 +122,7 @@ public function hasRespondedToJob($executorId, $jobId) {
         $receiverId = $jobDetails['user_id'];
 
         // Obliczenie conversation_id wg schematu: min(executorId, receiverId)_max(executorId, receiverId)
-        $computedConversationId = min($executorId, $receiverId) . "_" . max($executorId, $receiverId);
+        $computedConversationId = $jobId . "_" . min($executorId, $receiverId) . "_" . max($executorId, $receiverId);
 
         // Sprawdzenie, czy istnieje konwersacja w tabeli messages
         $queryMessages = "

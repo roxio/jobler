@@ -75,7 +75,7 @@ include('../partials/header.php');
                                     <?php if (isset($response['executor_id'])): ?>
                                         <?php 
                                         // Generujemy conversation_id na podstawie user_id i executor_id
-                                        $conversationId = min($userId, $response['executor_id']) . "_" . max($userId, $response['executor_id']);
+                                        $conversationId = $response['job_id'] . "_" . min($userId, $response['executor_id']) . "_" . max($userId, $response['executor_id']);
                                         ?>
                                         <a href="../messages/conversation.php?conversation_id=<?php echo $conversationId; ?>&job_id=<?php echo $response['job_id']; ?>" class="btn btn-sm btn-primary">Przejdź do konwersacji</a>
                                     <?php else: ?>

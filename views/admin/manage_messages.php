@@ -16,6 +16,153 @@ $messageModel = new Message($pdo);
 $userModel = new User();
 $jobModel = new Job();
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+function handleModerationImageUpload($file) {
+    if (empty($file['name']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    if ($file['error'] !== UPLOAD_ERR_OK || $file['size'] > 5 * 1024 * 1024) {
+        throw new RuntimeException('Nie udało się przesłać obrazu lub plik jest większy niż 5 MB.');
+    }
+
+    $allowedMimeTypes = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/webp' => 'webp',
+    ];
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = $finfo->file($file['tmp_name']);
+
+    if (!isset($allowedMimeTypes[$mimeType])) {
+        throw new RuntimeException('Dozwolone są tylko obrazy JPG, PNG, GIF i WEBP.');
+    }
+
+    $uploadDir = dirname(__DIR__, 2) . '/uploads/message_images';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    $fileName = 'message_' . bin2hex(random_bytes(12)) . '.' . $allowedMimeTypes[$mimeType];
+    $targetPath = $uploadDir . '/' . $fileName;
+
+    if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+        throw new RuntimeException('Nie udało się zapisać obrazu.');
+    }
+
+    return '/uploads/message_images/' . $fileName;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'], $token)) {
+        header('Location: manage_messages.php?status=error&message=csrf_error');
+        exit;
+    }
+
+    $action = $_POST['action'] ?? '';
+
+    try {
+        if ($action === 'update_message') {
+            $messageId = isset($_POST['message_id']) ? (int)$_POST['message_id'] : 0;
+            $content = trim($_POST['content'] ?? '');
+
+            if ($messageId <= 0 || $content === '') {
+                header('Location: manage_messages.php?status=error&message=invalid_message');
+                exit;
+            }
+
+            $messageModel->updateMessageContent($messageId, $content);
+            header('Location: manage_messages.php?status=updated');
+            exit;
+        }
+
+        if ($action === 'delete_message') {
+            $messageId = isset($_POST['message_id']) ? (int)$_POST['message_id'] : 0;
+
+            if ($messageId <= 0) {
+                header('Location: manage_messages.php?status=error&message=invalid_message');
+                exit;
+            }
+
+            $messageModel->deleteMessage($messageId);
+            header('Location: manage_messages.php?status=message_deleted');
+            exit;
+        }
+
+        if (in_array($action, ['mark_read', 'mark_unread'], true)) {
+            $conversationIds = array_values(array_filter(array_map('trim', (array)($_POST['conversation_ids'] ?? []))));
+
+            if (empty($conversationIds)) {
+                header('Location: manage_messages.php?status=error&message=no_selection');
+                exit;
+            }
+
+            $messageModel->setConversationReadStatus($conversationIds, $action === 'mark_read' ? 1 : 0);
+            header('Location: manage_messages.php?status=' . ($action === 'mark_read' ? 'marked_read' : 'marked_unread'));
+            exit;
+        }
+
+        if ($action === 'moderate_message') {
+            $messageId = isset($_POST['message_id']) ? (int)$_POST['message_id'] : 0;
+            if ($messageId <= 0) {
+                header('Location: manage_messages.php?status=error&message=invalid_message');
+                exit;
+            }
+
+            $message = $messageModel->getMessageById($messageId);
+            if (!$message) {
+                header('Location: manage_messages.php?status=error&message=invalid_message');
+                exit;
+            }
+
+            if (!empty($_POST['remove_image']) && !empty($message['image_path'])) {
+                $imagePath = dirname(__DIR__, 2) . $message['image_path'];
+                if (is_file($imagePath)) {
+                    unlink($imagePath);
+                }
+                $messageModel->removeMessageImage($messageId);
+            }
+
+            $uploadedImagePath = handleModerationImageUpload($_FILES['message_image'] ?? []);
+
+            $moderationData = [
+                'is_hidden' => isset($_POST['is_hidden']) ? 1 : 0,
+                'admin_note' => trim($_POST['admin_note'] ?? ''),
+                'participant_note' => trim($_POST['participant_note'] ?? ''),
+                'moderated_by' => $_SESSION['user_id'],
+            ];
+
+            if ($uploadedImagePath !== null) {
+                if (!empty($message['image_path'])) {
+                    $oldImagePath = dirname(__DIR__, 2) . $message['image_path'];
+                    if (is_file($oldImagePath)) {
+                        unlink($oldImagePath);
+                    }
+                }
+                $moderationData['image_path'] = $uploadedImagePath;
+            }
+
+            $messageModel->moderateMessage($messageId, $moderationData);
+            header('Location: manage_messages.php?status=moderated');
+            exit;
+        }
+    } catch (RuntimeException $e) {
+        error_log("Błąd uploadu obrazu wiadomości: " . $e->getMessage());
+        header('Location: manage_messages.php?status=error&message=upload_error');
+        exit;
+    } catch (Exception $e) {
+        error_log("Błąd akcji administratora na wiadomościach: " . $e->getMessage());
+        header('Location: manage_messages.php?status=error&message=system_error');
+        exit;
+    }
+}
+
 // Pobierz wszystkie filtry
 $filters = [
     'user_id' => isset($_GET['user_id']) ? (int)$_GET['user_id'] : '',
@@ -99,6 +246,37 @@ if (empty($_SESSION['csrf_token'])) {
                 </div>
 
                 <div class="card-body">
+                    <?php if (isset($_GET['status'])): ?>
+                        <?php
+                        $statusMessages = [
+                            'deleted' => 'Konwersacja została usunięta.',
+                            'updated' => 'Wiadomość została zaktualizowana.',
+                            'message_deleted' => 'Wiadomość została usunięta.',
+                            'moderated' => 'Ustawienia moderacji wiadomości zostały zapisane.',
+                            'marked_read' => 'Wybrane konwersacje oznaczono jako przeczytane.',
+                            'marked_unread' => 'Wybrane konwersacje oznaczono jako nieprzeczytane.',
+                        ];
+                        $errorMessages = [
+                            'csrf_error' => 'Nieprawidłowy token bezpieczeństwa. Odśwież stronę i spróbuj ponownie.',
+                            'invalid_id' => 'Nieprawidłowe ID konwersacji.',
+                            'invalid_message' => 'Nieprawidłowa lub pusta treść wiadomości.',
+                            'no_selection' => 'Wybierz co najmniej jedną konwersację.',
+                            'delete_error' => 'Nie udało się usunąć konwersacji.',
+                            'upload_error' => 'Nie udało się zapisać obrazu. Sprawdź format i rozmiar pliku.',
+                            'system_error' => 'Wystąpił błąd systemowy.',
+                        ];
+                        $isError = $_GET['status'] === 'error';
+                        $messageKey = $_GET['message'] ?? '';
+                        $alertText = $isError ? ($errorMessages[$messageKey] ?? 'Wystąpił błąd.') : ($statusMessages[$_GET['status']] ?? '');
+                        ?>
+                        <?php if ($alertText): ?>
+                            <div class="alert alert-<?= $isError ? 'danger' : 'success' ?> alert-dismissible fade show" role="alert">
+                                <?= safeEcho($alertText) ?>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zamknij"></button>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
                     <!-- Nagłówek z powrotem -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
@@ -267,16 +445,36 @@ if (empty($_SESSION['csrf_token'])) {
                         </div>
 
                         <div class="card-body">
+                            <form method="POST" action="manage_messages.php" id="bulkConversationsForm">
+                                <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
+                                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Akcje zbiorcze">
+                                        <button type="submit" name="action" value="mark_read" class="btn btn-outline-success">
+                                            <i class="bi bi-envelope-open"></i> Oznacz jako przeczytane
+                                        </button>
+                                        <button type="submit" name="action" value="mark_unread" class="btn btn-outline-secondary">
+                                            <i class="bi bi-envelope"></i> Oznacz jako nieprzeczytane
+                                        </button>
+                                        <button type="submit" formaction="delete_conversations.php" class="btn btn-outline-danger" onclick="return confirm('Czy na pewno usunąć wybrane konwersacje?');">
+                                            <i class="bi bi-trash"></i> Usuń wybrane
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Zaznacz konwersacje w tabeli, aby użyć akcji zbiorczych.</small>
+                                </div>
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover align-middle">
                                     <thead class="table-light">
                                         <tr>
+                                            <th style="width: 36px;">
+                                                <input type="checkbox" class="form-check-input" id="selectAllConversations" title="Zaznacz wszystkie">
+                                            </th>
                                             <th>ID Konwersacji</th>
                                             <th>Nadawca</th>
                                             <th>Odbiorca</th>
                                             <th>Zlecenie</th>
                                             <th>Ostatnia wiadomość</th>
                                             <th>Wiadomości</th>
+                                            <th>Interwencja</th>
                                             <th>Ostatnia aktywność</th>
                                             <th>Akcje</th>
                                         </tr>
@@ -285,6 +483,9 @@ if (empty($_SESSION['csrf_token'])) {
                                         <?php if (!empty($conversations)): ?>
                                             <?php foreach ($conversations as $conversation): ?>
                                                 <tr>
+                                                    <td>
+                                                        <input type="checkbox" class="form-check-input conversation-checkbox" name="conversation_ids[]" value="<?= safeEcho($conversation['conversation_id']); ?>">
+                                                    </td>
                                                     <td>
                                                         <span class="badge bg-secondary">#<?= safeEcho($conversation['conversation_id']); ?></span>
                                                     </td>
@@ -317,6 +518,15 @@ if (empty($_SESSION['csrf_token'])) {
                                                         <span class="badge bg-info"><?= safeEcho($conversation['message_count']) ?></span>
                                                     </td>
                                                     <td>
+                                                        <?php if (!empty($conversation['open_report_count'])): ?>
+                                                            <span class="badge bg-danger" title="Konwersacja wymaga interwencji">
+                                                                <i class="bi bi-flag-fill"></i> <?= (int)$conversation['open_report_count'] ?>
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">-</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td>
                                                         <small><?= date('Y-m-d', strtotime($conversation['last_activity_date'])) ?></small>
                                                         <br><small class="text-muted"><?= date('H:i', strtotime($conversation['last_activity_date'])) ?></small>
                                                     </td>
@@ -338,7 +548,7 @@ if (empty($_SESSION['csrf_token'])) {
                                             <?php endforeach; ?>
                                         <?php else: ?>
                                             <tr>
-                                                <td colspan="8" class="text-center py-5">
+                                                <td colspan="10" class="text-center py-5">
                                                     <i class="bi bi-inbox display-4 text-muted"></i>
                                                     <p class="mt-3">Brak konwersacji spełniających kryteria wyszukiwania</p>
                                                     <?php if (isFilterActive($filters)): ?>
@@ -361,6 +571,7 @@ if (empty($_SESSION['csrf_token'])) {
                                     </tbody>
                                 </table>
                             </div>
+                            </form>
                             
                             <!-- Paginacja -->
                             <?php if ($totalPages > 1): ?>
@@ -436,10 +647,136 @@ if (empty($_SESSION['csrf_token'])) {
     </div>
 </div>
 
+<!-- Modal do moderacji wiadomości -->
+<div class="modal fade" id="moderateMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="manage_messages.php" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title">Moderuj wiadomość</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
+                    <input type="hidden" name="action" value="moderate_message">
+                    <input type="hidden" name="message_id" id="moderateMessageId">
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" name="is_hidden" id="moderateIsHidden" value="1">
+                        <label class="form-check-label" for="moderateIsHidden">Ukryj treść wiadomości przed uczestnikami rozmowy</label>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="moderateAdminNote">Komentarz widoczny tylko dla administratorów</label>
+                            <textarea name="admin_note" id="moderateAdminNote" class="form-control" rows="5"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="moderateParticipantNote">Komentarz widoczny dla uczestników rozmowy</label>
+                            <textarea name="participant_note" id="moderateParticipantNote" class="form-control" rows="5"></textarea>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="moderateMessageImage">Dodaj lub podmień obraz</label>
+                        <input type="file" name="message_image" id="moderateMessageImage" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp">
+                        <div class="form-text">JPG, PNG, GIF lub WEBP, maksymalnie 5 MB.</div>
+                    </div>
+
+                    <div id="currentModerationImageWrap" class="d-none">
+                        <label class="form-label">Aktualny obraz</label>
+                        <div class="d-flex align-items-start gap-3">
+                            <img id="currentModerationImage" src="" alt="Aktualny obraz wiadomości" class="img-fluid rounded border" style="max-height: 180px;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="remove_image" value="1" id="moderateRemoveImage">
+                                <label class="form-check-label" for="moderateRemoveImage">Usuń obraz</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-shield-check"></i> Zapisz moderację
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal do edycji wiadomości -->
+<div class="modal fade" id="editMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="manage_messages.php">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edytuj wiadomość</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
+                    <input type="hidden" name="action" value="update_message">
+                    <input type="hidden" name="message_id" id="editMessageId">
+                    <label class="form-label" for="editMessageContent">Treść wiadomości</label>
+                    <textarea name="content" id="editMessageContent" class="form-control" rows="6" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Zapisz
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?php include '../partials/footer.php'; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('selectAllConversations');
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            document.querySelectorAll('.conversation-checkbox').forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+        });
+    }
+
+    document.addEventListener('click', function(event) {
+        const editButton = event.target.closest('.edit-message-btn');
+        if (editButton) {
+            document.getElementById('editMessageId').value = editButton.getAttribute('data-message-id');
+            document.getElementById('editMessageContent').value = editButton.getAttribute('data-message-content') || '';
+        }
+
+        const moderateButton = event.target.closest('.moderate-message-btn');
+        if (moderateButton) {
+            const imagePath = moderateButton.getAttribute('data-image-path') || '';
+
+            document.getElementById('moderateMessageId').value = moderateButton.getAttribute('data-message-id');
+            document.getElementById('moderateIsHidden').checked = moderateButton.getAttribute('data-is-hidden') === '1';
+            document.getElementById('moderateAdminNote').value = moderateButton.getAttribute('data-admin-note') || '';
+            document.getElementById('moderateParticipantNote').value = moderateButton.getAttribute('data-participant-note') || '';
+            document.getElementById('moderateMessageImage').value = '';
+            document.getElementById('moderateRemoveImage').checked = false;
+
+            const imageWrap = document.getElementById('currentModerationImageWrap');
+            const imagePreview = document.getElementById('currentModerationImage');
+            if (imagePath) {
+                imagePreview.src = imagePath;
+                imageWrap.classList.remove('d-none');
+            } else {
+                imagePreview.src = '';
+                imageWrap.classList.add('d-none');
+            }
+        }
+    });
+
     // Modal do podglądu konwersacji
     const conversationModal = document.getElementById('conversationModal');
     if (conversationModal) {

@@ -10,7 +10,7 @@ class Job {
 
     // Dodawanie nowego ogłoszenia
     public function createJob($userId, $title, $description, $pointsRequired, $categoryId) {
-        $sql = "INSERT INTO jobs (user_id, title, description, points_required, category_id, status, created_at, updated_at) 
+        $sql = "INSERT INTO jobs (user_id, title, description, points_required, category_id, status, created_at, updated_at)
                 VALUES (:user_id, :title, :description, :points_required, :category_id, 'open', NOW(), NOW())";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':user_id', $userId);
@@ -39,9 +39,9 @@ class Job {
 
     // Pobieranie szczegółów ogłoszenia na podstawie jego ID
     public function getJobDetails($jobId) {
-        $sql = "SELECT jobs.*, users.name as user_name 
-                FROM jobs 
-                LEFT JOIN users ON jobs.user_id = users.id 
+        $sql = "SELECT jobs.*, users.name as user_name
+                FROM jobs
+                LEFT JOIN users ON jobs.user_id = users.id
                 WHERE jobs.id = :job_id";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':job_id', $jobId, PDO::PARAM_INT);
@@ -70,12 +70,17 @@ class Job {
         return $stmt->execute();
     }
 
-    // Usuwanie ogłoszenia
-    public function deleteJob($jobId) {
-        $sql = "DELETE FROM jobs WHERE id = :job_id";
+    // Usuwanie ogłoszenia (miękkie usuwanie)
+    public function deleteJob($id) {
+        $sql = "UPDATE jobs SET deleted_at = CURRENT_TIMESTAMP WHERE id = :id";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->bindParam(':job_id', $jobId);
-        return $stmt->execute();
+        return $stmt->execute(['id' => $id]);
+    }
+    // Przywracanie usuniętego ogłoszenia
+    public function restoreJob($id) {
+        $sql = "UPDATE jobs SET deleted_at = NULL WHERE id = :id";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute(['id' => $id]);
     }
 
     // Pobieranie dostępnych ogłoszeń (np. ogłoszenia bez przypisanego wykonawcy)
@@ -97,23 +102,23 @@ class Job {
     // Dodanie metody do pobierania wszystkich ogłoszeń (NIESTATYCZNA)
     public function getAllJobs($limit = null, $offset = null) {
         $sql = "SELECT * FROM jobs ORDER BY created_at DESC";
-        
+
         if ($limit !== null) {
             $sql .= " LIMIT :limit";
             if ($offset !== null) {
                 $sql .= " OFFSET :offset";
             }
         }
-        
+
         $stmt = $this->pdo->prepare($sql);
-        
+
         if ($limit !== null) {
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
             if ($offset !== null) {
                 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             }
         }
-        
+
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -122,7 +127,7 @@ class Job {
     public function getJobCount() {
         $sql = "SELECT COUNT(*) FROM jobs";
         $stmt = $this->pdo->query($sql);
-        return $stmt->fetchColumn();  
+        return $stmt->fetchColumn();
     }
 
     // Metody do paginacji (NIESTATYCZNE)
@@ -148,7 +153,7 @@ class Job {
             $sql .= " AND category_id = :category";
         }
         $sql .= " ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
-        
+
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
         if ($category) {
@@ -186,37 +191,37 @@ class Job {
 
     // Wyszukiwanie ogłoszeń z paginacją (NIESTATYCZNA)
     public function searchJobs($searchTerm, $limit = null, $offset = null) {
-        $sql = "SELECT id, title, description, status, created_at FROM jobs 
-                WHERE id LIKE :search OR title LIKE :search OR description LIKE :search 
+        $sql = "SELECT id, title, description, status, created_at FROM jobs
+                WHERE id LIKE :search OR title LIKE :search OR description LIKE :search
                 ORDER BY created_at DESC";
-        
+
         if ($limit !== null) {
             $sql .= " LIMIT :limit";
             if ($offset !== null) {
                 $sql .= " OFFSET :offset";
             }
         }
-        
+
         $stmt = $this->pdo->prepare($sql);
         $likeTerm = "%".$searchTerm."%";
         $stmt->bindParam(':search', $likeTerm, PDO::PARAM_STR);
-        
+
         if ($limit !== null) {
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
             if ($offset !== null) {
                 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             }
         }
-        
+
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // Liczba wyników wyszukiwania (NIESTATYCZNA)
     public function countSearchJobs($searchTerm) {
-        $sql = "SELECT COUNT(*) as total FROM jobs 
+        $sql = "SELECT COUNT(*) as total FROM jobs
                 WHERE id LIKE :search OR title LIKE :search OR description LIKE :search";
-        
+
         $stmt = $this->pdo->prepare($sql);
         $likeTerm = "%".$searchTerm."%";
         $stmt->bindParam(':search', $likeTerm, PDO::PARAM_STR);
@@ -231,10 +236,10 @@ class Job {
     return $row ? (int)$row['cnt'] : 0;
 }
 public function getJobsByUserId($userId, $limit = 5) {
-    $query = "SELECT j.*, 0 as offer_count 
-              FROM jobs j 
-              WHERE j.user_id = ? 
-              ORDER BY j.created_at DESC 
+    $query = "SELECT j.*, 0 as offer_count
+              FROM jobs j
+              WHERE j.user_id = ?
+              ORDER BY j.created_at DESC
               LIMIT ?";
     $stmt = $this->pdo->prepare($query);
     $stmt->bindValue(1, $userId, PDO::PARAM_INT);
@@ -300,24 +305,24 @@ public function getJobsWithFilters($limit, $offset, $sortColumn, $sortOrder, $se
     // Walidacja kierunku sortowania
     $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
 
-    $query = "SELECT j.*, u.name as user_name, c.name as category_name 
-              FROM jobs j 
-              LEFT JOIN users u ON j.user_id = u.id 
-              LEFT JOIN categories c ON j.category_id = c.id 
-              $whereClause 
-              ORDER BY j.$sortColumn $sortOrder 
+    $query = "SELECT j.*, u.name as user_name, c.name as category_name
+              FROM jobs j
+              LEFT JOIN users u ON j.user_id = u.id
+              LEFT JOIN categories c ON j.category_id = c.id
+              $whereClause
+              ORDER BY j.$sortColumn $sortOrder
               LIMIT :limit OFFSET :offset";
-    
+
     $stmt = $this->pdo->prepare($query);
-    
+
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
-    
+
     $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
     $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
     $stmt->execute();
-    
+
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -359,14 +364,14 @@ public function countJobsWithFilters($search = '', $statusFilter = '', $category
 
     $query = "SELECT COUNT(*) as total FROM jobs $whereClause";
     $stmt = $this->pdo->prepare($query);
-    
+
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
-    
+
     $stmt->execute();
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     return $result ? (int)$result['total'] : 0;
 }
 public function countJobsByStatus($status) {

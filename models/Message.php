@@ -1,6 +1,7 @@
 <?php
 class Message {
     private $pdo;
+    private $moderationColumnsEnsured = false;
     
     public function __construct($pdo = null) {
     if ($pdo) {
@@ -124,6 +125,8 @@ class Message {
 
     // Inne metody
     public function getMessageById($id) {
+        $this->ensureModerationColumns();
+
         $sql = "SELECT m.*, u1.name as sender_name, u2.name as receiver_name, j.title as job_title
                 FROM messages m 
                 LEFT JOIN users u1 ON m.sender_id = u1.id 
@@ -207,6 +210,8 @@ public function getResponsesForJob($jobId, $user1Id, $user2Id) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 public function getConversationById($conversationId, $requestingUserId = null) {
+    $this->ensureModerationColumns();
+
     $parts = explode('_', $conversationId);
 
     if (count($parts) === 3) {
@@ -344,6 +349,8 @@ public function getAllConversations($limit, $offset, $sortColumn, $sortOrder, $s
 }
 
 public function getConversationMessages($conversationId) {
+    $this->ensureModerationColumns();
+
     $sql = "SELECT m.*, 
                    u1.name as sender_name, 
                    u2.name as receiver_name
@@ -367,12 +374,201 @@ public function deleteConversations($conversationIds) {
     $stmt = $this->pdo->prepare($query);
     return $stmt->execute($conversationIds);
 }
+
+public function updateMessageContent($messageId, $content) {
+    $this->ensureModerationColumns();
+
+    $sql = "UPDATE messages
+            SET content = :content, message = :message
+            WHERE id = :id";
+
+    $stmt = $this->pdo->prepare($sql);
+    return $stmt->execute([
+        ':content' => $content,
+        ':message' => $content,
+        ':id' => $messageId,
+    ]);
+}
+
+public function deleteMessage($messageId) {
+    $this->ensureModerationColumns();
+
+    $stmt = $this->pdo->prepare("DELETE FROM messages WHERE id = :id");
+    $stmt->bindValue(':id', $messageId, PDO::PARAM_INT);
+    return $stmt->execute();
+}
+
+public function setConversationReadStatus($conversationIds, $readStatus) {
+    $this->ensureModerationColumns();
+
+    if (empty($conversationIds)) return false;
+
+    $placeholders = implode(',', array_fill(0, count($conversationIds), '?'));
+    $query = "UPDATE messages SET read_status = ? WHERE conversation_id IN ($placeholders)";
+    $stmt = $this->pdo->prepare($query);
+
+    return $stmt->execute(array_merge([(int)$readStatus], $conversationIds));
+}
+
+public function moderateMessage($messageId, $data) {
+    $this->ensureModerationColumns();
+
+    $sql = "UPDATE messages
+            SET is_hidden = :is_hidden,
+                admin_note = :admin_note,
+                participant_note = :participant_note,
+                moderated_by = :moderated_by,
+                moderated_at = NOW()";
+
+    $params = [
+        ':is_hidden' => !empty($data['is_hidden']) ? 1 : 0,
+        ':admin_note' => $data['admin_note'] ?? null,
+        ':participant_note' => $data['participant_note'] ?? null,
+        ':moderated_by' => $data['moderated_by'] ?? null,
+        ':id' => $messageId,
+    ];
+
+    if (array_key_exists('image_path', $data)) {
+        $sql .= ", image_path = :image_path";
+        $params[':image_path'] = $data['image_path'];
+    }
+
+    $sql .= " WHERE id = :id";
+
+    $stmt = $this->pdo->prepare($sql);
+    return $stmt->execute($params);
+}
+
+public function removeMessageImage($messageId) {
+    $this->ensureModerationColumns();
+
+    $stmt = $this->pdo->prepare("UPDATE messages SET image_path = NULL, moderated_at = NOW() WHERE id = :id");
+    $stmt->bindValue(':id', $messageId, PDO::PARAM_INT);
+    return $stmt->execute();
+}
+
+public function createConversationReport($reporterId, $conversationId, $jobId, $reportType, $reason, $messageId = null, $reportedUserId = null) {
+    $this->ensureModerationColumns();
+
+    $allowedTypes = ['conversation', 'message', 'user'];
+    if (!in_array($reportType, $allowedTypes, true)) {
+        return false;
+    }
+
+    $snapshot = $this->buildConversationSnapshot($conversationId);
+
+    $sql = "INSERT INTO conversation_reports
+                (conversation_id, job_id, reporter_id, reported_user_id, message_id, report_type, reason, conversation_snapshot, status, created_at)
+            VALUES
+                (:conversation_id, :job_id, :reporter_id, :reported_user_id, :message_id, :report_type, :reason, :conversation_snapshot, 'open', NOW())";
+
+    $stmt = $this->pdo->prepare($sql);
+    return $stmt->execute([
+        ':conversation_id' => $conversationId,
+        ':job_id' => $jobId,
+        ':reporter_id' => $reporterId,
+        ':reported_user_id' => $reportedUserId ?: null,
+        ':message_id' => $messageId ?: null,
+        ':report_type' => $reportType,
+        ':reason' => $reason,
+        ':conversation_snapshot' => $snapshot,
+    ]);
+}
+
+public function getOpenReportsForConversation($conversationId) {
+    $this->ensureModerationColumns();
+
+    $sql = "SELECT cr.*, reporter.name AS reporter_name, reported.name AS reported_user_name
+            FROM conversation_reports cr
+            LEFT JOIN users reporter ON cr.reporter_id = reporter.id
+            LEFT JOIN users reported ON cr.reported_user_id = reported.id
+            WHERE cr.conversation_id = :conversation_id AND cr.status = 'open'
+            ORDER BY cr.created_at DESC";
+
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindValue(':conversation_id', $conversationId, PDO::PARAM_STR);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+private function buildConversationSnapshot($conversationId) {
+    $messages = $this->getConversationMessages($conversationId);
+    $lines = [];
+
+    foreach ($messages as $message) {
+        $content = $message['content'] ?: $message['message'] ?: '(brak treści)';
+        $lines[] = '[' . $message['created_at'] . '] ' . ($message['sender_name'] ?? ('ID ' . $message['sender_id'])) . ': ' . $content;
+    }
+
+    return implode("\n\n", $lines);
+}
+
+private function ensureModerationColumns() {
+    if ($this->moderationColumnsEnsured) {
+        return;
+    }
+
+    $columns = [
+        'is_hidden' => "ALTER TABLE messages ADD COLUMN is_hidden TINYINT(1) NOT NULL DEFAULT 0",
+        'image_path' => "ALTER TABLE messages ADD COLUMN image_path VARCHAR(255) DEFAULT NULL",
+        'admin_note' => "ALTER TABLE messages ADD COLUMN admin_note TEXT DEFAULT NULL",
+        'participant_note' => "ALTER TABLE messages ADD COLUMN participant_note TEXT DEFAULT NULL",
+        'moderated_at' => "ALTER TABLE messages ADD COLUMN moderated_at TIMESTAMP NULL DEFAULT NULL",
+        'moderated_by' => "ALTER TABLE messages ADD COLUMN moderated_by INT(11) DEFAULT NULL",
+    ];
+
+    $stmt = $this->pdo->query("SHOW COLUMNS FROM messages");
+    $existingColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
+
+    foreach ($columns as $column => $alterSql) {
+        if (!in_array($column, $existingColumns, true)) {
+            $this->pdo->exec($alterSql);
+        }
+    }
+
+    $stmt = $this->pdo->query("SHOW COLUMNS FROM messages");
+    $messageColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+    foreach ($messageColumns as $column) {
+        if ($column['Field'] === 'conversation_id' && stripos($column['Type'], 'varchar') === false) {
+            $this->pdo->exec("ALTER TABLE messages MODIFY conversation_id VARCHAR(100) NOT NULL");
+            break;
+        }
+    }
+
+    $this->pdo->exec("
+        CREATE TABLE IF NOT EXISTS conversation_reports (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            conversation_id VARCHAR(100) NOT NULL,
+            job_id INT(11) DEFAULT NULL,
+            reporter_id INT(11) NOT NULL,
+            reported_user_id INT(11) DEFAULT NULL,
+            message_id INT(11) DEFAULT NULL,
+            report_type VARCHAR(30) NOT NULL DEFAULT 'conversation',
+            reason TEXT DEFAULT NULL,
+            conversation_snapshot MEDIUMTEXT DEFAULT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'open',
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            resolved_at DATETIME DEFAULT NULL,
+            resolved_by INT(11) DEFAULT NULL,
+            admin_note TEXT DEFAULT NULL,
+            PRIMARY KEY (id),
+            KEY idx_conversation_reports_conversation (conversation_id),
+            KEY idx_conversation_reports_status (status),
+            KEY idx_conversation_reports_message (message_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    ");
+
+    $this->moderationColumnsEnsured = true;
+}
 // Dodaj te metody do klasy Message w Message.php
 
 /**
  * Pobiera zgrupowane konwersacje z filtrami
  */
 public function getGroupedConversationsWithFilters($limit, $offset, $userId = '') {
+    $this->ensureModerationColumns();
+
     $sql = "SELECT 
         m.conversation_id,
         m.job_id,
@@ -383,7 +579,8 @@ public function getGroupedConversationsWithFilters($limit, $offset, $userId = ''
         u1.name as sender_name,
         u2.name as receiver_name,
         j.title as job_title,
-        (SELECT content FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) as last_message_content
+        (SELECT COUNT(*) FROM conversation_reports cr WHERE cr.conversation_id = m.conversation_id AND cr.status = 'open') as open_report_count,
+        (SELECT COALESCE(NULLIF(content, ''), message) FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) as last_message_content
         FROM messages m
         LEFT JOIN users u1 ON m.sender_id = u1.id
         LEFT JOIN users u2 ON m.receiver_id = u2.id
@@ -415,6 +612,8 @@ public function getGroupedConversationsWithFilters($limit, $offset, $userId = ''
  * Zlicza zgrupowane konwersacje
  */
 public function countGroupedConversationsWithFilters($userId = '') {
+    $this->ensureModerationColumns();
+
     $sql = "SELECT COUNT(DISTINCT conversation_id) as count
             FROM messages
             WHERE 1=1";
@@ -455,12 +654,14 @@ public function getFullConversation($conversationId) {
     ORDER BY created_at ASC";
     
     $stmt = $this->pdo->prepare($sql);
-    $stmt->bindValue(':conversation_id', $conversationId, PDO::PARAM_INT);
+    $stmt->bindValue(':conversation_id', $conversationId, PDO::PARAM_STR);
     $stmt->execute();
     
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 public function getGroupedConversationsWithAdvancedFilters($limit, $offset, $filters = []) {
+    $this->ensureModerationColumns();
+
     $sql = "SELECT 
         m.conversation_id,
         m.job_id,
@@ -471,7 +672,8 @@ public function getGroupedConversationsWithAdvancedFilters($limit, $offset, $fil
         u1.name as sender_name,
         u2.name as receiver_name,
         j.title as job_title,
-        (SELECT content FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) as last_message_content
+        (SELECT COUNT(*) FROM conversation_reports cr WHERE cr.conversation_id = m.conversation_id AND cr.status = 'open') as open_report_count,
+        (SELECT COALESCE(NULLIF(content, ''), message) FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) as last_message_content
         FROM messages m
         LEFT JOIN users u1 ON m.sender_id = u1.id
         LEFT JOIN users u2 ON m.receiver_id = u2.id
@@ -492,7 +694,7 @@ public function getGroupedConversationsWithAdvancedFilters($limit, $offset, $fil
     }
     
     if (!empty($filters['search'])) {
-        $sql .= " AND (m.content LIKE :search OR u1.name LIKE :search OR u2.name LIKE :search OR j.title LIKE :search)";
+        $sql .= " AND (m.content LIKE :search OR m.message LIKE :search OR u1.name LIKE :search OR u2.name LIKE :search OR j.title LIKE :search)";
         $params[':search'] = '%' . $filters['search'] . '%';
     }
     
@@ -516,8 +718,17 @@ public function getGroupedConversationsWithAdvancedFilters($limit, $offset, $fil
         $params[':max_messages'] = $filters['max_messages'];
     }
     
+    $allowedSorts = [
+        'last_activity_date' => 'last_activity_date',
+        'message_count' => 'message_count',
+        'sender_name' => 'sender_name',
+        'receiver_name' => 'receiver_name',
+    ];
+    $sortColumn = $allowedSorts[$filters['sort'] ?? 'last_activity_date'] ?? 'last_activity_date';
+    $sortOrder = strtoupper($filters['order'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+
     $sql .= " GROUP BY m.conversation_id
-              ORDER BY last_activity_date DESC
+              ORDER BY $sortColumn $sortOrder
               LIMIT :limit OFFSET :offset";
     
     $stmt = $this->pdo->prepare($sql);
@@ -535,6 +746,8 @@ public function getGroupedConversationsWithAdvancedFilters($limit, $offset, $fil
 }
 
 public function countGroupedConversationsWithAdvancedFilters($filters = []) {
+    $this->ensureModerationColumns();
+
     $sql = "SELECT COUNT(DISTINCT conversation_id) as count
             FROM messages m
             LEFT JOIN users u1 ON m.sender_id = u1.id
@@ -556,7 +769,7 @@ public function countGroupedConversationsWithAdvancedFilters($filters = []) {
     }
     
     if (!empty($filters['search'])) {
-        $sql .= " AND (m.content LIKE :search OR u1.name LIKE :search OR u2.name LIKE :search OR j.title LIKE :search)";
+        $sql .= " AND (m.content LIKE :search OR m.message LIKE :search OR u1.name LIKE :search OR u2.name LIKE :search OR j.title LIKE :search)";
         $params[':search'] = '%' . $filters['search'] . '%';
     }
     
@@ -593,6 +806,8 @@ public function countGroupedConversationsWithAdvancedFilters($filters = []) {
     return $result['count'] ?? 0;
 }
 public function sendMessage($senderId, $receiverId, $content, $jobId = null) {
+    $this->ensureModerationColumns();
+
     // conversation_id = job_id + para użytkowników (unikalne dla każdego zlecenia)
     $convId = $jobId . '_' . min($senderId, $receiverId) . '_' . max($senderId, $receiverId);
 

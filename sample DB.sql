@@ -99,6 +99,33 @@ INSERT INTO `categories` (`id`, `name`, `parent_id`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Struktura tabeli dla tabeli `conversation_reports`
+--
+
+CREATE TABLE `conversation_reports` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `conversation_id` varchar(100) NOT NULL,
+  `job_id` int(11) DEFAULT NULL,
+  `reporter_id` int(11) NOT NULL,
+  `reported_user_id` int(11) DEFAULT NULL,
+  `message_id` int(11) DEFAULT NULL,
+  `report_type` varchar(30) NOT NULL DEFAULT 'conversation',
+  `reason` text DEFAULT NULL,
+  `conversation_snapshot` mediumtext DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'open',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `resolved_at` datetime DEFAULT NULL,
+  `resolved_by` int(11) DEFAULT NULL,
+  `admin_note` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_conversation_reports_conversation` (`conversation_id`),
+  KEY `idx_conversation_reports_status` (`status`),
+  KEY `idx_conversation_reports_message` (`message_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Struktura tabeli dla tabeli `jobs`
 --
 
@@ -111,7 +138,8 @@ CREATE TABLE `jobs` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `points_required` int(11) NOT NULL DEFAULT 1,
-  `category_id` int(11) DEFAULT NULL
+  `category_id` int(11) DEFAULT NULL,
+  `executor_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -199,7 +227,13 @@ CREATE TABLE `messages` (
   `message` text NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `read_status` tinyint(1) DEFAULT 0,
-  `conversation_id` int(11) NOT NULL
+  `conversation_id` varchar(100) NOT NULL,
+  `is_hidden` tinyint(1) NOT NULL DEFAULT 0,
+  `image_path` varchar(255) DEFAULT NULL,
+  `admin_note` text DEFAULT NULL,
+  `participant_note` text DEFAULT NULL,
+  `moderated_at` timestamp NULL DEFAULT NULL,
+  `moderated_by` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -284,7 +318,12 @@ CREATE TABLE `responses` (
   `job_id` int(11) NOT NULL,
   `executor_id` int(11) NOT NULL,
   `message` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `proposed_price` decimal(10,2) DEFAULT NULL,
+  `scope` text DEFAULT NULL,
+  `points_reserved` int(11) NOT NULL DEFAULT 0,
+  `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `accepted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -349,15 +388,31 @@ CREATE TABLE `site_settings` (
   `smtp_server` varchar(255) DEFAULT NULL,
   `smtp_port` int(11) DEFAULT NULL,
   `smtp_username` varchar(255) DEFAULT NULL,
-  `smtp_password` varchar(255) DEFAULT NULL
+  `smtp_password` varchar(255) DEFAULT NULL,
+  `default_language` varchar(10) NOT NULL DEFAULT 'pl',
+  `layout_variant` varchar(50) NOT NULL DEFAULT 'classic',
+  `company_name` varchar(255) DEFAULT NULL,
+  `company_tax_id` varchar(50) DEFAULT NULL,
+  `company_addresses` text DEFAULT NULL,
+  `company_emails` text DEFAULT NULL,
+  `company_phones` text DEFAULT NULL,
+  `favicon` varchar(255) DEFAULT NULL,
+  `meta_title` varchar(255) DEFAULT NULL,
+  `maintenance_mode` tinyint(1) NOT NULL DEFAULT 0,
+  `maintenance_message` text DEFAULT NULL,
+  `email_templates` mediumtext DEFAULT NULL,
+  `sitemap_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `sitemap_last_generated` datetime DEFAULT NULL,
+  `last_system_backup` varchar(255) DEFAULT NULL,
+  `last_database_backup` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `site_settings`
 --
 
-INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `meta_description`, `meta_keywords`, `max_ads`, `promotion_fee`, `facebook_url`, `twitter_url`, `instagram_url`, `linkedin_url`, `contact_email`, `contact_phone`, `contact_address`, `business_hours`, `created_at`, `updated_at`, `allow_registration`, `smtp_server`, `smtp_port`, `smtp_username`, `smtp_password`) VALUES
-(1, 'test', '68bff6b54a5ca.png', '', '', '', 10, 10.00, 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'info@jobler.pl', '+48 123 456 789', 'ul. Przykładowa 123, 00-000 Warszawa', 'Pon-Pt: 8:00-18:00', '2025-02-17 21:58:18', '2025-09-09 10:28:38', 0, 'smtp.example.com', 25, 'user', 'password');
+INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `meta_description`, `meta_keywords`, `max_ads`, `promotion_fee`, `facebook_url`, `twitter_url`, `instagram_url`, `linkedin_url`, `contact_email`, `contact_phone`, `contact_address`, `business_hours`, `created_at`, `updated_at`, `allow_registration`, `smtp_server`, `smtp_port`, `smtp_username`, `smtp_password`, `default_language`, `layout_variant`, `company_name`, `company_tax_id`, `company_addresses`, `company_emails`, `company_phones`, `favicon`, `meta_title`, `maintenance_mode`, `maintenance_message`, `email_templates`, `sitemap_enabled`, `sitemap_last_generated`, `last_system_backup`, `last_database_backup`) VALUES
+(1, 'test', '68bff6b54a5ca.png', '', '', '', 10, 10.00, 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'info@jobler.pl', '+48 123 456 789', 'ul. Przykładowa 123, 00-000 Warszawa', 'Pon-Pt: 8:00-18:00', '2025-02-17 21:58:18', '2025-09-09 10:28:38', 0, 'smtp.example.com', 25, 'user', 'password', 'pl', 'classic', '', '', '[]', '[]', '[]', '', '', 0, '', '{}', 1, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 

@@ -6,6 +6,38 @@ class User {
 
     public function __construct() {
         $this->pdo = Database::getConnection();
+        $this->ensureProfileColumns();
+    }
+
+    private function ensureProfileColumns() {
+        $columns = [
+            'original_email' => "ALTER TABLE users ADD COLUMN original_email VARCHAR(255) DEFAULT NULL",
+            'original_name' => "ALTER TABLE users ADD COLUMN original_name VARCHAR(255) DEFAULT NULL",
+            'original_username' => "ALTER TABLE users ADD COLUMN original_username VARCHAR(255) DEFAULT NULL",
+            'original_phone' => "ALTER TABLE users ADD COLUMN original_phone VARCHAR(50) DEFAULT NULL",
+            'profile_updated_at' => "ALTER TABLE users ADD COLUMN profile_updated_at DATETIME DEFAULT NULL",
+        ];
+
+        $stmt = $this->pdo->query("SHOW COLUMNS FROM users");
+        $existingColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
+
+        foreach ($columns as $column => $sql) {
+            if (!in_array($column, $existingColumns, true)) {
+                $this->pdo->exec($sql);
+            }
+        }
+
+        $this->pdo->exec("
+            UPDATE users
+            SET original_email = COALESCE(original_email, email),
+                original_name = COALESCE(original_name, name),
+                original_username = COALESCE(original_username, username),
+                original_phone = COALESCE(original_phone, phone)
+            WHERE original_email IS NULL
+               OR original_name IS NULL
+               OR original_username IS NULL
+               OR original_phone IS NULL
+        ");
     }
 
     public function register($email, $password, $name, $username, $role = 'user', $phone = '') {
@@ -21,8 +53,8 @@ class User {
         }
 
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $sql = "INSERT INTO users (email, password, name, username, role, phone, registration_ip, created_at, updated_at) 
-                VALUES (:email, :password, :name, :username, :role, :phone, :registration_ip, NOW(), NOW())";
+        $sql = "INSERT INTO users (email, password, name, username, role, phone, registration_ip, original_email, original_name, original_username, original_phone, created_at, updated_at) 
+                VALUES (:email, :password, :name, :username, :role, :phone, :registration_ip, :original_email, :original_name, :original_username, :original_phone, NOW(), NOW())";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':password', $hashedPassword);
@@ -31,6 +63,10 @@ class User {
         $stmt->bindParam(':role', $role);
         $stmt->bindParam(':phone', $phone);
         $stmt->bindParam(':registration_ip', $registrationIp);
+        $stmt->bindParam(':original_email', $email);
+        $stmt->bindParam(':original_name', $name);
+        $stmt->bindParam(':original_username', $username);
+        $stmt->bindParam(':original_phone', $phone);
 
         if ($stmt->execute()) {
             $userId = $this->pdo->lastInsertId();
@@ -66,7 +102,8 @@ class User {
 public function getUserById($userId) {
     $sql = "SELECT id, email, name, role, created_at, updated_at, registration_ip, 
                    last_login_ip, status, account_balance, last_login,
-                   email_verified_at, username, phone, need_change
+                   email_verified_at, username, phone, need_change, avatar, newsletter_subscription,
+                   user_agent, original_email, original_name, original_username, original_phone, profile_updated_at
             FROM users WHERE id = :user_id";
     $stmt = $this->pdo->prepare($sql);
     $stmt->bindParam(':user_id', $userId);
@@ -80,6 +117,61 @@ public function getUserById($userId) {
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':user_id', $userId);
         return $stmt->execute();
+    }
+
+    public function updateProfile($userId, $data) {
+        $name = trim((string)($data['name'] ?? ''));
+        $username = trim((string)($data['username'] ?? ''));
+        $email = trim((string)($data['email'] ?? ''));
+        $phone = trim((string)($data['phone'] ?? ''));
+        $newsletter = !empty($data['newsletter_subscription']) ? 1 : 0;
+
+        if ($name === '' || $username === '' || $email === '') {
+            return ['error' => 'Imię, nazwa użytkownika i email są wymagane.'];
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['error' => 'Podaj poprawny adres email.'];
+        }
+
+        $stmt = $this->pdo->prepare("SELECT id FROM users WHERE (email = :email OR username = :username) AND id <> :user_id LIMIT 1");
+        $stmt->execute([
+            'email' => $email,
+            'username' => $username,
+            'user_id' => $userId,
+        ]);
+
+        if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+            return ['error' => 'Ten email lub nazwa użytkownika są już używane.'];
+        }
+
+        $stmt = $this->pdo->prepare("
+            UPDATE users
+            SET name = :name,
+                username = :username,
+                email = :email,
+                phone = :phone,
+                newsletter_subscription = :newsletter_subscription,
+                profile_updated_at = NOW(),
+                updated_at = NOW()
+            WHERE id = :user_id
+        ");
+
+        $saved = $stmt->execute([
+            'name' => $name,
+            'username' => $username,
+            'email' => $email,
+            'phone' => $phone,
+            'newsletter_subscription' => $newsletter,
+            'user_id' => $userId,
+        ]);
+
+        if (!$saved) {
+            return ['error' => 'Nie udało się zapisać zmian profilu.'];
+        }
+
+        $_SESSION['user_name'] = $name;
+        return ['success' => 'Dane profilu zostały zapisane.'];
     }
 
     public function changePassword($userId, $newPassword) {

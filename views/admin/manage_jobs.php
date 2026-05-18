@@ -13,6 +13,41 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 $jobModel = new Job();
 $userModel = new User();
 
+function ensureAdminJobArchiveColumns() {
+    $pdo = Database::getConnection();
+    $columns = [
+        'deleted_at' => "ALTER TABLE jobs ADD COLUMN deleted_at DATETIME DEFAULT NULL",
+        'archived_at' => "ALTER TABLE jobs ADD COLUMN archived_at DATETIME DEFAULT NULL",
+        'archive_reason' => "ALTER TABLE jobs ADD COLUMN archive_reason VARCHAR(80) DEFAULT NULL",
+    ];
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM jobs");
+    $existingColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
+
+    foreach ($columns as $column => $sql) {
+        if (!in_array($column, $existingColumns, true)) {
+            $pdo->exec($sql);
+        }
+    }
+
+    $pdo->exec("
+        UPDATE jobs
+        SET archived_at = COALESCE(archived_at, NOW()),
+            archive_reason = CASE
+                WHEN deleted_at IS NOT NULL THEN 'auto_year_after_delete'
+                ELSE 'auto_year_after_publish'
+            END,
+            updated_at = NOW()
+        WHERE archived_at IS NULL
+          AND (
+              created_at <= DATE_SUB(NOW(), INTERVAL 1 YEAR)
+              OR (deleted_at IS NOT NULL AND deleted_at <= DATE_SUB(NOW(), INTERVAL 1 YEAR))
+          )
+    ");
+}
+
+ensureAdminJobArchiveColumns();
+
 // Parametry paginacji
 $limit = isset($_GET['per_page']) && in_array($_GET['per_page'], [10, 25, 50, 100]) ? (int)$_GET['per_page'] : 20;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -55,6 +90,7 @@ $open_jobs = $jobModel->countJobsByStatus('open');
 $active_jobs = $jobModel->countJobsByStatus('active');
 $closed_jobs = $jobModel->countJobsByStatus('closed');
 $inactive_jobs = $jobModel->countJobsByStatus('inactive');
+$archived_jobs = $jobModel->countJobsWithFilters('', 'archived');
 
 function safeEcho($data, $default = '') {
     return isset($data) ? htmlspecialchars($data, ENT_QUOTES, 'UTF-8') : $default;
@@ -86,9 +122,23 @@ if (isset($_POST['bulk_action']) && isset($_POST['selected_jobs'])) {
             foreach ($selectedJobs as $jobId) {
                 $jobModel->deleteJob($jobId);
             }
-            $_SESSION['message'] = 'Wybrane ogłoszenia zostały usunięte.';
+            $_SESSION['message'] = 'Wybrane ogłoszenia zostały przeniesione do archiwum, a zablokowane punkty wykonawców zwrócone.';
             break;
-            
+
+        case 'restore':
+            foreach ($selectedJobs as $jobId) {
+                $jobModel->restoreJob($jobId);
+            }
+            $_SESSION['message'] = 'Wybrane ogłoszenia zostały przywrócone.';
+            break;
+
+        case 'permanent_delete':
+            foreach ($selectedJobs as $jobId) {
+                $jobModel->permanentlyDeleteJob($jobId);
+            }
+            $_SESSION['message'] = 'Wybrane ogłoszenia zostały trwale usunięte razem z rozmowami.';
+            break;
+
         case 'activate':
             foreach ($selectedJobs as $jobId) {
                 $jobModel->updateJobStatus($jobId, 'active');
@@ -123,7 +173,17 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     switch ($action) {
         case 'delete':
             $jobModel->deleteJob($jobId);
-            $_SESSION['message'] = 'Ogłoszenie zostało usunięte.';
+            $_SESSION['message'] = 'Ogłoszenie zostało przeniesione do archiwum, a zablokowane punkty wykonawców zwrócone.';
+            break;
+
+        case 'restore':
+            $jobModel->restoreJob($jobId);
+            $_SESSION['message'] = 'Ogłoszenie zostało przywrócone.';
+            break;
+
+        case 'permanent_delete':
+            $jobModel->permanentlyDeleteJob($jobId);
+            $_SESSION['message'] = 'Ogłoszenie zostało trwale usunięte razem z rozmowami.';
             break;
             
         case 'activate':
@@ -170,7 +230,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
 
                     <!-- Kafelek statystyk -->
                     <div class="row mb-4">
-                        <div class="col-md-3 col-6 mb-3">
+                        <div class="col-md-2 col-6 mb-3">
                             <div class="card bg-primary text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($totalJobs) ?></h5>
@@ -178,7 +238,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 col-6 mb-3">
+                        <div class="col-md-2 col-6 mb-3">
                             <div class="card bg-success text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($active_jobs) ?></h5>
@@ -186,7 +246,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 col-6 mb-3">
+                        <div class="col-md-2 col-6 mb-3">
                             <div class="card bg-info text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($open_jobs) ?></h5>
@@ -194,11 +254,19 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 col-6 mb-3">
+                        <div class="col-md-2 col-6 mb-3">
                             <div class="card bg-warning text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($closed_jobs) ?></h5>
                                     <p class="mb-0 small">Zamknięte</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body text-center p-2">
+                                    <h5 class="mb-0"><?= number_format($archived_jobs) ?></h5>
+                                    <p class="mb-0 small">Zarchiwizowane</p>
                                 </div>
                             </div>
                         </div>
@@ -236,6 +304,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                             <option value="active" <?= $statusFilter == 'active' ? 'selected' : ''; ?>>Aktywne</option>
                                             <option value="inactive" <?= $statusFilter == 'inactive' ? 'selected' : ''; ?>>Nieaktywne</option>
                                             <option value="closed" <?= $statusFilter == 'closed' ? 'selected' : ''; ?>>Zamknięte</option>
+                                            <option value="archived" <?= $statusFilter == 'archived' ? 'selected' : ''; ?>>Zarchiwizowane</option>
                                         </select>
                                     </div>
 
@@ -333,7 +402,9 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                             <option value="activate">Aktywuj zaznaczone</option>
                                             <option value="deactivate">Dezaktywuj zaznaczone</option>
                                             <option value="close">Zamknij zaznaczone</option>
-                                            <option value="delete">Usuń zaznaczone</option>
+                                            <option value="delete">Archiwizuj zaznaczone</option>
+                                            <option value="restore">Przywróć zaznaczone</option>
+                                            <option value="permanent_delete">Usuń trwale z rozmowami</option>
                                         </select>
                                         <button type="submit" class="btn btn-primary btn-sm me-2">Zastosuj</button>
                                     </div>
@@ -449,9 +520,17 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                                                 <?php endif; ?>
                                                                 
                                                                 <!-- Usuwanie -->
-                                                                <a href="manage_jobs.php?action=delete&id=<?= safeEcho($job['id']); ?>" class="btn btn-outline-danger" title="Usuń" onclick="return confirm('Czy na pewno chcesz usunąć to ogłoszenie? Ta operacja jest nieodwracalna.');">
+                                                                <a href="manage_jobs.php?action=delete&id=<?= safeEcho($job['id']); ?>" class="btn btn-outline-danger" title="Archiwizuj" onclick="return confirm('Ogłoszenie trafi do archiwum, a punkty wykonawców zostaną zwrócone. Kontynuować?');">
                                                                     <i class="bi bi-trash"></i>
                                                                 </a>
+                                                                <?php if (!empty($job['archived_at'])): ?>
+                                                                    <a href="manage_jobs.php?action=restore&id=<?= safeEcho($job['id']); ?>" class="btn btn-outline-success" title="Przywróć">
+                                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                                    </a>
+                                                                    <a href="manage_jobs.php?action=permanent_delete&id=<?= safeEcho($job['id']); ?>" class="btn btn-outline-dark" title="Usuń trwale z rozmowami" onclick="return confirm('To trwale usunie ogłoszenie razem z rozmowami. Tej operacji nie można cofnąć. Kontynuować?');">
+                                                                        <i class="bi bi-trash3"></i>
+                                                                    </a>
+                                                                <?php endif; ?>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -545,7 +624,11 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Proszę wybrać przynajmniej jedno ogłoszenie do wykonania akcji zbiorowej');
         }
         
-        if (bulkAction === 'delete' && !confirm('Czy na pewno chcesz usunąć wybrane ogłoszenia? Tej operacji nie można cofnąć.')) {
+        if (bulkAction === 'delete' && !confirm('Wybrane ogłoszenia trafią do archiwum, a punkty wykonawców zostaną zwrócone. Kontynuować?')) {
+            e.preventDefault();
+        }
+
+        if (bulkAction === 'permanent_delete' && !confirm('To trwale usunie wybrane ogłoszenia razem z rozmowami. Tej operacji nie można cofnąć. Kontynuować?')) {
             e.preventDefault();
         }
     });

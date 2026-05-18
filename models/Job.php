@@ -30,7 +30,8 @@ class Job {
 
     // Pobieranie wszystkich ogłoszeń użytkownika
     public function getUserJobs($userId) {
-        $sql = "SELECT * FROM jobs WHERE user_id = :user_id";
+        $this->ensureArchiveColumns();
+        $sql = "SELECT * FROM jobs WHERE user_id = :user_id AND deleted_at IS NULL AND archived_at IS NULL";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':user_id', $userId);
         $stmt->execute();
@@ -72,20 +73,80 @@ class Job {
 
     // Usuwanie ogłoszenia (miękkie usuwanie)
     public function deleteJob($id) {
-        $sql = "UPDATE jobs SET deleted_at = CURRENT_TIMESTAMP WHERE id = :id";
+        $this->ensureArchiveColumns();
+        $this->refundResponsePoints($id);
+        $sql = "UPDATE jobs SET deleted_at = COALESCE(deleted_at, NOW()), archived_at = COALESCE(archived_at, NOW()), archive_reason = 'admin_archived', updated_at = NOW() WHERE id = :id";
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute(['id' => $id]);
     }
     // Przywracanie usuniętego ogłoszenia
     public function restoreJob($id) {
-        $sql = "UPDATE jobs SET deleted_at = NULL WHERE id = :id";
+        $this->ensureArchiveColumns();
+        $sql = "UPDATE jobs SET deleted_at = NULL, archived_at = NULL, archive_reason = NULL, updated_at = NOW() WHERE id = :id";
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute(['id' => $id]);
     }
 
     // Pobieranie dostępnych ogłoszeń (np. ogłoszenia bez przypisanego wykonawcy)
+    public function permanentlyDeleteJob($id) {
+        $this->ensureArchiveColumns();
+        try {
+            $this->pdo->beginTransaction();
+            $this->pdo->prepare("DELETE FROM conversation_reports WHERE job_id = :id")->execute(['id' => $id]);
+            $this->pdo->prepare("DELETE FROM messages WHERE job_id = :id")->execute(['id' => $id]);
+            $this->pdo->prepare("DELETE FROM responses WHERE job_id = :id")->execute(['id' => $id]);
+            $this->pdo->prepare("DELETE FROM job_change_history WHERE job_id = :id")->execute(['id' => $id]);
+            $this->pdo->prepare("DELETE FROM job_reports WHERE job_id = :id")->execute(['id' => $id]);
+            $this->pdo->prepare("DELETE FROM job_images WHERE job_id = :id")->execute(['id' => $id]);
+            $deleted = $this->pdo->prepare("DELETE FROM jobs WHERE id = :id")->execute(['id' => $id]);
+            $this->pdo->commit();
+            return $deleted;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('Permanent job delete error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function ensureArchiveColumns() {
+        $columns = [
+            'deleted_at' => "ALTER TABLE jobs ADD COLUMN deleted_at DATETIME DEFAULT NULL",
+            'archived_at' => "ALTER TABLE jobs ADD COLUMN archived_at DATETIME DEFAULT NULL",
+            'archive_reason' => "ALTER TABLE jobs ADD COLUMN archive_reason VARCHAR(80) DEFAULT NULL",
+        ];
+
+        $stmt = $this->pdo->query("SHOW COLUMNS FROM jobs");
+        $existingColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
+
+        foreach ($columns as $column => $sql) {
+            if (!in_array($column, $existingColumns, true)) {
+                $this->pdo->exec($sql);
+            }
+        }
+    }
+
+    private function refundResponsePoints($jobId) {
+        $stmt = $this->pdo->prepare("SELECT executor_id, points_reserved FROM responses WHERE job_id = :job_id AND points_reserved > 0");
+        $stmt->execute(['job_id' => $jobId]);
+        $responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($responses as $response) {
+            $points = (int)$response['points_reserved'];
+            if ($points > 0) {
+                $this->pdo->prepare("UPDATE users SET account_balance = account_balance + :points WHERE id = :executor_id")
+                    ->execute(['points' => $points, 'executor_id' => (int)$response['executor_id']]);
+            }
+        }
+
+        $this->pdo->prepare("UPDATE responses SET status = CASE WHEN status = 'accepted' THEN 'cancelled' ELSE 'refunded' END, points_reserved = 0 WHERE job_id = :job_id AND points_reserved > 0")
+            ->execute(['job_id' => $jobId]);
+    }
+
     public function getAvailableJobs() {
-        $sql = "SELECT * FROM jobs WHERE status = 'open' AND executor_id IS NULL";
+        $this->ensureArchiveColumns();
+        $sql = "SELECT * FROM jobs WHERE status = 'open' AND executor_id IS NULL AND deleted_at IS NULL AND archived_at IS NULL";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -236,9 +297,12 @@ class Job {
     return $row ? (int)$row['cnt'] : 0;
 }
 public function getJobsByUserId($userId, $limit = 5) {
+    $this->ensureArchiveColumns();
     $query = "SELECT j.*, 0 as offer_count
               FROM jobs j
               WHERE j.user_id = ?
+                AND j.deleted_at IS NULL
+                AND j.archived_at IS NULL
               ORDER BY j.created_at DESC
               LIMIT ?";
     $stmt = $this->pdo->prepare($query);
@@ -269,7 +333,9 @@ public function getJobsWithFilters($limit, $offset, $sortColumn, $sortOrder, $se
         $params[':search'] = '%' . $search . '%';
     }
 
-    if ($statusFilter) {
+    if ($statusFilter === 'archived') {
+        $whereConditions[] = "j.archived_at IS NOT NULL";
+    } elseif ($statusFilter) {
         $whereConditions[] = "j.status = :status";
         $params[':status'] = $statusFilter;
     }
@@ -335,7 +401,9 @@ public function countJobsWithFilters($search = '', $statusFilter = '', $category
         $params[':search'] = '%' . $search . '%';
     }
 
-    if ($statusFilter) {
+    if ($statusFilter === 'archived') {
+        $whereConditions[] = "archived_at IS NOT NULL";
+    } elseif ($statusFilter) {
         $whereConditions[] = "status = :status";
         $params[':status'] = $statusFilter;
     }

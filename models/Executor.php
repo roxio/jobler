@@ -26,6 +26,9 @@ class Executor {
         ];
         $jobColumns = [
             'executor_id' => "ALTER TABLE jobs ADD COLUMN executor_id INT(11) DEFAULT NULL",
+            'deleted_at' => "ALTER TABLE jobs ADD COLUMN deleted_at DATETIME DEFAULT NULL",
+            'archived_at' => "ALTER TABLE jobs ADD COLUMN archived_at DATETIME DEFAULT NULL",
+            'archive_reason' => "ALTER TABLE jobs ADD COLUMN archive_reason VARCHAR(80) DEFAULT NULL",
         ];
         $messageColumnUpdates = [
             'conversation_id' => "ALTER TABLE messages MODIFY conversation_id VARCHAR(100) NOT NULL",
@@ -284,6 +287,8 @@ class Executor {
                   INNER JOIN responses r ON j.id = r.job_id
                   INNER JOIN users u ON r.executor_id = u.id
                   WHERE j.user_id = :user_id
+                    AND (j.deleted_at IS NULL OR j.deleted_at = '')
+                    AND (j.archived_at IS NULL OR j.archived_at = '')
                   ORDER BY j.created_at DESC, r.created_at DESC";
 
         $stmt = $this->pdo->prepare($query);

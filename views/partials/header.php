@@ -34,10 +34,10 @@
                         Kategorie
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
-                        <li><a class="dropdown-item" href="index.php">Wszystkie</a></li>
+                        <li><a class="dropdown-item" href="/index.php">Wszystkie</a></li>
                         <?php foreach ($categories as $category): ?>
                             <li>
-                                <a class="dropdown-item" href="index.php?category=<?= $category['id'] ?>">
+                                <a class="dropdown-item" href="/index.php?category=<?= $category['id'] ?>">
                                     <?= htmlspecialchars($category['name']) ?>
                                 </a>
                             </li>
@@ -65,7 +65,7 @@
             <a class="nav-link" href="/logout.php">Wyloguj</a>
         </li>
         <?php if (isset($_SESSION['user_account_balance'])): ?>
-            <li class="nav-item"><a class="nav-link" href="../../views/executor/payment.php">Stan konta: <?= $_SESSION['user_account_balance'] ?> punktów</a></li>
+            <li class="nav-item"><a class="nav-link" href="/views/executor/payment.php">Stan konta: <?= $_SESSION['user_account_balance'] ?> punktów</a></li>
         <?php endif; ?>
       </ul>
     </div>

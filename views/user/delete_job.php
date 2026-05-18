@@ -1,41 +1,98 @@
 <?php
-// Rozpocznij sesję
 session_start();
 
-// Załaduj modele
-include_once('../../models/Job.php');
+include_once('../../models/Database.php');
 
-// Utwórz instancję klasy Job
-$jobModel = new Job();
-
-// Sprawdź, czy użytkownik jest zalogowany
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
     exit;
 }
 
-// Sprawdź, czy przesłano ID ogłoszenia
-if (!isset($_GET['id'])) {
+$pdo = Database::getConnection();
+$jobId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$userId = (int)$_SESSION['user_id'];
+
+if ($jobId <= 0) {
     header('Location: /views/user/job_list.php');
     exit;
 }
 
-$jobId = $_GET['id'];
-$userId = $_SESSION['user_id'];
+function ensureJobArchiveColumns(PDO $pdo) {
+    $columns = [
+        'deleted_at' => "ALTER TABLE jobs ADD COLUMN deleted_at DATETIME DEFAULT NULL",
+        'archived_at' => "ALTER TABLE jobs ADD COLUMN archived_at DATETIME DEFAULT NULL",
+        'archive_reason' => "ALTER TABLE jobs ADD COLUMN archive_reason VARCHAR(80) DEFAULT NULL",
+    ];
 
-// Pobierz szczegóły ogłoszenia
-$job = $jobModel->getJobDetails($jobId);
+    $stmt = $pdo->query("SHOW COLUMNS FROM jobs");
+    $existingColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
 
-// Sprawdź, czy ogłoszenie należy do użytkownika
-if ($job['user_id'] != $userId) {
-    header('Location: /views/user/job_list.php');
-    exit;
+    foreach ($columns as $column => $sql) {
+        if (!in_array($column, $existingColumns, true)) {
+            $pdo->exec($sql);
+        }
+    }
 }
 
-// Usuń ogłoszenie
-$jobModel->deleteJob($jobId);
+ensureJobArchiveColumns($pdo);
 
-// Przekieruj na listę ogłoszeń
-header('Location: /views/user/job_list.php');
-exit;
-?>
+try {
+    $pdo->beginTransaction();
+
+    $stmt = $pdo->prepare("SELECT id, user_id FROM jobs WHERE id = :id AND user_id = :user_id FOR UPDATE");
+    $stmt->execute(['id' => $jobId, 'user_id' => $userId]);
+    $job = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$job) {
+        $pdo->rollBack();
+        header('Location: /views/user/job_list.php');
+        exit;
+    }
+
+    $responsesStmt = $pdo->prepare("
+        SELECT id, executor_id, points_reserved
+        FROM responses
+        WHERE job_id = :job_id AND points_reserved > 0
+        FOR UPDATE
+    ");
+    $responsesStmt->execute(['job_id' => $jobId]);
+    $responses = $responsesStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($responses as $response) {
+        $points = (int)$response['points_reserved'];
+        if ($points > 0) {
+            $refundStmt = $pdo->prepare("UPDATE users SET account_balance = account_balance + :points WHERE id = :executor_id");
+            $refundStmt->execute([
+                'points' => $points,
+                'executor_id' => (int)$response['executor_id'],
+            ]);
+        }
+    }
+
+    $pdo->prepare("
+        UPDATE responses
+        SET status = CASE WHEN status = 'accepted' THEN 'cancelled' ELSE 'refunded' END,
+            points_reserved = 0
+        WHERE job_id = :job_id AND points_reserved > 0
+    ")->execute(['job_id' => $jobId]);
+
+    $pdo->prepare("
+        UPDATE jobs
+        SET deleted_at = COALESCE(deleted_at, NOW()),
+            archived_at = COALESCE(archived_at, NOW()),
+            archive_reason = 'user_deleted',
+            updated_at = NOW()
+        WHERE id = :job_id AND user_id = :user_id
+    ")->execute(['job_id' => $jobId, 'user_id' => $userId]);
+
+    $pdo->commit();
+    header('Location: /views/user/job_list.php?status=archived');
+    exit;
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    error_log('Job archive error: ' . $e->getMessage());
+    header('Location: /views/user/job_list.php?status=archive_error');
+    exit;
+}

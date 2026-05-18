@@ -18,7 +18,7 @@ $categories = $categoriesStmt->fetchAll(PDO::FETCH_ASSOC);
   <div class="container">
     <!-- Logo z ustawień strony -->
     <a class="navbar-brand" href="/">
-      <img src="../../img/<?= htmlspecialchars($logo) ?>" alt="<?= htmlspecialchars($siteTitle) ?>" style="height: 40px;">
+      <img src="/img/<?= htmlspecialchars($logo) ?>" alt="<?= htmlspecialchars($siteTitle) ?>" style="height: 40px;">
     </a>
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,10 +34,10 @@ $categories = $categoriesStmt->fetchAll(PDO::FETCH_ASSOC);
             Kategorie
           </a>
           <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
-            <li><a class="dropdown-item" href="index.php">Wszystkie</a></li>
+            <li><a class="dropdown-item" href="/index.php">Wszystkie</a></li>
             <?php foreach ($categories as $category): ?>
               <li>
-                <a class="dropdown-item" href="index.php?category=<?= $category['id'] ?>">
+                <a class="dropdown-item" href="/index.php?category=<?= $category['id'] ?>">
                   <?= htmlspecialchars($category['name']) ?>
                 </a>
               </li>
@@ -48,36 +48,39 @@ $categories = $categoriesStmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- Logowanie/rejestracja lub wylogowanie -->
         <?php if (isset($_SESSION['user_id'])): ?>
           <li class="nav-item">
-            <a class="nav-link" href="../../views/user/dashboard.php">Panel użytkownika</a>
+            <a class="nav-link" href="/views/user/dashboard.php">Panel użytkownika</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/views/user/job_list.php">Moje ogłoszenia</a>
           </li>
 
           <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
             <li class="nav-item">
-              <a class="nav-link" href="../../views/admin/dashboard.php">Panel Administracyjny</a>
+              <a class="nav-link" href="/views/admin/dashboard.php">Panel Administracyjny</a>
             </li>
           <?php endif; ?>
 
           <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'executor'): ?>
             <li class="nav-item">
-              <a class="nav-link" href="../../views/executor/dashboard.php">Dashboard Wykonawcy</a>
+              <a class="nav-link" href="/views/executor/dashboard.php">Dashboard Wykonawcy</a>
             </li>
           <?php endif; ?>
 
           <li class="nav-item">
-            <a class="nav-link" href="../../logout.php">Wyloguj</a>
+            <a class="nav-link" href="/logout.php">Wyloguj</a>
           </li>
         <?php else: ?>
           <li class="nav-item">
-            <a class="nav-link" href="../../login.php">Zaloguj się</a>
+            <a class="nav-link" href="/login.php">Zaloguj się</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="../../register.php">Zarejestruj się</a>
+            <a class="nav-link" href="/register.php">Zarejestruj się</a>
           </li>
         <?php endif; ?>
         
         <?php if (isset($_SESSION['user_account_balance'])): ?>
           <li class="nav-item">
-            <a class="nav-link" href="../../views/executor/payment.php">
+            <a class="nav-link" href="/views/executor/payment.php">
               Stan konta: <?= $_SESSION['user_account_balance'] ?> punktów
             </a>
           </li>

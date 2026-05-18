@@ -139,7 +139,16 @@ CREATE TABLE `jobs` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `points_required` int(11) NOT NULL DEFAULT 1,
   `category_id` int(11) DEFAULT NULL,
-  `executor_id` int(11) DEFAULT NULL
+  `executor_id` int(11) DEFAULT NULL,
+  `budget_estimate` decimal(10,2) DEFAULT NULL,
+  `realization_time` varchar(120) DEFAULT NULL,
+  `validity_days` int(11) NOT NULL DEFAULT 7,
+  `expires_at` datetime DEFAULT NULL,
+  `work_mode` varchar(20) NOT NULL DEFAULT 'remote',
+  `primary_image` varchar(255) NOT NULL DEFAULT 'no_image.jpg',
+  `deleted_at` datetime DEFAULT NULL,
+  `archived_at` datetime DEFAULT NULL,
+  `archive_reason` varchar(80) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -496,17 +505,22 @@ CREATE TABLE `users` (
   `account_balance` int(11) NOT NULL DEFAULT 0,
   `avatar` varchar(255) DEFAULT NULL,
   `need_change` tinyint(1) NOT NULL DEFAULT 0,
-  `newsletter_subscription` tinyint(1) DEFAULT 0
+  `newsletter_subscription` tinyint(1) DEFAULT 0,
+  `original_email` varchar(255) DEFAULT NULL,
+  `original_name` varchar(255) DEFAULT NULL,
+  `original_username` varchar(255) DEFAULT NULL,
+  `original_phone` varchar(50) DEFAULT NULL,
+  `profile_updated_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `email_verified_at`, `last_login`, `last_activity`, `name`, `username`, `updated_at`, `registration_ip`, `user_agent`, `last_login_ip`, `status`, `phone`, `account_balance`, `avatar`, `need_change`, `newsletter_subscription`) VALUES
-(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', NULL, '2026-04-23 08:02:19', NULL, 'admin1', 'admin2', '2026-04-23 06:02:19', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 1),
-(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, '2026-04-23 08:21:16', NULL, 'exe1', 'exe2', '2026-04-23 06:21:16', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0),
-(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', NULL, '2026-04-23 08:22:15', NULL, 'user1', 'user2', '2026-04-23 06:22:15', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0);
+INSERT INTO `users` (`id`, `email`, `password`, `role`, `created_at`, `email_verified_at`, `last_login`, `last_activity`, `name`, `username`, `updated_at`, `registration_ip`, `user_agent`, `last_login_ip`, `status`, `phone`, `account_balance`, `avatar`, `need_change`, `newsletter_subscription`, `original_email`, `original_name`, `original_username`, `original_phone`, `profile_updated_at`) VALUES
+(4, 'admin@admin.admin', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'admin', '2025-01-01 10:00:29', NULL, '2026-04-23 08:02:19', NULL, 'admin1', 'admin2', '2026-04-23 06:02:19', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 1, 'admin@admin.admin', 'admin1', 'admin2', NULL, NULL),
+(5, 'executor@executor.executor', '$2y$10$7Akbgh6LTH745rdTsDbS4u2hVE390NiBFQ6zeC/3HuIAEIKI2M.DW', 'executor', '2025-02-16 10:06:12', NULL, '2026-04-23 08:21:16', NULL, 'exe1', 'exe2', '2026-04-23 06:21:16', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0, 'executor@executor.executor', 'exe1', 'exe2', NULL, NULL),
+(6, 'user@user.user', '$2y$10$r2WL/H9KjsS9W.JG.q71bOAc90kbKEX.fa40LM7GpC9qB8wg8MJEi', 'user', '2025-02-16 13:19:36', NULL, '2026-04-23 08:22:15', NULL, 'user1', 'user2', '2026-04-23 06:22:15', NULL, NULL, '127.0.0.1', 'active', NULL, 12, NULL, 0, 0, 'user@user.user', 'user1', 'user2', NULL, NULL);
 
 -- --------------------------------------------------------
 

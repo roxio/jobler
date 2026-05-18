@@ -191,6 +191,21 @@ if (!empty($user['last_login'])) {
                                                 <?= formatBalance($user['account_balance'] ?? 0) ?>
                                             </td>
                                         </tr>
+                                        <tr>
+                                            <td><strong>Dane pierwotne:</strong></td>
+                                            <td>
+                                                <small>
+                                                    <?= safeEcho($user['original_name'] ?? 'Brak') ?>,
+                                                    <?= safeEcho($user['original_username'] ?? 'Brak') ?>,
+                                                    <?= safeEcho($user['original_email'] ?? 'Brak') ?>,
+                                                    tel. <?= safeEcho($user['original_phone'] ?? 'Brak') ?>
+                                                </small>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Profil zmieniony:</strong></td>
+                                            <td><?= !empty($user['profile_updated_at']) ? formatDate($user['profile_updated_at']) : 'Brak zmian'; ?></td>
+                                        </tr>
                                     </table>
 
                                     <!-- Szybkie akcje -->

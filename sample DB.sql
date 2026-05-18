@@ -147,10 +147,10 @@ CREATE TABLE `jobs` (
 --
 
 INSERT INTO `jobs` (`id`, `user_id`, `title`, `description`, `status`, `created_at`, `updated_at`, `points_required`, `category_id`) VALUES
-(1, 6, 'Potrzebuję pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:23', 1, NULL),
-(2, 6, 'Szukam specjalisty od SEO', 'Chciałbym poprawić widoczność mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:26', 1, NULL),
+(1, 6, 'PotrzebujÄ™ pomocy przy remoncie mieszkania 12', 'Szukam wykonawcy do remontu w moim mieszkaniu. 1', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:23', 1, NULL),
+(2, 6, 'Szukam specjalisty od SEO', 'ChciaĹ‚bym poprawiÄ‡ widocznoĹ›Ä‡ mojej strony w wyszukiwarkach.', 'open', '2025-02-16 09:00:18', '2025-02-20 10:55:26', 1, NULL),
 (11, 6, 'ogloszenie w kategorii', 'pierwsze w kategorii', 'open', '2025-03-03 20:10:44', '2026-04-23 05:50:28', 1, 1),
-(12, 6, 'test admina tworzenie', 'test admina tworzenie tresc\r\nążśćńłóęź', 'open', '2026-04-23 05:54:11', '2026-04-23 06:02:48', 1, 1);
+(12, 6, 'test admina tworzenie', 'test admina tworzenie tresc\r\nÄ…ĹĽĹ›Ä‡Ĺ„Ĺ‚ĂłÄ™Ĺş', 'open', '2026-04-23 05:54:11', '2026-04-23 06:02:48', 1, 1);
 
 -- --------------------------------------------------------
 
@@ -171,11 +171,11 @@ CREATE TABLE `job_change_history` (
 --
 
 INSERT INTO `job_change_history` (`id`, `job_id`, `admin_id`, `change_description`, `changed_at`) VALUES
-(1, 11, 4, 'Punkty: 1 → 3; Status:  → open', '2026-04-23 05:49:47'),
-(2, 11, 4, 'Punkty: 3 → 1', '2026-04-23 05:50:21'),
-(3, 11, 4, 'Dodano zdjęcie: job_69e9b3244cc80.jpg', '2026-04-23 05:50:28'),
-(4, 12, 4, 'Zlecenie utworzone przez administratora. Status: open, Punkty: 1. Dodano 1 zdjęcie(a).', '2026-04-23 05:54:13'),
-(5, 12, 4, 'Właściciel zmieniony (user_id: 4 → 6)', '2026-04-23 06:02:48');
+(1, 11, 4, 'Punkty: 1 â†’ 3; Status:  â†’ open', '2026-04-23 05:49:47'),
+(2, 11, 4, 'Punkty: 3 â†’ 1', '2026-04-23 05:50:21'),
+(3, 11, 4, 'Dodano zdjÄ™cie: job_69e9b3244cc80.jpg', '2026-04-23 05:50:28'),
+(4, 12, 4, 'Zlecenie utworzone przez administratora. Status: open, Punkty: 1. Dodano 1 zdjÄ™cie(a).', '2026-04-23 05:54:13'),
+(5, 12, 4, 'WĹ‚aĹ›ciciel zmieniony (user_id: 4 â†’ 6)', '2026-04-23 06:02:48');
 
 -- --------------------------------------------------------
 
@@ -398,6 +398,7 @@ CREATE TABLE `site_settings` (
   `company_phones` text DEFAULT NULL,
   `favicon` varchar(255) DEFAULT NULL,
   `meta_title` varchar(255) DEFAULT NULL,
+  `copyright_text` text DEFAULT NULL,
   `maintenance_mode` tinyint(1) NOT NULL DEFAULT 0,
   `maintenance_message` text DEFAULT NULL,
   `email_templates` mediumtext DEFAULT NULL,
@@ -411,8 +412,8 @@ CREATE TABLE `site_settings` (
 -- Dumping data for table `site_settings`
 --
 
-INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `meta_description`, `meta_keywords`, `max_ads`, `promotion_fee`, `facebook_url`, `twitter_url`, `instagram_url`, `linkedin_url`, `contact_email`, `contact_phone`, `contact_address`, `business_hours`, `created_at`, `updated_at`, `allow_registration`, `smtp_server`, `smtp_port`, `smtp_username`, `smtp_password`, `default_language`, `layout_variant`, `company_name`, `company_tax_id`, `company_addresses`, `company_emails`, `company_phones`, `favicon`, `meta_title`, `maintenance_mode`, `maintenance_message`, `email_templates`, `sitemap_enabled`, `sitemap_last_generated`, `last_system_backup`, `last_database_backup`) VALUES
-(1, 'test', '68bff6b54a5ca.png', '', '', '', 10, 10.00, 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'info@jobler.pl', '+48 123 456 789', 'ul. Przykładowa 123, 00-000 Warszawa', 'Pon-Pt: 8:00-18:00', '2025-02-17 21:58:18', '2025-09-09 10:28:38', 0, 'smtp.example.com', 25, 'user', 'password', 'pl', 'classic', '', '', '[]', '[]', '[]', '', '', 0, '', '{}', 1, NULL, NULL, NULL);
+INSERT INTO `site_settings` (`id`, `title`, `logo`, `categories`, `meta_description`, `meta_keywords`, `max_ads`, `promotion_fee`, `facebook_url`, `twitter_url`, `instagram_url`, `linkedin_url`, `contact_email`, `contact_phone`, `contact_address`, `business_hours`, `created_at`, `updated_at`, `allow_registration`, `smtp_server`, `smtp_port`, `smtp_username`, `smtp_password`, `default_language`, `layout_variant`, `company_name`, `company_tax_id`, `company_addresses`, `company_emails`, `company_phones`, `favicon`, `meta_title`, `copyright_text`, `maintenance_mode`, `maintenance_message`, `email_templates`, `sitemap_enabled`, `sitemap_last_generated`, `last_system_backup`, `last_database_backup`) VALUES
+(1, 'test', '68bff6b54a5ca.png', '', '', '', 10, 10.00, 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'http://testfb.pl', 'info@jobler.pl', '+48 123 456 789', 'ul. PrzykĹ‚adowa 123, 00-000 Warszawa', 'Pon-Pt: 8:00-18:00', '2025-02-17 21:58:18', '2025-09-09 10:28:38', 0, 'smtp.example.com', 25, 'user', 'password', 'pl', 'classic', '', '', '[]', '[]', '[]', '', '', '© {year} {site_title} - Wszelkie prawa zastrzeżone.', 0, '', '{}', 1, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -593,7 +594,7 @@ CREATE TABLE `user_permissions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Indeksy dla zrzutów tabel
+-- Indeksy dla zrzutĂłw tabel
 --
 
 --

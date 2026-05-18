@@ -275,10 +275,6 @@ function safeEcho($data, $default = '') {
                         </div>
                     </div>
                 </div>
-				<div class="container">
-            <span class="text-muted">&copy; 2025 System Zleceń - Wszelkie prawa zastrzeżone.</span>
-			<div class="stupidbottomm"> </div>
-        </div>
             </div>
         </div>
     </div>

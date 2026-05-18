@@ -36,6 +36,7 @@ class SiteSettings {
             'company_phones' => "ALTER TABLE site_settings ADD COLUMN company_phones TEXT DEFAULT NULL",
             'favicon' => "ALTER TABLE site_settings ADD COLUMN favicon VARCHAR(255) DEFAULT NULL",
             'meta_title' => "ALTER TABLE site_settings ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL",
+            'copyright_text' => "ALTER TABLE site_settings ADD COLUMN copyright_text TEXT DEFAULT NULL",
             'maintenance_mode' => "ALTER TABLE site_settings ADD COLUMN maintenance_mode TINYINT(1) NOT NULL DEFAULT 0",
             'maintenance_message' => "ALTER TABLE site_settings ADD COLUMN maintenance_message TEXT DEFAULT NULL",
             'email_templates' => "ALTER TABLE site_settings ADD COLUMN email_templates MEDIUMTEXT DEFAULT NULL",
@@ -100,6 +101,7 @@ class SiteSettings {
             'company_phones' => '[]',
             'favicon' => '',
             'meta_title' => '',
+            'copyright_text' => '© {year} {site_title} - Wszelkie prawa zastrzeżone.',
             'maintenance_mode' => 0,
             'maintenance_message' => '',
             'email_templates' => '{}',
@@ -114,7 +116,7 @@ class SiteSettings {
                      smtp_server, smtp_port, smtp_username, smtp_password, facebook_url, twitter_url,
                      instagram_url, linkedin_url, contact_email, contact_phone, contact_address,
                      business_hours, default_language, layout_variant, company_name, company_tax_id,
-                     company_addresses, company_emails, company_phones, favicon, meta_title,
+                     company_addresses, company_emails, company_phones, favicon, meta_title, copyright_text,
                      maintenance_mode, maintenance_message, email_templates, sitemap_enabled,
                      sitemap_last_generated, last_system_backup, last_database_backup)
                 VALUES
@@ -122,7 +124,7 @@ class SiteSettings {
                      :smtp_server, :smtp_port, :smtp_username, :smtp_password, :facebook_url, :twitter_url,
                      :instagram_url, :linkedin_url, :contact_email, :contact_phone, :contact_address,
                      :business_hours, :default_language, :layout_variant, :company_name, :company_tax_id,
-                     :company_addresses, :company_emails, :company_phones, :favicon, :meta_title,
+                     :company_addresses, :company_emails, :company_phones, :favicon, :meta_title, :copyright_text,
                      :maintenance_mode, :maintenance_message, :email_templates, :sitemap_enabled,
                      :sitemap_last_generated, :last_system_backup, :last_database_backup)";
 
@@ -163,6 +165,7 @@ class SiteSettings {
                 company_phones = :company_phones,
                 favicon = :favicon,
                 meta_title = :meta_title,
+                copyright_text = :copyright_text,
                 maintenance_mode = :maintenance_mode,
                 maintenance_message = :maintenance_message,
                 email_templates = :email_templates,
@@ -171,6 +174,22 @@ class SiteSettings {
 
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute($data);
+    }
+
+    public function formatCopyrightText($settings = null) {
+        $settings = $settings ?: $this->getSettings();
+        $template = trim((string)($settings['copyright_text'] ?? ''));
+
+        if ($template === '') {
+            $template = '© {year} {site_title} - Wszelkie prawa zastrzeżone.';
+        }
+
+        $template = html_entity_decode($template, ENT_QUOTES, 'UTF-8');
+
+        return strtr($template, [
+            '{year}' => date('Y'),
+            '{site_title}' => $settings['title'] ?? 'System Zleceń',
+        ]);
     }
 
     public function getSiteErrors() {

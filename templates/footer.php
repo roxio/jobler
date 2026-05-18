@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/SiteSettings.php';
 $siteSettingsModel = new SiteSettings();
 $siteSettings = $siteSettingsModel->getSettings();
 $siteTitle = $siteSettings['title'] ?? 'Jobler';
+$copyrightText = $siteSettingsModel->formatCopyrightText($siteSettings);
 ?>
 
 <footer class="footer mt-auto py-4" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);">
@@ -136,7 +137,7 @@ $siteTitle = $siteSettings['title'] ?? 'Jobler';
         <div class="row align-items-center">
             <div class="col-md-6">
                 <p class="text-light opacity-75 mb-0">
-                    &copy; <?= date('Y') ?> <?= htmlspecialchars($siteTitle) ?>. Wszelkie prawa zastrzeżone.
+                    <?= htmlspecialchars($copyrightText, ENT_QUOTES, 'UTF-8') ?>
                 </p>
             </div>
             <div class="col-md-6 text-md-end">

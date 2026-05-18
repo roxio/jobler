@@ -1,91 +1,304 @@
 <?php
 session_start();
-include_once('../../models/Report.php');
-include_once('../../models/Database.php'); // Połączenie z bazą danych
+include_once('../../models/Database.php');
 
-// Uzyskanie połączenia z bazą danych
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'admin') {
+    header('Location: ../auth/login.php');
+    exit;
+}
+
 $pdo = Database::getConnection();
 
-// Tworzymy instancję modelu Report
-$reportModel = new Report($pdo);
-
-// Zmienna do przechowywania komunikatów
-$message = "";
-
-// Walidacja parametrów (przykładowe wartości, powinny pochodzić z formularza lub GET/POST)
-$userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
-$jobId = isset($_GET['job_id']) ? (int)$_GET['job_id'] : null;
-$searchTerm = isset($_GET['search']) ? $_GET['search'] : ''; // Wyszukiwanie
-$startDate = isset($_GET['start_date']) ? $_GET['start_date'] : ''; // Filtrowanie po dacie
-$endDate = isset($_GET['end_date']) ? $_GET['end_date'] : ''; // Filtrowanie po dacie
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1; // Numer strony
-
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10; // Domyślnie 10 raportów na stronę
-$offset = ($page - 1) * $limit;
-
-$totalPagesUser = 1; // Domyślna wartość, aby uniknąć błędu
-
-$activityType = isset($_GET['activity_type']) ? $_GET['activity_type'] : '';
-$jobStatus = isset($_GET['job_status']) ? $_GET['job_status'] : '';
-$sortBy = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'timestamp'; // Domyślnie sortujemy po dacie
-
-// Pobranie raportów użytkowników
-$userReports = $reportModel->getUserActivityReports($userId, $activityType, $searchTerm, $startDate, $endDate, $sortBy, $limit, $offset);
-
-// Pobranie dostępnych użytkowników
-$query = "SELECT id, username FROM users";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Pobranie raportów, jeśli ID użytkownika lub ogłoszenia zostało przekazane
-if ($userId) {
-    $userReports = $reportModel->getUserActivityReports($userId, $searchTerm, $startDate, $endDate, $limit, $offset);
-    $totalUserReports = $reportModel->countUserReports($userId, $searchTerm, $startDate, $endDate);
-    $totalPagesUser = ceil($totalUserReports / $limit);
+function safeEcho($value, $default = '') {
+    return htmlspecialchars((string)($value ?? $default), ENT_QUOTES, 'UTF-8');
 }
 
-if ($jobId) {
-    $jobReports = $reportModel->getJobReports($jobId, $searchTerm, $startDate, $endDate, $limit, $offset);
-    $totalJobReports = $reportModel->countJobReports($jobId, $searchTerm, $startDate, $endDate);
-    $totalPagesJob = ceil($totalJobReports / $limit);
+function tableExists(PDO $pdo, $tableName) {
+    $stmt = $pdo->prepare("SHOW TABLES LIKE :table_name");
+    $stmt->execute([':table_name' => $tableName]);
+    return (bool)$stmt->fetchColumn();
 }
 
-// Obsługuje dodanie raportu
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $userId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : null;
-    $jobId = isset($_POST['job_id']) ? (int)$_POST['job_id'] : null;
-    $activityType = isset($_POST['activity_type']) ? $_POST['activity_type'] : '';
-    $details = isset($_POST['details']) ? $_POST['details'] : '';
-
-    if ($activityType && $details) {
-        if ($userId && !$jobId) {
-            // Dodanie raportu aktywności użytkownika
-            $reportModel->addUserActivityReport($userId, $activityType, $details);
-            $message = "Raport aktywności użytkownika został dodany.";
-        } elseif ($jobId && !$userId) {
-            // Dodanie raportu ogłoszenia
-            $reportModel->addJobReport($jobId, $activityType, $details);
-            $message = "Raport ogłoszenia został dodany.";
-        } elseif ($userId && $activityType === 'payment') {
-            // Dodanie raportu płatności (jeśli dotyczy płatności)
-            $reportModel->addPaymentReport($userId, $details);
-            $message = "Raport płatności został dodany.";
-        } else {
-            $message = "Nieprawidłowe dane - wybierz użytkownika lub ogłoszenie!";
-        }
-    } else {
-        $message = "Wszystkie pola muszą być wypełnione.";
+function columnExists(PDO $pdo, $tableName, $columnName) {
+    if (!tableExists($pdo, $tableName)) {
+        return false;
     }
+
+    $stmt = $pdo->prepare("SHOW COLUMNS FROM `$tableName` LIKE :column_name");
+    $stmt->execute([':column_name' => $columnName]);
+    return (bool)$stmt->fetchColumn();
 }
 
-function checkPermission($userId, $permissionType) {
-    global $pdo;
-    $stmt = $pdo->prepare("SELECT * FROM user_permissions WHERE user_id = :user_id AND permission_type = :permission_type");
-    $stmt->execute(['user_id' => $userId, 'permission_type' => $permissionType]);
-    return $stmt->rowCount() > 0;
+function dateFilterSql($column, &$params, $dateFrom, $dateTo) {
+    $sql = '';
+    if ($dateFrom !== '') {
+        $sql .= " AND DATE($column) >= :date_from";
+        $params[':date_from'] = $dateFrom;
+    }
+    if ($dateTo !== '') {
+        $sql .= " AND DATE($column) <= :date_to";
+        $params[':date_to'] = $dateTo;
+    }
+    return $sql;
 }
 
+function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) {
+    $limit = max(1, min(1000, (int)$limit));
+    $params = [];
+    $title = '';
+    $columns = [];
+    $sql = '';
+
+    switch ($reportKey) {
+        case 'new_users_time':
+            $title = 'Nowi użytkownicy w czasie';
+            $columns = ['Data', 'Nowi użytkownicy'];
+            $sql = "SELECT DATE(created_at) AS report_date, COUNT(*) AS total FROM users WHERE 1=1";
+            $sql .= dateFilterSql('created_at', $params, $dateFrom, $dateTo);
+            $sql .= " GROUP BY DATE(created_at) ORDER BY report_date DESC LIMIT :limit";
+            break;
+
+        case 'users_by_role':
+            $title = 'Użytkownicy według roli';
+            $columns = ['Rola', 'Liczba użytkowników'];
+            $sql = "SELECT role, COUNT(*) AS total FROM users WHERE 1=1 GROUP BY role ORDER BY total DESC LIMIT :limit";
+            break;
+
+        case 'jobs_by_status':
+            $title = 'Ogłoszenia według statusu';
+            $columns = ['Status', 'Liczba ogłoszeń'];
+            $sql = "SELECT status, COUNT(*) AS total FROM jobs WHERE 1=1";
+            $sql .= dateFilterSql('created_at', $params, $dateFrom, $dateTo);
+            $sql .= " GROUP BY status ORDER BY total DESC LIMIT :limit";
+            break;
+
+        case 'jobs_by_category':
+        case 'categories_job_count':
+            $title = $reportKey === 'jobs_by_category' ? 'Ogłoszenia według kategorii' : 'Kategorie według liczby ogłoszeń';
+            $columns = ['ID kategorii', 'Kategoria', 'Liczba ogłoszeń'];
+            $sql = "SELECT c.id, c.name, COUNT(j.id) AS total
+                    FROM categories c
+                    LEFT JOIN jobs j ON j.category_id = c.id";
+            $where = " WHERE 1=1";
+            $where .= dateFilterSql('j.created_at', $params, $dateFrom, $dateTo);
+            if ($search !== '') {
+                $where .= " AND c.name LIKE :search";
+                $params[':search'] = '%' . $search . '%';
+            }
+            $sql .= $where . " GROUP BY c.id, c.name ORDER BY total DESC, c.name ASC LIMIT :limit";
+            break;
+
+        case 'jobs_without_offers':
+            $title = 'Ogłoszenia bez ofert';
+            $columns = ['ID', 'Tytuł', 'Status', 'Użytkownik', 'Data utworzenia'];
+            $sql = "SELECT j.id, j.title, j.status, u.name AS user_name, j.created_at
+                    FROM jobs j
+                    LEFT JOIN users u ON u.id = j.user_id
+                    LEFT JOIN responses r ON r.job_id = j.id
+                    WHERE r.id IS NULL";
+            $sql .= dateFilterSql('j.created_at', $params, $dateFrom, $dateTo);
+            if ($search !== '') {
+                $sql .= " AND (j.title LIKE :search OR u.name LIKE :search)";
+                $params[':search'] = '%' . $search . '%';
+            }
+            $sql .= " ORDER BY j.created_at DESC LIMIT :limit";
+            break;
+
+        case 'offers_by_status':
+            $title = 'Oferty według statusu';
+            $columns = ['Status', 'Liczba ofert'];
+            $statusColumn = columnExists($pdo, 'responses', 'status') ? 'status' : "'pending'";
+            $sql = "SELECT $statusColumn AS status, COUNT(*) AS total FROM responses WHERE 1=1";
+            $sql .= dateFilterSql('created_at', $params, $dateFrom, $dateTo);
+            $sql .= " GROUP BY $statusColumn ORDER BY total DESC LIMIT :limit";
+            break;
+
+        case 'executor_success':
+            $title = 'Skuteczność wykonawców';
+            $columns = ['ID wykonawcy', 'Wykonawca', 'Oferty', 'Zaakceptowane', 'Skuteczność %'];
+            $statusColumn = columnExists($pdo, 'responses', 'status') ? 'r.status' : "'pending'";
+            $sql = "SELECT u.id, u.name,
+                           COUNT(r.id) AS total_offers,
+                           SUM(CASE WHEN $statusColumn = 'accepted' THEN 1 ELSE 0 END) AS accepted_offers,
+                           ROUND((SUM(CASE WHEN $statusColumn = 'accepted' THEN 1 ELSE 0 END) / NULLIF(COUNT(r.id), 0)) * 100, 2) AS success_rate
+                    FROM responses r
+                    INNER JOIN users u ON u.id = r.executor_id
+                    WHERE 1=1";
+            $sql .= dateFilterSql('r.created_at', $params, $dateFrom, $dateTo);
+            if ($search !== '') {
+                $sql .= " AND u.name LIKE :search";
+                $params[':search'] = '%' . $search . '%';
+            }
+            $sql .= " GROUP BY u.id, u.name ORDER BY success_rate DESC, total_offers DESC LIMIT :limit";
+            break;
+
+        case 'conversations_intervention':
+            $title = 'Konwersacje wymagające interwencji';
+            $columns = ['Konwersacja', 'Zlecenie', 'Otwarte zgłoszenia', 'Ostatnie zgłoszenie'];
+            if (!tableExists($pdo, 'conversation_reports')) {
+                return compact('title', 'columns') + ['rows' => []];
+            }
+            $sql = "SELECT conversation_id, job_id, COUNT(*) AS open_reports, MAX(created_at) AS last_report
+                    FROM conversation_reports
+                    WHERE status = 'open'";
+            $sql .= dateFilterSql('created_at', $params, $dateFrom, $dateTo);
+            $sql .= " GROUP BY conversation_id, job_id ORDER BY last_report DESC LIMIT :limit";
+            break;
+
+        case 'reports_by_type':
+            $title = 'Zgłoszenia według typu';
+            $columns = ['Typ zgłoszenia', 'Liczba zgłoszeń'];
+            if (!tableExists($pdo, 'conversation_reports')) {
+                return compact('title', 'columns') + ['rows' => []];
+            }
+            $sql = "SELECT report_type, COUNT(*) AS total FROM conversation_reports WHERE 1=1";
+            $sql .= dateFilterSql('created_at', $params, $dateFrom, $dateTo);
+            $sql .= " GROUP BY report_type ORDER BY total DESC LIMIT :limit";
+            break;
+
+        case 'most_reported_users':
+            $title = 'Najczęściej zgłaszani użytkownicy';
+            $columns = ['ID użytkownika', 'Użytkownik', 'Liczba zgłoszeń'];
+            if (!tableExists($pdo, 'conversation_reports')) {
+                return compact('title', 'columns') + ['rows' => []];
+            }
+            $sql = "SELECT u.id, u.name, COUNT(cr.id) AS total
+                    FROM conversation_reports cr
+                    LEFT JOIN users u ON u.id = cr.reported_user_id
+                    WHERE cr.reported_user_id IS NOT NULL";
+            $sql .= dateFilterSql('cr.created_at', $params, $dateFrom, $dateTo);
+            if ($search !== '') {
+                $sql .= " AND u.name LIKE :search";
+                $params[':search'] = '%' . $search . '%';
+            }
+            $sql .= " GROUP BY u.id, u.name ORDER BY total DESC LIMIT :limit";
+            break;
+
+        case 'hidden_messages':
+            $title = 'Wiadomości ukryte przez administrację';
+            $columns = ['ID', 'Konwersacja', 'Nadawca', 'Treść', 'Data'];
+            if (!columnExists($pdo, 'messages', 'is_hidden')) {
+                return compact('title', 'columns') + ['rows' => []];
+            }
+            $sql = "SELECT m.id, m.conversation_id, u.name AS sender_name, COALESCE(NULLIF(m.content, ''), m.message) AS content, m.created_at
+                    FROM messages m
+                    LEFT JOIN users u ON u.id = m.sender_id
+                    WHERE m.is_hidden = 1";
+            $sql .= dateFilterSql('m.created_at', $params, $dateFrom, $dateTo);
+            if ($search !== '') {
+                $sql .= " AND (m.content LIKE :search OR m.message LIKE :search OR u.name LIKE :search)";
+                $params[':search'] = '%' . $search . '%';
+            }
+            $sql .= " ORDER BY m.created_at DESC LIMIT :limit";
+            break;
+
+        case 'transactions_time':
+            $title = 'Transakcje w czasie';
+            $columns = ['Data', 'Liczba transakcji', 'Suma'];
+            $sql = "SELECT DATE(created_at) AS report_date, COUNT(*) AS total_count, COALESCE(SUM(amount), 0) AS total_amount
+                    FROM transactions
+                    WHERE 1=1";
+            $sql .= dateFilterSql('created_at', $params, $dateFrom, $dateTo);
+            $sql .= " GROUP BY DATE(created_at) ORDER BY report_date DESC LIMIT :limit";
+            break;
+
+        case 'system_errors_time':
+            $title = 'Błędy systemowe w czasie';
+            $columns = ['Data', 'Liczba błędów'];
+            $sql = "SELECT DATE(error_time) AS report_date, COUNT(*) AS total
+                    FROM system_logs
+                    WHERE log_level = 'ERROR'";
+            $sql .= dateFilterSql('error_time', $params, $dateFrom, $dateTo);
+            $sql .= " GROUP BY DATE(error_time) ORDER BY report_date DESC LIMIT :limit";
+            break;
+
+        case 'admin_logins':
+            $title = 'Logowania administratorów';
+            $columns = ['ID', 'Administrator', 'IP', 'Data logowania'];
+            $sql = "SELECT alh.id, u.name AS admin_name, alh.ip_address, alh.login_time
+                    FROM admin_login_history alh
+                    LEFT JOIN users u ON u.id = alh.admin_id
+                    WHERE 1=1";
+            $sql .= dateFilterSql('alh.login_time', $params, $dateFrom, $dateTo);
+            if ($search !== '') {
+                $sql .= " AND (u.name LIKE :search OR alh.ip_address LIKE :search)";
+                $params[':search'] = '%' . $search . '%';
+            }
+            $sql .= " ORDER BY alh.login_time DESC LIMIT :limit";
+            break;
+
+        case 'user_logins':
+            $title = 'Logowania użytkowników';
+            $columns = ['ID', 'Użytkownik', 'Email', 'IP', 'Sukces', 'Data logowania'];
+            $sql = "SELECT ulh.id, u.name AS user_name, u.email, ulh.ip_address, ulh.success, ulh.login_time
+                    FROM user_login_history ulh
+                    LEFT JOIN users u ON u.id = ulh.user_id
+                    WHERE 1=1";
+            $sql .= dateFilterSql('ulh.login_time', $params, $dateFrom, $dateTo);
+            if ($search !== '') {
+                $sql .= " AND (u.name LIKE :search OR u.email LIKE :search OR ulh.ip_address LIKE :search)";
+                $params[':search'] = '%' . $search . '%';
+            }
+            $sql .= " ORDER BY ulh.login_time DESC LIMIT :limit";
+            break;
+
+        default:
+            return fetchReport($pdo, 'new_users_time', $dateFrom, $dateTo, $search, $limit);
+    }
+
+    $stmt = $pdo->prepare($sql);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return [
+        'title' => $title,
+        'columns' => $columns,
+        'rows' => $stmt->fetchAll(PDO::FETCH_NUM),
+    ];
+}
+
+$reports = [
+    'new_users_time' => 'Nowi użytkownicy w czasie',
+    'users_by_role' => 'Użytkownicy według roli',
+    'jobs_by_status' => 'Ogłoszenia według statusu',
+    'jobs_by_category' => 'Ogłoszenia według kategorii',
+    'jobs_without_offers' => 'Ogłoszenia bez ofert',
+    'offers_by_status' => 'Oferty według statusu',
+    'executor_success' => 'Skuteczność wykonawców',
+    'conversations_intervention' => 'Konwersacje wymagające interwencji',
+    'reports_by_type' => 'Zgłoszenia według typu',
+    'most_reported_users' => 'Najczęściej zgłaszani użytkownicy',
+    'hidden_messages' => 'Wiadomości ukryte przez administrację',
+    'categories_job_count' => 'Kategorie według liczby ogłoszeń',
+    'transactions_time' => 'Transakcje w czasie',
+    'system_errors_time' => 'Błędy systemowe w czasie',
+    'admin_logins' => 'Logowania administratorów',
+    'user_logins' => 'Logowania użytkowników',
+];
+
+$reportKey = $_GET['report'] ?? 'new_users_time';
+$dateFrom = $_GET['date_from'] ?? '';
+$dateTo = $_GET['date_to'] ?? '';
+$search = trim($_GET['search'] ?? '');
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
+$reportData = fetchReport($pdo, $reportKey, $dateFrom, $dateTo, $search, $limit);
+
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    $filename = preg_replace('/[^a-z0-9_-]+/i', '_', $reportKey) . '_' . date('Ymd_His') . '.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    echo "\xEF\xBB\xBF";
+    $output = fopen('php://output', 'w');
+    fputcsv($output, $reportData['columns'], ';');
+    foreach ($reportData['rows'] as $row) {
+        fputcsv($output, $row, ';');
+    }
+    fclose($output);
+    exit;
+}
 ?>
 
 <?php include '../partials/header.php'; ?>
@@ -96,213 +309,91 @@ function checkPermission($userId, $permissionType) {
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
-					<?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                     <nav class="nav">
-					<?php include 'sidebar.php'; ?>
+                        <?php include 'sidebar.php'; ?>
                     </nav>
-					<?php endif; ?>
                 </div>
 
                 <div class="card-body">
-				
-				 <div class="card shadow">
+                    <div class="card shadow-sm">
                         <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="mb-1"><i class="bi bi-info-square"></i> Raporty</h5>
-</div>
-<div class="card-header d-flex justify-content-between align-items-center">
- <nav class="nav">
+                            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Raporty</h5>
+                            <a class="btn btn-sm btn-outline-success" href="?<?= http_build_query(array_merge($_GET, ['export' => 'csv'])) ?>">
+                                <i class="bi bi-filetype-csv"></i> Eksport CSV
+                            </a>
+                        </div>
 
-            <!-- Formularz filtrowania raportów -->
-            <form action="reports.php" method="get" class="d-flex flex-wrap">
-               <div class="col-auto me-1 mb-2">
-			   <input type="text" name="search" placeholder="Wyszukaj raport..." value="<?php echo htmlspecialchars($searchTerm); ?>" />
+                        <div class="card-body">
+                            <form method="GET" class="row g-2 align-items-end mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label">Raport</label>
+                                    <select name="report" class="form-select">
+                                        <?php foreach ($reports as $key => $label): ?>
+                                            <option value="<?= safeEcho($key) ?>" <?= $reportKey === $key ? 'selected' : '' ?>>
+                                                <?= safeEcho($label) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Data od</label>
+                                    <input type="date" name="date_from" class="form-control" value="<?= safeEcho($dateFrom) ?>">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Data do</label>
+                                    <input type="date" name="date_to" class="form-control" value="<?= safeEcho($dateTo) ?>">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Szukaj</label>
+                                    <input type="text" name="search" class="form-control" value="<?= safeEcho($search) ?>">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label">Limit</label>
+                                    <input type="number" min="1" max="1000" name="limit" class="form-control" value="<?= safeEcho($limit) ?>">
+                                </div>
+                                <div class="col-md-1">
+                                    <button class="btn btn-primary w-100" type="submit">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                </div>
+                            </form>
+
+                            <h5><?= safeEcho($reportData['title']) ?></h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <?php foreach ($reportData['columns'] as $column): ?>
+                                                <th><?= safeEcho($column) ?></th>
+                                            <?php endforeach; ?>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (empty($reportData['rows'])): ?>
+                                            <tr>
+                                                <td colspan="<?= count($reportData['columns']) ?>" class="text-center text-muted py-4">
+                                                    Brak danych dla wybranych filtrów.
+                                                </td>
+                                            </tr>
+                                        <?php else: ?>
+                                            <?php foreach ($reportData['rows'] as $row): ?>
+                                                <tr>
+                                                    <?php foreach ($row as $value): ?>
+                                                        <td><?= safeEcho($value) ?></td>
+                                                    <?php endforeach; ?>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p class="text-muted mb-0">Wyniki: <?= count($reportData['rows']) ?>. Eksport CSV używa tych samych filtrów.</p>
+                        </div>
+                    </div>
                 </div>
-                <!-- Filtracja po typie aktywności -->
-                <select name="activity_type" class="col-auto me-1 mb-2">
-                    <option value="">Wybierz typ aktywności</option>
-                    <option value="login" <?php echo ($activityType == 'login' ? 'selected' : ''); ?>>Logowanie</option>
-                    <option value="post_job" <?php echo ($activityType == 'post_job' ? 'selected' : ''); ?>>Dodanie ogłoszenia</option>
-                    <option value="apply_job" <?php echo ($activityType == 'apply_job' ? 'selected' : ''); ?>>Aplikacja na ogłoszenie</option>
-                </select>
-
-                <!-- Filtracja po stanie ogłoszenia -->
-                <select name="job_status" class="col-auto me-1 mb-2">
-                    <option value="">Wybierz status ogłoszenia</option>
-                    <option value="active" <?php echo ($jobStatus == 'active' ? 'selected' : ''); ?>>Aktywne</option>
-                    <option value="closed" <?php echo ($jobStatus == 'closed' ? 'selected' : ''); ?>>Zakończone</option>
-                </select>
-
-                <input class="col-auto me-1 mb-2" type="date" name="start_date" value="<?php echo $startDate; ?>" />
-                <input class="col-auto me-1 mb-2" type="date" name="end_date" value="<?php echo $endDate; ?>" />
-                
-                <!-- Sortowanie wyników -->
-                <select name="sort_by" class="col-auto me-1 mb-2">
-                    <option value="timestamp" <?php echo ($sortBy == 'timestamp' ? 'selected' : ''); ?>>Data</option>
-                    <option value="activity_type" <?php echo ($sortBy == 'activity_type' ? 'selected' : ''); ?>>Typ aktywności</option>
-                    <option value="user_id" <?php echo ($sortBy == 'user_id' ? 'selected' : ''); ?>>ID użytkownika</option>
-                </select>
-
-                <button type="submit" class="btn btn-primary col-auto"><i class="bi bi-filter-square"></i></button> 
-				
-                
-                    <a href="export_report.php?user_id=<?php echo $userId; ?>&activity_type=<?php echo $activityType; ?>&search=<?php echo $searchTerm; ?>&start_date=<?php echo $startDate; ?>&end_date=<?php echo $endDate; ?>&sort_by=<?php echo $sortBy; ?>" class="btn btn-secondary"><i class="bi bi-filetype-csv"></i></a>
-               
-                    <a href="export_pdf.php?user_id=<?php echo $userId; ?>&activity_type=<?php echo $activityType; ?>&search=<?php echo $searchTerm; ?>&start_date=<?php echo $startDate; ?>&end_date=<?php echo $endDate; ?>&sort_by=<?php echo $sortBy; ?>" class="btn btn-secondary"><i class="bi bi-filetype-pdf"></i></a>
-                
-            </form>
-	</nav>
-	</div>
-                <div class="card-body">
-                
-			
-                    
-							
-            <div class="row">
-            <!-- Przyciski lub linki do generowania nowych raportów -->
-            <div>
-                <a href="reports.php?generate=true" class="btn btn-primary">Generuj raport</a>
             </div>
-
-            <?php if ($message): ?>
-                <p><?php echo $message; ?></p>
-            <?php endif; ?>
-
-            <?php if (isset($_GET['generate'])): ?>
-                <!-- Formularz do generowania raportu -->
-                <form method="post" action="">
-                    <div>
-                        <label for="activity_type">Typ aktywności:</label>
-                        <select name="activity_type" id="activity_type" required>
-                            <option value="login">Logowanie</option>
-                            <option value="post_job">Dodanie ogłoszenia</option>
-                            <option value="apply_job">Aplikacja na ogłoszenie</option>
-                        </select>
-                    </div>
-
-                    <!-- Formularz dla raportu użytkownika -->
-                    <div>
-                        <label for="user_id">ID użytkownika:</label>
-                        <select name="user_id" id="user_id" required>
-                            <option value="">Wybierz użytkownika</option>
-                            <?php foreach ($users as $user): ?>
-                                <option value="<?php echo $user['id']; ?>"><?php echo htmlspecialchars($user['username']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <!-- Formularz dla raportu ogłoszenia -->
-                    <div>
-                        <label for="job_id">ID ogłoszenia:</label>
-                        <input type="number" name="job_id" id="job_id" min="1" />
-                    </div>
-
-                    <div>
-                        <label for="details">Szczegóły raportu:</label>
-                        <textarea name="details" id="details" required></textarea>
-                    </div>
-
-                    <div>
-                        <button type="submit">Generuj raport</button>
-                    </div>
-                </form>
-            <?php endif; ?>
-
-            <!-- Wyświetlanie raportów użytkowników -->
-            <?php if ($userId): ?>
-                <h3>Raporty aktywności użytkowników (ID użytkownika: <?php echo $userId; ?>)</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID użytkownika</th>
-                            <th>Typ aktywności</th>
-                            <th>Data</th>
-                            <th>Szczegóły</th>
-                            <th>Akcje</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($userReports as $report): ?>
-                            <tr>
-                                <td><?php echo $report['user_id']; ?></td>
-                                <td><?php echo $report['activity_type']; ?></td>
-                                <td><?php echo $report['timestamp']; ?></td>
-                                <td><?php echo $report['details']; ?></td>
-                                <td>
-                                    <a href="delete_report.php?id=<?php echo $report['id']; ?>" class="btn btn-danger">Usuń</a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-
-                <!-- Paginacja -->
-                <div class="pagination">
-                    <a href="?user_id=<?php echo $userId; ?>&page=1" class="btn btn-secondary">Pierwsza</a>
-                    <a href="?user_id=<?php echo $userId; ?>&page=<?php echo max(1, $page - 1); ?>" class="btn btn-secondary">Poprzednia</a>
-                    <span>Strona <?php echo $page; ?> z <?php echo $totalPagesUser; ?></span>
-                    <a href="?user_id=<?php echo $userId; ?>&page=<?php echo min($totalPagesUser, $page + 1); ?>" class="btn btn-secondary">Następna</a>
-                    <a href="?user_id=<?php echo $userId; ?>&page=<?php echo $totalPagesUser; ?>" class="btn btn-secondary">Ostatnia</a>
-                </div>
-            <?php endif; ?>
-
-            <!-- Wyświetlanie raportów ogłoszeń -->
-            <?php if ($jobId): ?>
-                <h3>Raporty ogłoszeń (ID ogłoszenia: <?php echo $jobId; ?>)</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID ogłoszenia</th>
-                            <th>Typ aktywności</th>
-                            <th>Data</th>
-                            <th>Szczegóły</th>
-                            <th>Akcje</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($jobReports as $report): ?>
-                            <tr>
-                                <td><?php echo $report['job_id']; ?></td>
-                                <td><?php echo $report['activity_type']; ?></td>
-                                <td><?php echo $report['timestamp']; ?></td>
-                                <td><?php echo $report['details']; ?></td>
-                                <td>
-                                    <a href="delete_report.php?id=<?php echo $report['id']; ?>" class="btn btn-danger">Usuń</a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-
-                <!-- Paginacja -->
-                <div class="pagination">
-                    <a href="?job_id=<?php echo $jobId; ?>&page=1" class="btn btn-secondary">Pierwsza</a>
-                    <a href="?job_id=<?php echo $jobId; ?>&page=<?php echo max(1, $page - 1); ?>" class="btn btn-secondary">Poprzednia</a>
-                    <span>Strona <?php echo $page; ?> z <?php echo $totalPagesJob; ?></span>
-                    <a href="?job_id=<?php echo $jobId; ?>&page=<?php echo min($totalPagesJob, $page + 1); ?>" class="btn btn-secondary">Następna</a>
-                    <a href="?job_id=<?php echo $jobId; ?>&page=<?php echo $totalPagesJob; ?>" class="btn btn-secondary">Ostatnia</a>
-                </div>
-            <?php endif; ?>
-
         </div>
     </div>
 </div>
 
-</div>
-				
-        <div class="container">
-            <span class="text-muted">&copy; 2025 System Zleceń - Wszelkie prawa zastrzeżone.</span>
-        </div>
-  
-            </div>	
-        </div>
-    </div>
-</div>
 <?php include '../partials/footer.php'; ?>
-
-<script>
-document.getElementById('select-all').addEventListener('change', function() {
-    document.querySelectorAll('input[name="user_ids[]"]').forEach(checkbox => {
-        checkbox.checked = this.checked;
-    });
-});
-</script>

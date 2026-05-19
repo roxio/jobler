@@ -32,6 +32,21 @@ foreach ($categories as $cat) {
     $categoriesMap[$cat['id']] = $cat['name'];
 }
 
+function jobImageUrl($filename) {
+    if (empty($filename)) {
+        $filename = 'no_image.jpg';
+    }
+
+    $safeFilename = basename($filename);
+    $imagePath = __DIR__ . '/uploads/jobs/' . $safeFilename;
+
+    if (!is_file($imagePath)) {
+        $safeFilename = 'no_image.jpg';
+    }
+
+    return '/uploads/jobs/' . rawurlencode($safeFilename);
+}
+
 // Pobierz najnowsze oferty (używając istniejącej metody z limitem)
 $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
 ?>
@@ -152,11 +167,12 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                 <?php if ($view == 'list'): ?>
                     <div class="list-view">
                         <?php foreach ($jobs as $job): ?>
+                            <?php $imageUrl = jobImageUrl($job['primary_image'] ?? 'no_image.jpg'); ?>
                             <div class="card job-card mb-4">
                                 <div class="card-body">
                                     <div class="row align-items-center">
                                         <div class="col-md-2 text-center">
-                                            <img src="../images/default-job.jpg" alt="Zdjęcie ogłoszenia" class="img-fluid rounded" style="max-height: 100px;">
+                                            <img src="<?= htmlspecialchars($imageUrl) ?>" alt="Zdjęcie ogłoszenia" class="img-fluid rounded border" style="max-height: 100px;">
                                         </div>
                                         <div class="col-md-7">
                                             <div class="d-flex justify-content-between align-items-start mb-2">
@@ -185,9 +201,10 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                 <?php else: ?>
                     <div class="row">
                         <?php foreach ($jobs as $job): ?>
+                            <?php $imageUrl = jobImageUrl($job['primary_image'] ?? 'no_image.jpg'); ?>
                             <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
                                 <div class="card job-card h-100">
-                                    <img src="../images/default-job.jpg" class="card-img-top" alt="Zdjęcie ogłoszenia" style="height: 180px; object-fit: cover;">
+                                    <img src="<?= htmlspecialchars($imageUrl) ?>" class="card-img-top" alt="Zdjęcie ogłoszenia" style="height: 180px; object-fit: cover;">
                                     <div class="card-body d-flex flex-column">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <h5 class="card-title">

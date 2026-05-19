@@ -1,4 +1,17 @@
 <?php
+require_once dirname(__DIR__, 2) . '/models/AccessControl.php';
+require_once dirname(__DIR__, 2) . '/models/Language.php';
+Language::setCurrent(Language::defaultLocale('admin'));
+$headerAccessControl = new AccessControl();
+if (!isset($categories) || !is_array($categories)) {
+    try {
+        require_once dirname(__DIR__, 2) . '/models/Database.php';
+        $headerPdo = Database::getConnection();
+        $categories = $headerPdo->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        $categories = [];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -45,7 +58,7 @@
                     </ul>
                 </li>
         <!-- Jeżeli użytkownik jest administratorem -->
-        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+        <?php if (isset($_SESSION['user_id']) && $headerAccessControl->hasAnyAdminAccess((int)$_SESSION['user_id'])): ?>
             <li class="nav-item">
               <a class="nav-link" href="../admin/dashboard.php">Panel Administracyjny</a>
             </li>

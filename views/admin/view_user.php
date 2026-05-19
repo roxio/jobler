@@ -1,11 +1,8 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('HTTP/1.0 403 Forbidden');
-    echo 'Brak uprawnień do przeglądania tej strony.';
-    exit();
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header('Location: manage_users.php?status=error');
@@ -164,8 +161,8 @@ if (!empty($user['last_login'])) {
                                         <tr>
                                             <td><strong>Rola:</strong></td>
                                             <td>
-                                                <span class="badge <?= $user['role'] == 'admin' ? 'bg-danger' : ($user['role'] == 'executor' ? 'bg-warning' : 'bg-primary'); ?>">
-                                                    <?= safeEcho(ucfirst($user['role'])) ?>
+                                                <span class="badge <?= AccessControl::badgeClass($user['role']) ?>">
+                                                    <?= safeEcho(AccessControl::roleLabel($user['role'])) ?>
                                                 </span>
                                             </td>
                                         </tr>
@@ -220,7 +217,7 @@ if (!empty($user['last_login'])) {
     </div>
 </form>
 
-                                        <?php if (!empty($user['need_change'])): ?>
+                                        <?php if (!empty($user['need_change']) && canAdminAccess('roles.manage')): ?>
                                             <form action="change_role.php" method="POST" class="mb-2">
                                                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                                 <input type="hidden" name="user_id" value="<?= $userId ?>">

@@ -1,11 +1,8 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('HTTP/1.0 403 Forbidden');
-    echo 'Brak uprawnień do przeglądania tej strony.';
-    exit();
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header('Location: manage_users.php?status=error');
@@ -77,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Rola
-        if (!empty($_POST['role']) && in_array($_POST['role'], ['user', 'executor', 'admin'])) {
+        if (canAdminAccess('roles.manage') && !empty($_POST['role']) && array_key_exists($_POST['role'], AccessControl::roles())) {
             if ($_POST['role'] !== $user['role']) {
                 $updateData['role'] = $_POST['role'];
             }
@@ -225,11 +222,17 @@ function safeEcho($data, $default = '') {
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Rola</label>
-                                        <select name="role" class="form-select">
-                                            <option value="user" <?php echo (($formData['role'] ?? $user['role']) === 'user') ? 'selected' : ''; ?>>Użytkownik</option>
-                                            <option value="executor" <?php echo (($formData['role'] ?? $user['role']) === 'executor') ? 'selected' : ''; ?>>Wykonawca</option>
-                                            <option value="admin" <?php echo (($formData['role'] ?? $user['role']) === 'admin') ? 'selected' : ''; ?>>Administrator</option>
-                                        </select>
+                                        <?php if (canAdminAccess('roles.manage')): ?>
+                                            <select name="role" class="form-select">
+                                                <?php foreach (AccessControl::roles() as $roleKey => $roleLabel): ?>
+                                                    <option value="<?= htmlspecialchars($roleKey) ?>" <?php echo (($formData['role'] ?? $user['role']) === $roleKey) ? 'selected' : ''; ?>>
+                                                        <?= htmlspecialchars($roleLabel) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        <?php else: ?>
+                                            <input type="text" class="form-control" value="<?= htmlspecialchars(AccessControl::roleLabel($user['role'])) ?>" readonly>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Status konta</label>

@@ -4,20 +4,20 @@ session_start();
 include_once('../../config/config.php');
 include_once('../../models/Database.php');
 include_once('../../models/SiteSettings.php');
+include_once('../../models/Language.php');
 include_once('../../models/ErrorLogs.php');
 include_once('../../models/TransactionHistory.php');
 include_once('../../models/LoginHistory.php');
 
-if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'admin') {
-    header('Location: ../auth/login.php');
-    exit;
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 $pdo = Database::getConnection();
 $settingsModel = new SiteSettings($pdo);
 $errorLogsModel = new ErrorLogs($pdo);
 $transactionHistoryModel = new TransactionHistory($pdo);
 $loginHistoryModel = new LoginHistory($pdo);
+$availableLanguages = Language::available();
 
 function safeEcho($value, $default = '') {
     return htmlspecialchars((string)($value ?? $default), ENT_QUOTES, 'UTF-8');
@@ -149,6 +149,15 @@ function generateSitemap(PDO $pdo) {
         $urls[] = $baseUrl . '/views/job/view.php?id=' . (int)$jobId;
     }
 
+    try {
+        $pages = $pdo->query("SELECT slug FROM pages WHERE status = 'published' ORDER BY sort_order ASC, title ASC")->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($pages as $slug) {
+            $urls[] = $baseUrl . '/page.php?slug=' . rawurlencode($slug);
+        }
+    } catch (Throwable $e) {
+        error_log('Sitemap pages warning: ' . $e->getMessage());
+    }
+
     $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     $xml .= "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n";
     foreach ($urls as $url) {
@@ -219,7 +228,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_type'])) {
                     'contact_phone' => trim($_POST['contact_phone'] ?? ''),
                     'contact_address' => trim($_POST['contact_address'] ?? ''),
                     'business_hours' => trim($_POST['business_hours'] ?? ''),
-                    'default_language' => $_POST['default_language'] ?? 'pl',
+                    'default_language' => $_POST['frontend_default_language'] ?? 'PL_pl',
+                    'frontend_default_language' => $_POST['frontend_default_language'] ?? 'PL_pl',
+                    'admin_default_language' => $_POST['admin_default_language'] ?? 'PL_pl',
                     'layout_variant' => $_POST['layout_variant'] ?? 'classic',
                     'company_name' => trim($_POST['company_name'] ?? ''),
                     'company_tax_id' => trim($_POST['company_tax_id'] ?? ''),
@@ -368,7 +379,26 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
 
                             <div class="tab-pane fade" id="systemTab">
                                 <div class="row g-3">
-                                    <div class="col-md-3"><label class="form-label">Język</label><select name="default_language" class="form-select"><option value="pl" <?= ($currentSettings['default_language'] ?? '') === 'pl' ? 'selected' : '' ?>>Polski</option><option value="en" <?= ($currentSettings['default_language'] ?? '') === 'en' ? 'selected' : '' ?>>English</option><option value="de" <?= ($currentSettings['default_language'] ?? '') === 'de' ? 'selected' : '' ?>>Deutsch</option></select></div>
+                                    <div class="col-md-3">
+                                        <label class="form-label"><?= safeEcho(__t('admin.settings.language_frontend')) ?></label>
+                                        <select name="frontend_default_language" class="form-select">
+                                            <?php foreach ($availableLanguages as $language): ?>
+                                                <option value="<?= safeEcho($language['code']) ?>" <?= Language::normalize($currentSettings['frontend_default_language'] ?? $currentSettings['default_language'] ?? 'PL_pl') === $language['code'] ? 'selected' : '' ?>>
+                                                    <?= safeEcho($language['name']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label"><?= safeEcho(__t('admin.settings.language_admin')) ?></label>
+                                        <select name="admin_default_language" class="form-select">
+                                            <?php foreach ($availableLanguages as $language): ?>
+                                                <option value="<?= safeEcho($language['code']) ?>" <?= Language::normalize($currentSettings['admin_default_language'] ?? $currentSettings['default_language'] ?? 'PL_pl') === $language['code'] ? 'selected' : '' ?>>
+                                                    <?= safeEcho($language['name']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
                                     <div class="col-md-3"><label class="form-label">Maks. ogłoszeń</label><input type="number" min="1" name="max_ads" class="form-control" value="<?= safeEcho($currentSettings['max_ads'] ?? 10) ?>"></div>
                                     <div class="col-md-3"><label class="form-label">Promowanie</label><input type="number" min="0" step="0.01" name="promotion_fee" class="form-control" value="<?= safeEcho($currentSettings['promotion_fee'] ?? 10) ?>"></div>
                                     <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="maintenance_mode" value="1" <?= !empty($currentSettings['maintenance_mode']) ? 'checked' : '' ?>><label class="form-check-label">Tryb maintenance</label></div></div>

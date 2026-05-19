@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 include_once('../../models/User.php');
 
 // Utwórz instancję klasy User

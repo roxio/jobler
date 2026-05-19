@@ -290,7 +290,7 @@ private function isAdmin($userId) {
     $stmt = $this->pdo->prepare("SELECT role FROM users WHERE id = :id");
     $stmt->execute([':id' => $userId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return $row && $row['role'] === 'admin';
+    return $row && in_array($row['role'], ['super_admin', 'admin', 'moderator', 'opiekun', 'reklamodawca'], true);
 }
 
 public function countConversations($search = '') {

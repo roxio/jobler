@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 include_once('../../models/User.php');
 include_once('../../models/Job.php');
 include_once('../../models/SiteSettings.php');
@@ -50,11 +53,9 @@ $pendingAlerts = [
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
-                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                     <nav class="nav">
                     <?php include 'sidebar.php'; ?>
                     </nav>
-                    <?php endif; ?>
                 </div>
 
                 <div class="card-body">

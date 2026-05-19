@@ -2,11 +2,16 @@
 // Pobieranie ustawień strony
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../models/SiteSettings.php';
+require_once __DIR__ . '/../models/Page.php';
+require_once __DIR__ . '/../models/Language.php';
 
 $siteSettingsModel = new SiteSettings();
 $siteSettings = $siteSettingsModel->getSettings();
 $siteTitle = $siteSettings['title'] ?? 'Jobler';
 $copyrightText = $siteSettingsModel->formatCopyrightText($siteSettings);
+$footerPageModel = new Page();
+$footerLocale = Language::current('frontend');
+$footerPages = $footerPageModel->getVisibleInFooter($footerLocale);
 ?>
 
 <footer class="footer mt-auto py-4" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);">
@@ -20,7 +25,7 @@ $copyrightText = $siteSettingsModel->formatCopyrightText($siteSettings);
                     <?php endif; ?>
                     <h5 class="text-white mb-0"><?= htmlspecialchars($siteTitle) ?></h5>
                 </div>
-                <p class="text-light opacity-75">Znajdź najlepsze zlecenia lub wykonawców w jednym miejscu!</p>
+                <p class="text-light opacity-75"><?= htmlspecialchars(__t('footer.description'), ENT_QUOTES, 'UTF-8') ?></p>
                 <div class="social-icons mt-3">
                     <?php if (!empty($siteSettings['facebook_url'])): ?>
                     <a href="<?= htmlspecialchars($siteSettings['facebook_url']) ?>" class="text-light me-2" aria-label="Facebook" target="_blank">
@@ -51,26 +56,26 @@ $copyrightText = $siteSettingsModel->formatCopyrightText($siteSettings);
 
             <!-- Szybkie linki -->
             <div class="col-lg-2 col-md-6 mb-4">
-                <h6 class="text-white mb-3 fw-bold">Szybkie linki</h6>
+                <h6 class="text-white mb-3 fw-bold"><?= htmlspecialchars(__t('footer.quick_links'), ENT_QUOTES, 'UTF-8') ?></h6>
                 <ul class="list-unstyled">
                     <li class="mb-2">
                         <a href="/" class="text-light text-decoration-none opacity-75 hover-opacity-100">
-                            <i class="bi bi-house-door me-2"></i>Strona główna
+                            <i class="bi bi-house-door me-2"></i><?= htmlspecialchars(__t('footer.home'), ENT_QUOTES, 'UTF-8') ?>
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a href="/views/job/list.php" class="text-light text-decoration-none opacity-75 hover-opacity-100">
-                            <i class="bi bi-list-ul me-2"></i>Ogłoszenia
+                        <a href="/index.php#jobs-section" class="text-light text-decoration-none opacity-75 hover-opacity-100">
+                            <i class="bi bi-list-ul me-2"></i><?= htmlspecialchars(__t('footer.jobs'), ENT_QUOTES, 'UTF-8') ?>
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a href="/views/job/add.php" class="text-light text-decoration-none opacity-75 hover-opacity-100">
-                            <i class="bi bi-plus-circle me-2"></i>Dodaj ogłoszenie
+                        <a href="<?= isset($_SESSION['user_id']) ? '/views/user/create_job.php' : '/login.php' ?>" class="text-light text-decoration-none opacity-75 hover-opacity-100">
+                            <i class="bi bi-plus-circle me-2"></i><?= htmlspecialchars(__t('footer.add_job'), ENT_QUOTES, 'UTF-8') ?>
                         </a>
                     </li>
                     <li class="mb-2">
                         <a href="/views/user/dashboard.php" class="text-light text-decoration-none opacity-75 hover-opacity-100">
-                            <i class="bi bi-person-circle me-2"></i>Panel użytkownika
+                            <i class="bi bi-person-circle me-2"></i><?= htmlspecialchars(__t('footer.user_panel'), ENT_QUOTES, 'UTF-8') ?>
                         </a>
                     </li>
                 </ul>
@@ -80,11 +85,11 @@ $copyrightText = $siteSettingsModel->formatCopyrightText($siteSettings);
             
 <!-- Newsletter -->
 <div class="col-lg-3 col-md-6 mb-4">
-    <h6 class="text-white mb-3 fw-bold">Newsletter</h6>
-    <p class="text-light opacity-75 small">Zapisz się do naszego newslettera!</p>
+    <h6 class="text-white mb-3 fw-bold"><?= htmlspecialchars(__t('footer.newsletter'), ENT_QUOTES, 'UTF-8') ?></h6>
+    <p class="text-light opacity-75 small"><?= htmlspecialchars(__t('footer.newsletter_text'), ENT_QUOTES, 'UTF-8') ?></p>
     <form id="newsletterForm">
         <div class="input-group">
-            <input type="email" name="email" class="form-control form-control-sm" placeholder="Twój email" aria-label="Email" required>
+            <input type="email" name="email" class="form-control form-control-sm" placeholder="<?= htmlspecialchars(__t('footer.email_placeholder'), ENT_QUOTES, 'UTF-8') ?>" aria-label="Email" required>
             <button class="btn btn-light btn-sm" type="submit">
                 <i class="bi bi-send"></i>
             </button>
@@ -95,7 +100,7 @@ $copyrightText = $siteSettingsModel->formatCopyrightText($siteSettings);
 
             <!-- Kontakt -->
             <div class="col-lg-4 col-md-6 mb-4">
-                <h6 class="text-white mb-3 fw-bold">Kontakt</h6>
+                <h6 class="text-white mb-3 fw-bold"><?= htmlspecialchars(__t('footer.contact'), ENT_QUOTES, 'UTF-8') ?></h6>
                 <div class="contact-info">
                     <?php if (!empty($siteSettings['contact_email'])): ?>
                     <div class="d-flex align-items-center mb-2">
@@ -142,15 +147,11 @@ $copyrightText = $siteSettingsModel->formatCopyrightText($siteSettings);
             </div>
             <div class="col-md-6 text-md-end">
                 <div class="footer-links">
-                    <a href="/polityka-prywatnosci" class="text-light text-decoration-none opacity-75 hover-opacity-100 me-3 small">
-                        Polityka prywatności
-                    </a>
-                    <a href="/regulamin" class="text-light text-decoration-none opacity-75 hover-opacity-100 me-3 small">
-                        Regulamin
-                    </a>
-                    <a href="/kontakt" class="text-light text-decoration-none opacity-75 hover-opacity-100 small">
-                        Kontakt
-                    </a>
+                    <?php foreach ($footerPages as $index => $footerPage): ?>
+                        <a href="<?= htmlspecialchars($footerPageModel->publicUrl($footerPage, $footerLocale), ENT_QUOTES, 'UTF-8') ?>" class="text-light text-decoration-none opacity-75 hover-opacity-100 <?= $index < count($footerPages) - 1 ? 'me-3' : '' ?> small">
+                            <?= htmlspecialchars($footerPage['title'], ENT_QUOTES, 'UTF-8') ?>
+                        </a>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>

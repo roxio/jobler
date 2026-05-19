@@ -1,11 +1,8 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('HTTP/1.0 403 Forbidden');
-    echo 'Brak uprawnień do wykonania tej operacji.';
-    exit();
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header('Location: manage_users.php?status=error&message=invalid_id');

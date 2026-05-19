@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 include_once('../../models/Message.php');
 
 if (isset($_GET['conversation_id'])) {

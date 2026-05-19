@@ -5,10 +5,8 @@ require_once('../../models/Newsletter.php');
 require_once('../../models/User.php');
 
 // Sprawdź czy użytkownik jest administratorem
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: /login.php');
-    exit;
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 $newsletter = new Newsletter();
 $userModel = new User();
@@ -19,12 +17,13 @@ $subscribers = $newsletter->getAllSubscribers();
 // Obsługa usuwania subskrybenta
 if (isset($_GET['delete'])) {
     $email = $_GET['delete'];
-    if ($newsletter->unsubscribe($email)) {
+    $deleted = $newsletter->unsubscribe($email);
+    if ($deleted) {
         $successMessage = "Subskrybent został usunięty z newslettera.";
     } else {
         $errorMessage = "Błąd podczas usuwania subskrybenta.";
     }
-    header('Location: newsletter_manager.php?message=' . ($successMessage ? 'success' : 'error'));
+    header('Location: newsletter_manager.php?message=' . ($deleted ? 'success' : 'error'));
     exit;
 }
 
@@ -40,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_newsletter'])) {
     
     $sentCount = 0;
     foreach ($activeSubscribers as $subscriber) {
-        if ($this->sendNewsletterEmail($subscriber['email'], $subject, $message)) {
+        if (sendNewsletterEmail($subscriber['email'], $subject, $message)) {
             $sentCount++;
         }
     }
@@ -49,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_newsletter'])) {
 }
 
 // Funkcja do wysyłania emaila newslettera
-private function sendNewsletterEmail($email, $subject, $message) {
+function sendNewsletterEmail($email, $subject, $message) {
     $headers = "MIME-Version: 1.0" . "\r\n";
     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
     $headers .= 'From: newsletter@' . $_SERVER['HTTP_HOST'] . "\r\n";
@@ -83,7 +82,7 @@ private function sendNewsletterEmail($email, $subject, $message) {
         </html>
     ";
     
-    return mail($email, $subject, $fullMessage, $headers);
+    return @mail($email, $subject, $fullMessage, $headers);
 }
 
 // Obsługa eksportu do CSV
@@ -109,6 +108,11 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
 ?>
 
 <?php include '../partials/header.php'; ?>
+<?php if (isset($_GET['message']) && $_GET['message'] === 'success'): ?>
+    <?php $successMessage = 'Subskrybent zostal dezaktywowany.'; ?>
+<?php elseif (isset($_GET['message']) && $_GET['message'] === 'error'): ?>
+    <?php $errorMessage = 'Nie udalo sie zmienic statusu subskrybenta.'; ?>
+<?php endif; ?>
 
 <div class="container-fluid">
     <div class="row">
@@ -116,11 +120,9 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
-                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                     <nav class="nav">
                         <?php include 'sidebar.php'; ?>
                     </nav>
-                    <?php endif; ?>
                 </div>
 
                 <div class="card-body">
@@ -203,7 +205,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
                                                                     </td>
                                                                     <td>
                                                                         <?php if ($subscriber['user_id']): ?>
-                                                                            <a href="user_details.php?id=<?php echo $subscriber['user_id']; ?>">
+                                                                            <a href="view_user.php?id=<?php echo (int)$subscriber['user_id']; ?>">
                                                                                 #<?php echo $subscriber['user_id']; ?>
                                                                             </a>
                                                                         <?php else: ?>

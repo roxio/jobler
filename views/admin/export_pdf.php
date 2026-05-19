@@ -1,5 +1,8 @@
 <?php
 session_start();
+
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 require_once('../../vendor/autoload.php');
 include_once('../../models/Report.php');
 include_once('../../models/Database.php');

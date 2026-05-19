@@ -1,11 +1,8 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('HTTP/1.0 403 Forbidden');
-    echo 'Brak uprawnień.';
-    exit();
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: manage_users.php?status=error');

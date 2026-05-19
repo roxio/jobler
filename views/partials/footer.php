@@ -1,4 +1,8 @@
-<?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+<?php
+include_once __DIR__ . '/../../models/AccessControl.php';
+$footerAccessControl = new AccessControl();
+?>
+<?php if (isset($_SESSION['user_id']) && $footerAccessControl->hasAnyAdminAccess((int)$_SESSION['user_id'])): ?>
     <?php
     include_once __DIR__ . '/../../models/SiteSettings.php';
     $footerSettingsModel = new SiteSettings();

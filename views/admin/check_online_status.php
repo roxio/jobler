@@ -4,11 +4,8 @@ session_start();
 require_once('../../config/config.php');
 require_once('../../models/User.php');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('HTTP/1.0 403 Forbidden');
-    echo json_encode(['error' => 'Brak uprawnień']);
-    exit();
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 if (!isset($_GET['user_id']) || !is_numeric($_GET['user_id'])) {
     echo json_encode(['error' => 'Nieprawidłowe ID użytkownika']);

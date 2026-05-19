@@ -4,10 +4,8 @@ include_once('../../models/Job.php');
 include_once('../../models/User.php');
 
 // Sprawdź czy użytkownik jest zalogowany i ma uprawnienia administratora
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header("Location: ../auth/login.php");
-    exit;
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 // Utwórz instancje klas
 $jobModel = new Job();

@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'];
     $name = $_POST['name'];
     $username = $_POST['username'];
-    $role = $_POST['role'];
+    $role = in_array($_POST['role'] ?? 'user', ['user', 'executor'], true) ? $_POST['role'] : 'user';
     $phone = isset($_POST['phone']) ? $_POST['phone'] : '';
 
     // Tworzenie instancji klasy User
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (isset($result['success'])) {
         $_SESSION['user_id'] = $result['id'];
-        $_SESSION['role'] = $result['role'];
+        $_SESSION['user_role'] = $result['role'];
         header('Location: /');
         exit;
     } else {

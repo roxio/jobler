@@ -1,5 +1,6 @@
 <?php
-include_once('Database.php');
+include_once(__DIR__ . '/Database.php');
+include_once(__DIR__ . '/AccessControl.php');
 
 class User {
     private $pdo;
@@ -41,6 +42,10 @@ class User {
     }
 
     public function register($email, $password, $name, $username, $role = 'user', $phone = '') {
+        if (!in_array($role, ['user', 'executor'], true)) {
+            $role = 'user';
+        }
+
         $registrationIp = $_SERVER['REMOTE_ADDR'];
         $sql = "SELECT * FROM users WHERE email = :email OR username = :username";
         $stmt = $this->pdo->prepare($sql);
@@ -436,6 +441,10 @@ public function deleteUser($userId) {
     }
 
     public function changeUserRole($user_id, $new_role) {
+        if (!array_key_exists($new_role, AccessControl::roles())) {
+            return false;
+        }
+
         $query = "UPDATE users SET role = :new_role, need_change = 0 WHERE id = :user_id";
         $stmt = $this->pdo->prepare($query);
         return $stmt->execute([':new_role' => $new_role, ':user_id' => $user_id]);

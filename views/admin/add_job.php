@@ -5,10 +5,8 @@ include_once('../../models/User.php');
 include_once('../../models/Database.php');
 
 // Sprawdź uprawnienia
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('HTTP/1.0 403 Forbidden');
-    exit('Brak uprawnień.');
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 $pdo      = Database::getConnection();
 $jobModel = new Job();

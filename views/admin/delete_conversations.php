@@ -1,10 +1,8 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('HTTP/1.0 403 Forbidden');
-    exit();
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 include_once('../../config/config.php');
 include_once('../../models/Message.php');

@@ -284,6 +284,39 @@ CREATE TABLE `pages` (
   `title` varchar(255) NOT NULL,
   `content` text DEFAULT NULL,
   `slug` varchar(255) NOT NULL,
+  `meta_title` varchar(255) DEFAULT NULL,
+  `meta_description` text DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'draft',
+  `show_in_menu` tinyint(1) NOT NULL DEFAULT 0,
+  `show_in_footer` tinyint(1) NOT NULL DEFAULT 0,
+  `sort_order` int(11) NOT NULL DEFAULT 100,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `pages`
+--
+
+INSERT INTO `pages` (`id`, `title`, `content`, `slug`, `meta_title`, `meta_description`, `status`, `show_in_menu`, `show_in_footer`, `sort_order`, `created_at`, `updated_at`) VALUES
+(1, 'Polityka prywatności', 'Treść tej podstrony możesz uzupełnić w panelu administracyjnym.', 'polityka-prywatnosci', NULL, NULL, 'published', 0, 1, 10, NOW(), NOW()),
+(2, 'Regulamin', 'Treść tej podstrony możesz uzupełnić w panelu administracyjnym.', 'regulamin', NULL, NULL, 'published', 0, 1, 20, NOW(), NOW()),
+(3, 'Kontakt', 'Treść tej podstrony możesz uzupełnić w panelu administracyjnym.', 'kontakt', NULL, NULL, 'published', 0, 1, 30, NOW(), NOW());
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `page_translations`
+--
+
+CREATE TABLE `page_translations` (
+  `id` int(11) NOT NULL,
+  `page_id` int(11) NOT NULL,
+  `locale` varchar(10) NOT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `content` mediumtext DEFAULT NULL,
+  `meta_title` varchar(255) DEFAULT NULL,
+  `meta_description` text DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -399,6 +432,8 @@ CREATE TABLE `site_settings` (
   `smtp_username` varchar(255) DEFAULT NULL,
   `smtp_password` varchar(255) DEFAULT NULL,
   `default_language` varchar(10) NOT NULL DEFAULT 'pl',
+  `frontend_default_language` varchar(10) NOT NULL DEFAULT 'PL_pl',
+  `admin_default_language` varchar(10) NOT NULL DEFAULT 'PL_pl',
   `layout_variant` varchar(50) NOT NULL DEFAULT 'classic',
   `company_name` varchar(255) DEFAULT NULL,
   `company_tax_id` varchar(50) DEFAULT NULL,
@@ -682,7 +717,16 @@ ALTER TABLE `newsletter_subscriptions`
 -- Indeksy dla tabeli `pages`
 --
 ALTER TABLE `pages`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_pages_slug` (`slug`);
+
+--
+-- Indeksy dla tabeli `page_translations`
+--
+ALTER TABLE `page_translations`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_page_locale` (`page_id`,`locale`),
+  ADD KEY `idx_page_translations_locale` (`locale`);
 
 --
 -- Indeksy dla tabeli `payment_reports`
@@ -841,6 +885,12 @@ ALTER TABLE `newsletter_subscriptions`
 -- AUTO_INCREMENT for table `pages`
 --
 ALTER TABLE `pages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `page_translations`
+--
+ALTER TABLE `page_translations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --

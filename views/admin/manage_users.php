@@ -1,11 +1,8 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('HTTP/1.0 403 Forbidden');
-    echo 'Brak uprawnień do przeglądania tej strony.';
-    exit();
-}
+require_once __DIR__ . '/_auth.php';
+requireAdminAccess();
 
 include_once('../../config/config.php');
 include_once('../../models/User.php');
@@ -44,7 +41,10 @@ try {
     // Statystyki
     $executors_count = $userModel->countUsersByRole('executor');
     $clients_count = $userModel->countUsersByRole('user');
-    $admin_count = $userModel->countUsersByRole('admin');
+    $admin_count = 0;
+    foreach (AccessControl::adminRoles() as $adminRole) {
+        $admin_count += (int)$userModel->countUsersByRole($adminRole);
+    }
     $active_users = $userModel->countUsersByStatus('active');
     $need_attention = $userModel->countUsersNeedingAttention();
     $users_with_jobs = $userModel->countUsersWithJobs();
@@ -214,9 +214,9 @@ if (empty($_SESSION['csrf_token'])) {
                                         <label class="form-label">Rola</label>
                                         <select name="role_filter" class="form-select form-select-sm">
                                             <option value="">Wszystkie</option>
-                                            <option value="user" <?= $roleFilter == 'user' ? 'selected' : ''; ?>>Użytkownik</option>
-                                            <option value="executor" <?= $roleFilter == 'executor' ? 'selected' : ''; ?>>Wykonawca</option>
-                                            <option value="admin" <?= $roleFilter == 'admin' ? 'selected' : ''; ?>>Administrator</option>
+                                            <?php foreach (AccessControl::roles() as $roleKey => $roleLabel): ?>
+                                                <option value="<?= htmlspecialchars($roleKey) ?>" <?= $roleFilter == $roleKey ? 'selected' : ''; ?>><?= htmlspecialchars($roleLabel) ?></option>
+                                            <?php endforeach; ?>
                                         </select>
                                     </div>
 
@@ -395,10 +395,10 @@ if (empty($_SESSION['csrf_token'])) {
             </td>
             <td>
                 <div class="d-flex align-items-center">
-                    <span class="badge <?= $user['role'] == 'admin' ? 'bg-danger' : ($user['role'] == 'executor' ? 'bg-warning' : 'bg-primary'); ?> me-2">
-                        <?= safeEcho(ucfirst($user['role'])); ?>
+                    <span class="badge <?= AccessControl::badgeClass($user['role']) ?> me-2">
+                        <?= safeEcho(AccessControl::roleLabel($user['role'])); ?>
                     </span>
-                    <?php if (!empty($user['need_change']) && $user['need_change'] == 1): ?>
+                    <?php if (!empty($user['need_change']) && $user['need_change'] == 1 && canAdminAccess('roles.manage')): ?>
                         <form action="change_role.php" method="POST" class="d-inline">
                             <input type="hidden" name="user_id" value="<?= safeEcho($user['id']); ?>">
                             <input type="hidden" name="current_role" value="<?= safeEcho($user['role']); ?>">

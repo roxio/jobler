@@ -31,6 +31,7 @@ if ($pointsToAdd <= 0) {
 
 include_once('../../config/config.php');
 include_once('../../models/User.php');
+include_once('../../models/Language.php');
 
 $userModel = new User();
 
@@ -48,11 +49,12 @@ try {
     $adminName = $admin['name'] ?? 'Administrator';
     
     // Przygotuj opis transakcji z nazwą administratora
+    $description = '';
     if (!empty($reason)) {
-        $description .= $adminName . " - " . $reason;
+        $description = $adminName . " - " . $reason;
     }
 	else {
-    $description .= " dodał: " . $adminName;
+        $description = __t('admin.points.added_by', ['name' => $adminName]);
     }
     // Dodaj punkty z zapisem do historii transakcji
     $success = $userModel->addPointsWithTransaction($userId, $pointsToAdd, $description);
@@ -65,7 +67,7 @@ try {
     exit();
     
 } catch (Exception $e) {
-    error_log("Błąd przy dodawaniu punktów: " . $e->getMessage());
+    error_log(__t('admin.points.add_error_log', ['error' => $e->getMessage()]));
     header('Location: manage_users.php?status=error_points');
     exit();
 }

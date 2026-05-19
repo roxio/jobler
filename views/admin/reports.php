@@ -1,6 +1,7 @@
 <?php
 session_start();
 include_once('../../models/Database.php');
+include_once('../../models/Language.php');
 
 require_once __DIR__ . '/_auth.php';
 requireAdminAccess();
@@ -49,22 +50,22 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
 
     switch ($reportKey) {
         case 'new_users_time':
-            $title = 'Nowi użytkownicy w czasie';
-            $columns = ['Data', 'Nowi użytkownicy'];
+            $title = __t('admin.reports.new_users_time');
+            $columns = [__t('admin.reports.col.date'), __t('admin.reports.col.new_users')];
             $sql = "SELECT DATE(created_at) AS report_date, COUNT(*) AS total FROM users WHERE 1=1";
             $sql .= dateFilterSql('created_at', $params, $dateFrom, $dateTo);
             $sql .= " GROUP BY DATE(created_at) ORDER BY report_date DESC LIMIT :limit";
             break;
 
         case 'users_by_role':
-            $title = 'Użytkownicy według roli';
-            $columns = ['Rola', 'Liczba użytkowników'];
+            $title = __t('admin.reports.users_by_role');
+            $columns = [__t('admin.reports.col.role'), __t('admin.reports.col.users_count')];
             $sql = "SELECT role, COUNT(*) AS total FROM users WHERE 1=1 GROUP BY role ORDER BY total DESC LIMIT :limit";
             break;
 
         case 'jobs_by_status':
-            $title = 'Ogłoszenia według statusu';
-            $columns = ['Status', 'Liczba ogłoszeń'];
+            $title = __t('admin.reports.jobs_by_status');
+            $columns = [__t('admin.reports.col.status'), __t('admin.reports.col.jobs_count')];
             $sql = "SELECT status, COUNT(*) AS total FROM jobs WHERE 1=1";
             $sql .= dateFilterSql('created_at', $params, $dateFrom, $dateTo);
             $sql .= " GROUP BY status ORDER BY total DESC LIMIT :limit";
@@ -72,8 +73,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
 
         case 'jobs_by_category':
         case 'categories_job_count':
-            $title = $reportKey === 'jobs_by_category' ? 'Ogłoszenia według kategorii' : 'Kategorie według liczby ogłoszeń';
-            $columns = ['ID kategorii', 'Kategoria', 'Liczba ogłoszeń'];
+            $title = $reportKey === 'jobs_by_category' ? __t('admin.reports.jobs_by_category') : __t('admin.reports.categories_job_count');
+            $columns = [__t('admin.reports.col.category_id'), __t('admin.reports.col.category'), __t('admin.reports.col.jobs_count')];
             $sql = "SELECT c.id, c.name, COUNT(j.id) AS total
                     FROM categories c
                     LEFT JOIN jobs j ON j.category_id = c.id";
@@ -87,8 +88,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'jobs_without_offers':
-            $title = 'Ogłoszenia bez ofert';
-            $columns = ['ID', 'Tytuł', 'Status', 'Użytkownik', 'Data utworzenia'];
+            $title = __t('admin.reports.jobs_without_offers');
+            $columns = [__t('admin.reports.col.id'), __t('admin.reports.col.title'), __t('admin.reports.col.status'), __t('admin.reports.col.user'), __t('admin.reports.col.created_at')];
             $sql = "SELECT j.id, j.title, j.status, u.name AS user_name, j.created_at
                     FROM jobs j
                     LEFT JOIN users u ON u.id = j.user_id
@@ -103,8 +104,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'offers_by_status':
-            $title = 'Oferty według statusu';
-            $columns = ['Status', 'Liczba ofert'];
+            $title = __t('admin.reports.offers_by_status');
+            $columns = [__t('admin.reports.col.status'), __t('admin.reports.col.offers_count')];
             $statusColumn = columnExists($pdo, 'responses', 'status') ? 'status' : "'pending'";
             $sql = "SELECT $statusColumn AS status, COUNT(*) AS total FROM responses WHERE 1=1";
             $sql .= dateFilterSql('created_at', $params, $dateFrom, $dateTo);
@@ -112,8 +113,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'executor_success':
-            $title = 'Skuteczność wykonawców';
-            $columns = ['ID wykonawcy', 'Wykonawca', 'Oferty', 'Zaakceptowane', 'Skuteczność %'];
+            $title = __t('admin.reports.executor_success');
+            $columns = [__t('admin.reports.col.executor_id'), __t('admin.reports.col.executor'), __t('admin.reports.col.offers'), __t('admin.reports.col.accepted'), __t('admin.reports.col.success_rate')];
             $statusColumn = columnExists($pdo, 'responses', 'status') ? 'r.status' : "'pending'";
             $sql = "SELECT u.id, u.name,
                            COUNT(r.id) AS total_offers,
@@ -131,8 +132,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'conversations_intervention':
-            $title = 'Konwersacje wymagające interwencji';
-            $columns = ['Konwersacja', 'Zlecenie', 'Otwarte zgłoszenia', 'Ostatnie zgłoszenie'];
+            $title = __t('admin.reports.conversations_intervention');
+            $columns = [__t('admin.reports.col.conversation'), __t('admin.reports.col.job'), __t('admin.reports.col.open_reports'), __t('admin.reports.col.last_report')];
             if (!tableExists($pdo, 'conversation_reports')) {
                 return compact('title', 'columns') + ['rows' => []];
             }
@@ -144,8 +145,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'reports_by_type':
-            $title = 'Zgłoszenia według typu';
-            $columns = ['Typ zgłoszenia', 'Liczba zgłoszeń'];
+            $title = __t('admin.reports.reports_by_type');
+            $columns = [__t('admin.reports.col.report_type'), __t('admin.reports.col.reports_count')];
             if (!tableExists($pdo, 'conversation_reports')) {
                 return compact('title', 'columns') + ['rows' => []];
             }
@@ -155,8 +156,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'most_reported_users':
-            $title = 'Najczęściej zgłaszani użytkownicy';
-            $columns = ['ID użytkownika', 'Użytkownik', 'Liczba zgłoszeń'];
+            $title = __t('admin.reports.most_reported_users');
+            $columns = [__t('admin.reports.col.user_id'), __t('admin.reports.col.user'), __t('admin.reports.col.reports_count')];
             if (!tableExists($pdo, 'conversation_reports')) {
                 return compact('title', 'columns') + ['rows' => []];
             }
@@ -173,8 +174,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'hidden_messages':
-            $title = 'Wiadomości ukryte przez administrację';
-            $columns = ['ID', 'Konwersacja', 'Nadawca', 'Treść', 'Data'];
+            $title = __t('admin.reports.hidden_messages');
+            $columns = [__t('admin.reports.col.id'), __t('admin.reports.col.conversation'), __t('admin.reports.col.sender'), __t('admin.reports.col.content'), __t('admin.reports.col.date')];
             if (!columnExists($pdo, 'messages', 'is_hidden')) {
                 return compact('title', 'columns') + ['rows' => []];
             }
@@ -191,8 +192,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'transactions_time':
-            $title = 'Transakcje w czasie';
-            $columns = ['Data', 'Liczba transakcji', 'Suma'];
+            $title = __t('admin.reports.transactions_time');
+            $columns = [__t('admin.reports.col.date'), __t('admin.reports.col.transactions_count'), __t('admin.reports.col.total')];
             $sql = "SELECT DATE(created_at) AS report_date, COUNT(*) AS total_count, COALESCE(SUM(amount), 0) AS total_amount
                     FROM transactions
                     WHERE 1=1";
@@ -201,8 +202,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'system_errors_time':
-            $title = 'Błędy systemowe w czasie';
-            $columns = ['Data', 'Liczba błędów'];
+            $title = __t('admin.reports.system_errors_time');
+            $columns = [__t('admin.reports.col.date'), __t('admin.reports.col.errors_count')];
             $sql = "SELECT DATE(error_time) AS report_date, COUNT(*) AS total
                     FROM system_logs
                     WHERE log_level = 'ERROR'";
@@ -211,8 +212,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'admin_logins':
-            $title = 'Logowania administratorów';
-            $columns = ['ID', 'Administrator', 'IP', 'Data logowania'];
+            $title = __t('admin.reports.admin_logins');
+            $columns = [__t('admin.reports.col.id'), __t('admin.reports.col.admin'), __t('admin.reports.col.ip'), __t('admin.reports.col.login_date')];
             $sql = "SELECT alh.id, u.name AS admin_name, alh.ip_address, alh.login_time
                     FROM admin_login_history alh
                     LEFT JOIN users u ON u.id = alh.admin_id
@@ -226,8 +227,8 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
             break;
 
         case 'user_logins':
-            $title = 'Logowania użytkowników';
-            $columns = ['ID', 'Użytkownik', 'Email', 'IP', 'Sukces', 'Data logowania'];
+            $title = __t('admin.reports.user_logins');
+            $columns = [__t('admin.reports.col.id'), __t('admin.reports.col.user'), __t('admin.reports.col.email'), __t('admin.reports.col.ip'), __t('admin.reports.col.success'), __t('admin.reports.col.login_date')];
             $sql = "SELECT ulh.id, u.name AS user_name, u.email, ulh.ip_address, ulh.success, ulh.login_time
                     FROM user_login_history ulh
                     LEFT JOIN users u ON u.id = ulh.user_id
@@ -259,22 +260,22 @@ function fetchReport(PDO $pdo, $reportKey, $dateFrom, $dateTo, $search, $limit) 
 }
 
 $reports = [
-    'new_users_time' => 'Nowi użytkownicy w czasie',
-    'users_by_role' => 'Użytkownicy według roli',
-    'jobs_by_status' => 'Ogłoszenia według statusu',
-    'jobs_by_category' => 'Ogłoszenia według kategorii',
-    'jobs_without_offers' => 'Ogłoszenia bez ofert',
-    'offers_by_status' => 'Oferty według statusu',
-    'executor_success' => 'Skuteczność wykonawców',
-    'conversations_intervention' => 'Konwersacje wymagające interwencji',
-    'reports_by_type' => 'Zgłoszenia według typu',
-    'most_reported_users' => 'Najczęściej zgłaszani użytkownicy',
-    'hidden_messages' => 'Wiadomości ukryte przez administrację',
-    'categories_job_count' => 'Kategorie według liczby ogłoszeń',
-    'transactions_time' => 'Transakcje w czasie',
-    'system_errors_time' => 'Błędy systemowe w czasie',
-    'admin_logins' => 'Logowania administratorów',
-    'user_logins' => 'Logowania użytkowników',
+    'new_users_time' => __t('admin.reports.new_users_time'),
+    'users_by_role' => __t('admin.reports.users_by_role'),
+    'jobs_by_status' => __t('admin.reports.jobs_by_status'),
+    'jobs_by_category' => __t('admin.reports.jobs_by_category'),
+    'jobs_without_offers' => __t('admin.reports.jobs_without_offers'),
+    'offers_by_status' => __t('admin.reports.offers_by_status'),
+    'executor_success' => __t('admin.reports.executor_success'),
+    'conversations_intervention' => __t('admin.reports.conversations_intervention'),
+    'reports_by_type' => __t('admin.reports.reports_by_type'),
+    'most_reported_users' => __t('admin.reports.most_reported_users'),
+    'hidden_messages' => __t('admin.reports.hidden_messages'),
+    'categories_job_count' => __t('admin.reports.categories_job_count'),
+    'transactions_time' => __t('admin.reports.transactions_time'),
+    'system_errors_time' => __t('admin.reports.system_errors_time'),
+    'admin_logins' => __t('admin.reports.admin_logins'),
+    'user_logins' => __t('admin.reports.user_logins'),
 ];
 
 $reportKey = $_GET['report'] ?? 'new_users_time';
@@ -306,7 +307,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <div class="col-md-12 col-lg-12 main-content">
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> <?= htmlspecialchars(__t('admin.panel')) ?></h5>
                     <nav class="nav">
                         <?php include 'sidebar.php'; ?>
                     </nav>
@@ -315,16 +316,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <div class="card-body">
                     <div class="card shadow-sm">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Raporty</h5>
+                            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> <?= htmlspecialchars(__t('admin.reports.title')) ?></h5>
                             <a class="btn btn-sm btn-outline-success" href="?<?= http_build_query(array_merge($_GET, ['export' => 'csv'])) ?>">
-                                <i class="bi bi-filetype-csv"></i> Eksport CSV
+                                <i class="bi bi-filetype-csv"></i> <?= htmlspecialchars(__t('admin.reports.export_csv')) ?>
                             </a>
                         </div>
 
                         <div class="card-body">
                             <form method="GET" class="row g-2 align-items-end mb-4">
                                 <div class="col-md-4">
-                                    <label class="form-label">Raport</label>
+                                    <label class="form-label"><?= htmlspecialchars(__t('admin.reports.report')) ?></label>
                                     <select name="report" class="form-select">
                                         <?php foreach ($reports as $key => $label): ?>
                                             <option value="<?= safeEcho($key) ?>" <?= $reportKey === $key ? 'selected' : '' ?>>
@@ -334,19 +335,19 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                     </select>
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label">Data od</label>
+                                    <label class="form-label"><?= htmlspecialchars(__t('admin.common.from_date')) ?></label>
                                     <input type="date" name="date_from" class="form-control" value="<?= safeEcho($dateFrom) ?>">
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label">Data do</label>
+                                    <label class="form-label"><?= htmlspecialchars(__t('admin.common.to_date')) ?></label>
                                     <input type="date" name="date_to" class="form-control" value="<?= safeEcho($dateTo) ?>">
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label">Szukaj</label>
+                                    <label class="form-label"><?= htmlspecialchars(__t('admin.common.search')) ?></label>
                                     <input type="text" name="search" class="form-control" value="<?= safeEcho($search) ?>">
                                 </div>
                                 <div class="col-md-1">
-                                    <label class="form-label">Limit</label>
+                                    <label class="form-label"><?= htmlspecialchars(__t('admin.reports.limit')) ?></label>
                                     <input type="number" min="1" max="1000" name="limit" class="form-control" value="<?= safeEcho($limit) ?>">
                                 </div>
                                 <div class="col-md-1">
@@ -370,7 +371,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                         <?php if (empty($reportData['rows'])): ?>
                                             <tr>
                                                 <td colspan="<?= count($reportData['columns']) ?>" class="text-center text-muted py-4">
-                                                    Brak danych dla wybranych filtrów.
+                                                    <?= htmlspecialchars(__t('admin.reports.no_data')) ?>
                                                 </td>
                                             </tr>
                                         <?php else: ?>
@@ -385,7 +386,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                     </tbody>
                                 </table>
                             </div>
-                            <p class="text-muted mb-0">Wyniki: <?= count($reportData['rows']) ?>. Eksport CSV używa tych samych filtrów.</p>
+                            <p class="text-muted mb-0"><?= htmlspecialchars(__t('admin.reports.results', ['count' => count($reportData['rows'])])) ?></p>
                         </div>
                     </div>
                 </div>

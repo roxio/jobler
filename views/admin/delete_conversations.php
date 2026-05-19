@@ -6,6 +6,7 @@ requireAdminAccess();
 
 include_once('../../config/config.php');
 include_once('../../models/Message.php');
+include_once('../../models/Language.php');
 
 $token = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '';
 if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
@@ -38,7 +39,7 @@ try {
         header('Location: manage_messages.php?status=error&message=delete_error');
     }
 } catch (Exception $e) {
-    error_log("Błąd przy usuwaniu konwersacji: " . $e->getMessage());
+    error_log(__t('admin.messages.delete_log_error', ['error' => $e->getMessage()]));
     header('Location: manage_messages.php?status=error&message=system_error');
 }
 exit();

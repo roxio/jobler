@@ -4,6 +4,7 @@ include_once('../../config/config.php');
 include_once('../../models/Message.php');
 include_once('../../models/User.php');
 include_once('../../models/Job.php');
+include_once('../../models/Language.php');
 
 // Sprawdź czy użytkownik jest zalogowany i ma uprawnienia administratora
 require_once __DIR__ . '/_auth.php';
@@ -24,7 +25,7 @@ function handleModerationImageUpload($file) {
     }
 
     if ($file['error'] !== UPLOAD_ERR_OK || $file['size'] > 5 * 1024 * 1024) {
-        throw new RuntimeException('Nie udało się przesłać obrazu lub plik jest większy niż 5 MB.');
+        throw new RuntimeException(__t('admin.messages.upload_too_large'));
     }
 
     $allowedMimeTypes = [
@@ -38,7 +39,7 @@ function handleModerationImageUpload($file) {
     $mimeType = $finfo->file($file['tmp_name']);
 
     if (!isset($allowedMimeTypes[$mimeType])) {
-        throw new RuntimeException('Dozwolone są tylko obrazy JPG, PNG, GIF i WEBP.');
+        throw new RuntimeException(__t('admin.messages.invalid_image_type'));
     }
 
     $uploadDir = dirname(__DIR__, 2) . '/uploads/message_images';
@@ -50,7 +51,7 @@ function handleModerationImageUpload($file) {
     $targetPath = $uploadDir . '/' . $fileName;
 
     if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
-        throw new RuntimeException('Nie udało się zapisać obrazu.');
+        throw new RuntimeException(__t('admin.messages.image_save_error'));
     }
 
     return '/uploads/message_images/' . $fileName;
@@ -247,30 +248,30 @@ if (empty($_SESSION['csrf_token'])) {
                     <?php if (isset($_GET['status'])): ?>
                         <?php
                         $statusMessages = [
-                            'deleted' => 'Konwersacja została usunięta.',
-                            'updated' => 'Wiadomość została zaktualizowana.',
-                            'message_deleted' => 'Wiadomość została usunięta.',
-                            'moderated' => 'Ustawienia moderacji wiadomości zostały zapisane.',
-                            'marked_read' => 'Wybrane konwersacje oznaczono jako przeczytane.',
-                            'marked_unread' => 'Wybrane konwersacje oznaczono jako nieprzeczytane.',
+                            'deleted' => __t('admin.messages.deleted'),
+                            'updated' => __t('admin.messages.updated'),
+                            'message_deleted' => __t('admin.messages.message_deleted'),
+                            'moderated' => __t('admin.messages.moderated'),
+                            'marked_read' => __t('admin.messages.marked_read'),
+                            'marked_unread' => __t('admin.messages.marked_unread'),
                         ];
                         $errorMessages = [
-                            'csrf_error' => 'Nieprawidłowy token bezpieczeństwa. Odśwież stronę i spróbuj ponownie.',
-                            'invalid_id' => 'Nieprawidłowe ID konwersacji.',
-                            'invalid_message' => 'Nieprawidłowa lub pusta treść wiadomości.',
-                            'no_selection' => 'Wybierz co najmniej jedną konwersację.',
-                            'delete_error' => 'Nie udało się usunąć konwersacji.',
-                            'upload_error' => 'Nie udało się zapisać obrazu. Sprawdź format i rozmiar pliku.',
-                            'system_error' => 'Wystąpił błąd systemowy.',
+                            'csrf_error' => __t('admin.messages.csrf_error'),
+                            'invalid_id' => __t('admin.messages.invalid_conversation_id'),
+                            'invalid_message' => __t('admin.messages.invalid_message'),
+                            'no_selection' => __t('admin.messages.no_selection'),
+                            'delete_error' => __t('admin.messages.delete_error'),
+                            'upload_error' => __t('admin.messages.upload_error'),
+                            'system_error' => __t('admin.messages.system_error'),
                         ];
                         $isError = $_GET['status'] === 'error';
                         $messageKey = $_GET['message'] ?? '';
-                        $alertText = $isError ? ($errorMessages[$messageKey] ?? 'Wystąpił błąd.') : ($statusMessages[$_GET['status']] ?? '');
+                        $alertText = $isError ? ($errorMessages[$messageKey] ?? __t('admin.users.error')) : ($statusMessages[$_GET['status']] ?? '');
                         ?>
                         <?php if ($alertText): ?>
                             <div class="alert alert-<?= $isError ? 'danger' : 'success' ?> alert-dismissible fade show" role="alert">
                                 <?= safeEcho($alertText) ?>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zamknij"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="<?= safeEcho(__t('admin.messages.close')) ?>"></button>
                             </div>
                         <?php endif; ?>
                     <?php endif; ?>
@@ -279,19 +280,19 @@ if (empty($_SESSION['csrf_token'])) {
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <a href="manage_users.php" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> Powrót do użytkowników
+                                <i class="bi bi-arrow-left"></i> <?= safeEcho(__t('admin.messages.back_to_users')) ?>
                             </a>
                             <?php if (!empty($filters['user_id']) && $userDetails): ?>
-                                <span class="ms-2">Konwersacje użytkownika: <?= safeEcho($userDetails['name']) ?> (ID: <?= $filters['user_id'] ?>)</span>
+                                <span class="ms-2"><?= safeEcho(__t('admin.messages.user_conversations', ['name' => $userDetails['name'], 'id' => $filters['user_id']])) ?></span>
                             <?php elseif (!empty($filters['job_id']) && $jobDetails): ?>
-                                <span class="ms-2">Konwersacje zlecenia: <?= safeEcho($jobDetails['title']) ?> (ID: <?= $filters['job_id'] ?>)</span>
+                                <span class="ms-2"><?= safeEcho(__t('admin.messages.job_conversations', ['title' => $jobDetails['title'], 'id' => $filters['job_id']])) ?></span>
                             <?php else: ?>
-                                <span class="ms-2">Wszystkie konwersacje</span>
+                                <span class="ms-2"><?= safeEcho(__t('admin.messages.all_conversations')) ?></span>
                             <?php endif; ?>
                         </div>
                         <div>
                             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
-                                <i class="bi bi-funnel"></i> Filtry
+                                <i class="bi bi-funnel"></i> <?= safeEcho(__t('admin.messages.filters')) ?>
                                 <?php if (isFilterActive($filters)): ?>
                                     <span class="badge bg-danger ms-1">!</span>
                                 <?php endif; ?>
@@ -303,21 +304,21 @@ if (empty($_SESSION['csrf_token'])) {
                     <div class="collapse <?= isFilterActive($filters) ? 'show' : ''; ?>" id="filtersCollapse">
                         <div class="card mb-4">
                             <div class="card-header">
-                                <h6 class="mb-0"><i class="bi bi-funnel"></i> Zaawansowane filtry</h6>
+                                <h6 class="mb-0"><i class="bi bi-funnel"></i> <?= safeEcho(__t('admin.messages.advanced_filters')) ?></h6>
                             </div>
                             <div class="card-body">
                                 <form method="GET" class="row g-3">
                                     <div class="col-md-3">
-                                        <label class="form-label">Wyszukaj</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.common.search')) ?></label>
                                         <input type="text" name="search" class="form-control" 
-                                               placeholder="Treść, użytkownik, zlecenie..." 
+                                               placeholder="<?= safeEcho(__t('admin.messages.search_placeholder')) ?>"
                                                value="<?= safeEcho($filters['search']); ?>">
                                     </div>
                                     
                                     <div class="col-md-2">
-                                        <label class="form-label">Użytkownik</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.user')) ?></label>
                                         <select name="user_id" class="form-select">
-                                            <option value="">Wszyscy użytkownicy</option>
+                                            <option value=""><?= safeEcho(__t('admin.messages.all_users')) ?></option>
                                             <?php foreach ($allUsers as $user): ?>
                                                 <option value="<?= $user['id'] ?>" <?= $filters['user_id'] == $user['id'] ? 'selected' : ''; ?>>
                                                     <?= safeEcho($user['name']) ?> (ID: <?= $user['id'] ?>)
@@ -327,9 +328,9 @@ if (empty($_SESSION['csrf_token'])) {
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Zlecenie</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.messages.job')) ?></label>
                                         <select name="job_id" class="form-select">
-                                            <option value="">Wszystkie zlecenia</option>
+                                            <option value=""><?= safeEcho(__t('admin.messages.all_jobs')) ?></option>
                                             <?php foreach ($allJobs as $job): ?>
                                                 <option value="<?= $job['id'] ?>" <?= $filters['job_id'] == $job['id'] ? 'selected' : ''; ?>>
                                                     #<?= $job['id'] ?>: <?= safeEcho(mb_substr($job['title'], 0, 20)) ?>...
@@ -339,49 +340,49 @@ if (empty($_SESSION['csrf_token'])) {
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Data od</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.reports.date_from')) ?></label>
                                         <input type="date" name="date_from" class="form-control" 
                                                value="<?= safeEcho($filters['date_from']); ?>">
                                     </div>
                                     
                                     <div class="col-md-2">
-                                        <label class="form-label">Data do</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.reports.date_to')) ?></label>
                                         <input type="date" name="date_to" class="form-control" 
                                                value="<?= safeEcho($filters['date_to']); ?>">
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Min. wiadomości</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.messages.min_messages')) ?></label>
                                         <input type="number" name="min_messages" class="form-control" 
                                                min="1" value="<?= safeEcho($filters['min_messages']); ?>">
                                     </div>
                                     
                                     <div class="col-md-2">
-                                        <label class="form-label">Max. wiadomości</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.messages.max_messages')) ?></label>
                                         <input type="number" name="max_messages" class="form-control" 
                                                min="1" value="<?= safeEcho($filters['max_messages']); ?>">
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Sortuj według</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.messages.sort_by')) ?></label>
                                         <select name="sort" class="form-select">
-                                            <option value="last_activity_date" <?= $filters['sort'] == 'last_activity_date' ? 'selected' : ''; ?>>Ostatnia aktywność</option>
-                                            <option value="message_count" <?= $filters['sort'] == 'message_count' ? 'selected' : ''; ?>>Liczba wiadomości</option>
-                                            <option value="sender_name" <?= $filters['sort'] == 'sender_name' ? 'selected' : ''; ?>>Nadawca</option>
-                                            <option value="receiver_name" <?= $filters['sort'] == 'receiver_name' ? 'selected' : ''; ?>>Odbiorca</option>
+                                            <option value="last_activity_date" <?= $filters['sort'] == 'last_activity_date' ? 'selected' : ''; ?>><?= safeEcho(__t('admin.messages.last_activity')) ?></option>
+                                            <option value="message_count" <?= $filters['sort'] == 'message_count' ? 'selected' : ''; ?>><?= safeEcho(__t('admin.messages.message_count')) ?></option>
+                                            <option value="sender_name" <?= $filters['sort'] == 'sender_name' ? 'selected' : ''; ?>><?= safeEcho(__t('admin.messages.sender')) ?></option>
+                                            <option value="receiver_name" <?= $filters['sort'] == 'receiver_name' ? 'selected' : ''; ?>><?= safeEcho(__t('admin.messages.receiver')) ?></option>
                                         </select>
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Kolejność</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.messages.order')) ?></label>
                                         <select name="order" class="form-select">
-                                            <option value="DESC" <?= $filters['order'] == 'DESC' ? 'selected' : ''; ?>>Malejąco</option>
-                                            <option value="ASC" <?= $filters['order'] == 'ASC' ? 'selected' : ''; ?>>Rosnąco</option>
+                                            <option value="DESC" <?= $filters['order'] == 'DESC' ? 'selected' : ''; ?>><?= safeEcho(__t('admin.messages.desc')) ?></option>
+                                            <option value="ASC" <?= $filters['order'] == 'ASC' ? 'selected' : ''; ?>><?= safeEcho(__t('admin.messages.asc')) ?></option>
                                         </select>
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Na stronę</label>
+                                        <label class="form-label"><?= safeEcho(__t('admin.messages.per_page')) ?></label>
                                         <select name="per_page" class="form-select">
                                             <option value="10" <?= $limit == 10 ? 'selected' : ''; ?>>10</option>
                                             <option value="25" <?= $limit == 25 ? 'selected' : ''; ?>>25</option>
@@ -393,7 +394,7 @@ if (empty($_SESSION['csrf_token'])) {
                                     <div class="col-12">
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-primary">
-                                                <i class="bi bi-search"></i> Zastosuj filtry
+                                                <i class="bi bi-search"></i> <?= safeEcho(__t('admin.messages.apply_filters')) ?>
                                             </button>
                                             <a href="<?= buildUrl([
                                                 'user_id' => null, 
@@ -405,7 +406,7 @@ if (empty($_SESSION['csrf_token'])) {
                                                 'max_messages' => null,
                                                 'page' => 1
                                             ]) ?>" class="btn btn-outline-secondary">
-                                                <i class="bi bi-x-circle"></i> Wyczyść filtry
+                                                <i class="bi bi-x-circle"></i> <?= safeEcho(__t('admin.messages.clear_filters')) ?>
                                             </a>
                                         </div>
                                     </div>
@@ -417,16 +418,16 @@ if (empty($_SESSION['csrf_token'])) {
                     <!-- Statystyki filtrów -->
                     <?php if (isFilterActive($filters)): ?>
                     <div class="alert alert-info mb-4">
-                        <strong>Aktywne filtry:</strong>
+                        <strong><?= safeEcho(__t('admin.messages.active_filters')) ?></strong>
                         <?php
                         $activeFilters = [];
-                        if (!empty($filters['user_id'])) $activeFilters[] = 'Użytkownik: ID ' . $filters['user_id'];
-                        if (!empty($filters['job_id'])) $activeFilters[] = 'Zlecenie: ID ' . $filters['job_id'];
-                        if (!empty($filters['search'])) $activeFilters[] = 'Szukaj: "' . $filters['search'] . '"';
-                        if (!empty($filters['date_from'])) $activeFilters[] = 'Data od: ' . $filters['date_from'];
-                        if (!empty($filters['date_to'])) $activeFilters[] = 'Data do: ' . $filters['date_to'];
-                        if (!empty($filters['min_messages'])) $activeFilters[] = 'Min. wiadomości: ' . $filters['min_messages'];
-                        if (!empty($filters['max_messages'])) $activeFilters[] = 'Max. wiadomości: ' . $filters['max_messages'];
+                        if (!empty($filters['user_id'])) $activeFilters[] = __t('admin.user') . ': ID ' . $filters['user_id'];
+                        if (!empty($filters['job_id'])) $activeFilters[] = __t('admin.messages.job') . ': ID ' . $filters['job_id'];
+                        if (!empty($filters['search'])) $activeFilters[] = __t('admin.common.search') . ': "' . $filters['search'] . '"';
+                        if (!empty($filters['date_from'])) $activeFilters[] = __t('admin.reports.date_from') . ': ' . $filters['date_from'];
+                        if (!empty($filters['date_to'])) $activeFilters[] = __t('admin.reports.date_to') . ': ' . $filters['date_to'];
+                        if (!empty($filters['min_messages'])) $activeFilters[] = __t('admin.messages.min_messages') . ': ' . $filters['min_messages'];
+                        if (!empty($filters['max_messages'])) $activeFilters[] = __t('admin.messages.max_messages') . ': ' . $filters['max_messages'];
                         
                         echo implode(', ', $activeFilters);
                         ?>
@@ -436,9 +437,9 @@ if (empty($_SESSION['csrf_token'])) {
                     <!-- Tabela konwersacji -->
                     <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-1"><i class="bi bi-chat-dots"></i> Zarządzaj konwersacjami</h5>
+                            <h5 class="mb-1"><i class="bi bi-chat-dots"></i> <?= safeEcho(__t('admin.messages.manage_conversations')) ?></h5>
                             <div class="text-muted">
-                                Znaleziono: <strong><?= number_format($totalConversations) ?></strong> konwersacji
+                                <?= safeEcho(__t('admin.messages.found_count', ['count' => number_format($totalConversations)])) ?>
                             </div>
                         </div>
 
@@ -446,35 +447,35 @@ if (empty($_SESSION['csrf_token'])) {
                             <form method="POST" action="manage_messages.php" id="bulkConversationsForm">
                                 <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
                                 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="Akcje zbiorcze">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="<?= safeEcho(__t('admin.messages.bulk_actions')) ?>">
                                         <button type="submit" name="action" value="mark_read" class="btn btn-outline-success">
-                                            <i class="bi bi-envelope-open"></i> Oznacz jako przeczytane
+                                            <i class="bi bi-envelope-open"></i> <?= safeEcho(__t('admin.messages.mark_read')) ?>
                                         </button>
                                         <button type="submit" name="action" value="mark_unread" class="btn btn-outline-secondary">
-                                            <i class="bi bi-envelope"></i> Oznacz jako nieprzeczytane
+                                            <i class="bi bi-envelope"></i> <?= safeEcho(__t('admin.messages.mark_unread')) ?>
                                         </button>
-                                        <button type="submit" formaction="delete_conversations.php" class="btn btn-outline-danger" onclick="return confirm('Czy na pewno usunąć wybrane konwersacje?');">
-                                            <i class="bi bi-trash"></i> Usuń wybrane
+                                        <button type="submit" formaction="delete_conversations.php" class="btn btn-outline-danger" onclick="return confirm('<?= safeEcho(__t('admin.messages.delete_selected_confirm')) ?>');">
+                                            <i class="bi bi-trash"></i> <?= safeEcho(__t('admin.messages.delete_selected')) ?>
                                         </button>
                                     </div>
-                                    <small class="text-muted">Zaznacz konwersacje w tabeli, aby użyć akcji zbiorczych.</small>
+                                    <small class="text-muted"><?= safeEcho(__t('admin.messages.bulk_hint')) ?></small>
                                 </div>
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover align-middle">
                                     <thead class="table-light">
                                         <tr>
                                             <th style="width: 36px;">
-                                                <input type="checkbox" class="form-check-input" id="selectAllConversations" title="Zaznacz wszystkie">
+                                                <input type="checkbox" class="form-check-input" id="selectAllConversations" title="<?= safeEcho(__t('admin.messages.select_all')) ?>">
                                             </th>
-                                            <th>ID Konwersacji</th>
-                                            <th>Nadawca</th>
-                                            <th>Odbiorca</th>
-                                            <th>Zlecenie</th>
-                                            <th>Ostatnia wiadomość</th>
-                                            <th>Wiadomości</th>
-                                            <th>Interwencja</th>
-                                            <th>Ostatnia aktywność</th>
-                                            <th>Akcje</th>
+                                            <th><?= safeEcho(__t('admin.messages.conversation_id')) ?></th>
+                                            <th><?= safeEcho(__t('admin.messages.sender')) ?></th>
+                                            <th><?= safeEcho(__t('admin.messages.receiver')) ?></th>
+                                            <th><?= safeEcho(__t('admin.messages.job')) ?></th>
+                                            <th><?= safeEcho(__t('admin.messages.last_message')) ?></th>
+                                            <th><?= safeEcho(__t('admin.messages.messages')) ?></th>
+                                            <th><?= safeEcho(__t('admin.messages.intervention')) ?></th>
+                                            <th><?= safeEcho(__t('admin.messages.last_activity')) ?></th>
+                                            <th><?= safeEcho(__t('admin.messages.actions')) ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -503,12 +504,12 @@ if (empty($_SESSION['csrf_token'])) {
                                                                 #<?= safeEcho($conversation['job_id']) ?>: <?= safeEcho(mb_substr($conversation['job_title'], 0, 15)) ?><?= mb_strlen($conversation['job_title']) > 15 ? '...' : '' ?>
                                                             </a>
                                                         <?php else: ?>
-                                                            <span class="text-muted">Brak zlecenia</span>
+                                                            <span class="text-muted"><?= safeEcho(__t('admin.messages.no_job')) ?></span>
                                                         <?php endif; ?>
                                                     </td>
                                                     <td>
                                                         <?php 
-                                                        $content = !empty($conversation['last_message_content']) ? $conversation['last_message_content'] : 'Brak treści';
+                                                        $content = !empty($conversation['last_message_content']) ? $conversation['last_message_content'] : __t('admin.messages.no_content');
                                                         echo safeEcho(mb_substr($content, 0, 30)) . (mb_strlen($content) > 30 ? '...' : '');
                                                         ?>
                                                     </td>
@@ -517,7 +518,7 @@ if (empty($_SESSION['csrf_token'])) {
                                                     </td>
                                                     <td>
                                                         <?php if (!empty($conversation['open_report_count'])): ?>
-                                                            <span class="badge bg-danger" title="Konwersacja wymaga interwencji">
+                                                            <span class="badge bg-danger" title="<?= safeEcho(__t('admin.messages.needs_intervention')) ?>">
                                                                 <i class="bi bi-flag-fill"></i> <?= (int)$conversation['open_report_count'] ?>
                                                             </span>
                                                         <?php else: ?>
@@ -533,12 +534,12 @@ if (empty($_SESSION['csrf_token'])) {
                                                             <button type="button" class="btn btn-outline-info view-conversation" 
                                                                     data-bs-toggle="modal" data-bs-target="#conversationModal" 
                                                                     data-conversation-id="<?= safeEcho($conversation['conversation_id']); ?>">
-                                                                <i class="bi bi-eye" title="Podgląd konwersacji"></i>
+                                                                <i class="bi bi-eye" title="<?= safeEcho(__t('admin.messages.preview_conversation')) ?>"></i>
                                                             </button>
                                                             <a href="delete_conversation.php?id=<?= safeEcho($conversation['conversation_id']); ?>&csrf_token=<?= safeEcho($_SESSION['csrf_token']) ?>" 
                                                                class="btn btn-outline-danger" 
-                                                               onclick="return confirm('Czy na pewno chcesz usunąć tę konwersację?');">
-                                                                <i class="bi bi-trash" title="Usuń konwersację"></i>
+                                                               onclick="return confirm('<?= safeEcho(__t('admin.messages.delete_conversation_confirm')) ?>');">
+                                                                <i class="bi bi-trash" title="<?= safeEcho(__t('admin.messages.delete_conversation')) ?>"></i>
                                                             </a>
                                                         </div>
                                                     </td>
@@ -548,7 +549,7 @@ if (empty($_SESSION['csrf_token'])) {
                                             <tr>
                                                 <td colspan="10" class="text-center py-5">
                                                     <i class="bi bi-inbox display-4 text-muted"></i>
-                                                    <p class="mt-3">Brak konwersacji spełniających kryteria wyszukiwania</p>
+                                                    <p class="mt-3"><?= safeEcho(__t('admin.messages.no_results')) ?></p>
                                                     <?php if (isFilterActive($filters)): ?>
                                                         <a href="<?= buildUrl([
                                                             'user_id' => null, 
@@ -560,7 +561,7 @@ if (empty($_SESSION['csrf_token'])) {
                                                             'max_messages' => null,
                                                             'page' => 1
                                                         ]) ?>" class="btn btn-primary btn-sm">
-                                                            Wyczyść filtry
+                                                            <?= safeEcho(__t('admin.messages.clear_filters')) ?>
                                                         </a>
                                                     <?php endif; ?>
                                                 </td>
@@ -576,19 +577,19 @@ if (empty($_SESSION['csrf_token'])) {
                             <div class="d-flex justify-content-between align-items-center mt-4">
                                 <div>
                                     <span class="text-muted">
-                                        Wyświetlono <?= count($conversations) ?> z <?= number_format($totalConversations) ?> konwersacji
+                                        <?= safeEcho(__t('admin.messages.displayed_count', ['shown' => count($conversations), 'total' => number_format($totalConversations)])) ?>
                                     </span>
                                 </div>
                                 <div>
                                     <nav aria-label="Page navigation">
                                         <ul class="pagination pagination-sm">
                                             <li class="page-item <?= $page <= 1 ? 'disabled' : ''; ?>">
-                                                <a class="page-link" href="<?= buildUrl(['page' => 1]) ?>" aria-label="Pierwsza">
+                                                <a class="page-link" href="<?= buildUrl(['page' => 1]) ?>" aria-label="<?= safeEcho(__t('admin.messages.first_page')) ?>">
                                                     <span aria-hidden="true">&laquo;&laquo;</span>
                                                 </a>
                                             </li>
                                             <li class="page-item <?= $page <= 1 ? 'disabled' : ''; ?>">
-                                                <a class="page-link" href="<?= buildUrl(['page' => $page - 1]) ?>" aria-label="Poprzednia">
+                                                <a class="page-link" href="<?= buildUrl(['page' => $page - 1]) ?>" aria-label="<?= safeEcho(__t('admin.messages.previous_page')) ?>">
                                                     <span aria-hidden="true">&laquo;</span>
                                                 </a>
                                             </li>
@@ -603,12 +604,12 @@ if (empty($_SESSION['csrf_token'])) {
                                             <?php endfor; ?>
                                             
                                             <li class="page-item <?= $page >= $totalPages ? 'disabled' : ''; ?>">
-                                                <a class="page-link" href="<?= buildUrl(['page' => $page + 1]) ?>" aria-label="Następna">
+                                                <a class="page-link" href="<?= buildUrl(['page' => $page + 1]) ?>" aria-label="<?= safeEcho(__t('admin.messages.next_page')) ?>">
                                                     <span aria-hidden="true">&raquo;</span>
                                                 </a>
                                             </li>
                                             <li class="page-item <?= $page >= $totalPages ? 'disabled' : ''; ?>">
-                                                <a class="page-link" href="<?= buildUrl(['page' => $totalPages]) ?>" aria-label="Ostatnia">
+                                                <a class="page-link" href="<?= buildUrl(['page' => $totalPages]) ?>" aria-label="<?= safeEcho(__t('admin.messages.last_page')) ?>">
                                                     <span aria-hidden="true">&raquo;&raquo;</span>
                                                 </a>
                                             </li>
@@ -630,16 +631,16 @@ if (empty($_SESSION['csrf_token'])) {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Podgląd konwersacji <span id="modalConversationId"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title"><?= safeEcho(__t('admin.messages.preview_conversation')) ?> <span id="modalConversationId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= safeEcho(__t('admin.messages.close')) ?>"></button>
             </div>
             <div class="modal-body">
                 <div id="conversationContent" class="conversation-messages">
-                    <p class="text-center text-muted">Ładowanie wiadomości...</p>
+                    <p class="text-center text-muted"><?= safeEcho(__t('admin.messages.loading_messages')) ?></p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= safeEcho(__t('admin.messages.close')) ?></button>
             </div>
         </div>
     </div>
@@ -651,8 +652,8 @@ if (empty($_SESSION['csrf_token'])) {
         <div class="modal-content">
             <form method="POST" action="manage_messages.php" enctype="multipart/form-data">
                 <div class="modal-header">
-                    <h5 class="modal-title">Moderuj wiadomość</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+                    <h5 class="modal-title"><?= safeEcho(__t('admin.conversation.moderate_message')) ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= safeEcho(__t('admin.messages.close')) ?>"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
@@ -661,16 +662,16 @@ if (empty($_SESSION['csrf_token'])) {
 
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" role="switch" name="is_hidden" id="moderateIsHidden" value="1">
-                        <label class="form-check-label" for="moderateIsHidden">Ukryj treść wiadomości przed uczestnikami rozmowy</label>
+                        <label class="form-check-label" for="moderateIsHidden"><?= safeEcho(__t('admin.messages.hide_content')) ?></label>
                     </div>
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label" for="moderateAdminNote">Komentarz widoczny tylko dla administratorów</label>
+                            <label class="form-label" for="moderateAdminNote"><?= safeEcho(__t('admin.messages.admin_note_label')) ?></label>
                             <textarea name="admin_note" id="moderateAdminNote" class="form-control" rows="5"></textarea>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="moderateParticipantNote">Komentarz widoczny dla uczestników rozmowy</label>
+                            <label class="form-label" for="moderateParticipantNote"><?= safeEcho(__t('admin.messages.participant_note_label')) ?></label>
                             <textarea name="participant_note" id="moderateParticipantNote" class="form-control" rows="5"></textarea>
                         </div>
                     </div>
@@ -678,26 +679,26 @@ if (empty($_SESSION['csrf_token'])) {
                     <hr>
 
                     <div class="mb-3">
-                        <label class="form-label" for="moderateMessageImage">Dodaj lub podmień obraz</label>
+                        <label class="form-label" for="moderateMessageImage"><?= safeEcho(__t('admin.messages.replace_image')) ?></label>
                         <input type="file" name="message_image" id="moderateMessageImage" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp">
-                        <div class="form-text">JPG, PNG, GIF lub WEBP, maksymalnie 5 MB.</div>
+                        <div class="form-text"><?= safeEcho(__t('admin.messages.image_help')) ?></div>
                     </div>
 
                     <div id="currentModerationImageWrap" class="d-none">
-                        <label class="form-label">Aktualny obraz</label>
+                        <label class="form-label"><?= safeEcho(__t('admin.messages.current_image')) ?></label>
                         <div class="d-flex align-items-start gap-3">
-                            <img id="currentModerationImage" src="" alt="Aktualny obraz wiadomości" class="img-fluid rounded border" style="max-height: 180px;">
+                            <img id="currentModerationImage" src="" alt="<?= safeEcho(__t('admin.messages.current_image_alt')) ?>" class="img-fluid rounded border" style="max-height: 180px;">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" name="remove_image" value="1" id="moderateRemoveImage">
-                                <label class="form-check-label" for="moderateRemoveImage">Usuń obraz</label>
+                                <label class="form-check-label" for="moderateRemoveImage"><?= safeEcho(__t('admin.messages.remove_image')) ?></label>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= safeEcho(__t('admin.users.cancel')) ?></button>
                     <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-shield-check"></i> Zapisz moderację
+                        <i class="bi bi-shield-check"></i> <?= safeEcho(__t('admin.messages.save_moderation')) ?>
                     </button>
                 </div>
             </form>
@@ -711,20 +712,20 @@ if (empty($_SESSION['csrf_token'])) {
         <div class="modal-content">
             <form method="POST" action="manage_messages.php">
                 <div class="modal-header">
-                    <h5 class="modal-title">Edytuj wiadomość</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+                    <h5 class="modal-title"><?= safeEcho(__t('admin.messages.edit_message')) ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= safeEcho(__t('admin.messages.close')) ?>"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
                     <input type="hidden" name="action" value="update_message">
                     <input type="hidden" name="message_id" id="editMessageId">
-                    <label class="form-label" for="editMessageContent">Treść wiadomości</label>
+                    <label class="form-label" for="editMessageContent"><?= safeEcho(__t('admin.messages.message_content')) ?></label>
                     <textarea name="content" id="editMessageContent" class="form-control" rows="6" required></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= safeEcho(__t('admin.users.cancel')) ?></button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Zapisz
+                        <i class="bi bi-save"></i> <?= safeEcho(__t('admin.common.save')) ?>
                     </button>
                 </div>
             </form>
@@ -736,6 +737,7 @@ if (empty($_SESSION['csrf_token'])) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const loadingErrorMessage = <?= json_encode(__t('admin.messages.loading_error'), JSON_UNESCAPED_UNICODE) ?>;
     const selectAll = document.getElementById('selectAllConversations');
     if (selectAll) {
         selectAll.addEventListener('change', function() {
@@ -792,7 +794,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .catch(error => {
                     document.getElementById('conversationContent').innerHTML = 
-                        '<p class="text-danger">Błąd podczas ładowania konwersacji.</p>';
+                        '<p class="text-danger">' + loadingErrorMessage + '</p>';
                 });
         });
     }

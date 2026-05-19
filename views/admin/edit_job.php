@@ -3,6 +3,7 @@ session_start();
 include_once('../../models/Job.php');
 include_once('../../models/User.php');
 include_once('../../models/Database.php');
+include_once('../../models/Language.php');
 
 // Sprawdź uprawnienia
 require_once __DIR__ . '/_auth.php';
@@ -70,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // CSRF
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        $errorMessage = 'Błąd bezpieczeństwa CSRF.';
+        $errorMessage = __t('admin.edit_job.csrf_error');
     } else {
         $changes = []; // lista zmian do historii
 
@@ -83,22 +84,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Walidacja
         if (empty($newTitle)) {
-            $errorMessage = 'Tytuł nie może być pusty.';
+            $errorMessage = __t('admin.edit_job.title_required');
         } elseif ($newPoints < 1 || $newPoints > 100) {
-            $errorMessage = 'Punkty muszą być w zakresie 1–100.';
+            $errorMessage = __t('admin.edit_job.points_invalid');
         } elseif (!in_array($newStatus, ['open','active','closed','inactive'])) {
-            $errorMessage = 'Nieprawidłowy status.';
+            $errorMessage = __t('admin.edit_job.invalid_status');
         } else {
 
             // Zbierz zmiany do historii
-            if ($newTitle    !== $job['title'])         $changes[] = "Tytuł: «{$job['title']}» → «{$newTitle}»";
-            if ($newDesc     !== $job['description'])   $changes[] = "Opis został zmieniony";
+            if ($newTitle    !== $job['title'])         $changes[] = __t('admin.edit_job.history_title_changed', ['old' => $job['title'], 'new' => $newTitle]);
+            if ($newDesc     !== $job['description'])   $changes[] = __t('admin.edit_job.history_description_changed');
             if ($newPoints   !== (int)$job['points_required'])
-                                                        $changes[] = "Punkty: {$job['points_required']} → {$newPoints}";
-            if ($newStatus   !== $job['status'])        $changes[] = "Status: {$job['status']} → {$newStatus}";
+                                                        $changes[] = __t('admin.edit_job.history_points_changed', ['old' => $job['points_required'], 'new' => $newPoints]);
+            if ($newStatus   !== $job['status'])        $changes[] = __t('admin.edit_job.history_status_changed', ['old' => $job['status'], 'new' => $newStatus]);
             if ($newCategory !== (int)($job['category_id'] ?? 0))
-                                                        $changes[] = "Kategoria zmieniona";
-            if ($newOwner    !== (int)$job['user_id'])  $changes[] = "Właściciel zmieniony (user_id: {$job['user_id']} → {$newOwner})";
+                                                        $changes[] = __t('admin.edit_job.history_category_changed');
+            if ($newOwner    !== (int)$job['user_id'])  $changes[] = __t('admin.edit_job.history_owner_changed', ['old' => $job['user_id'], 'new' => $newOwner]);
 
             // Aktualizuj zlecenie
             $sql = "UPDATE jobs
@@ -133,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $filePath = '../../uploads/jobs/' . $img['filename'];
                             if (file_exists($filePath)) @unlink($filePath);
                             $pdo->prepare("DELETE FROM job_images WHERE id = ?")->execute([$imgId]);
-                            $changes[] = "Usunięto zdjęcie: {$img['filename']}";
+                            $changes[] = __t('admin.edit_job.history_image_removed', ['filename' => $img['filename']]);
                         }
                     } catch (PDOException $e) { /* ignoruj */ }
                 }
@@ -157,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         try {
                             $pdo->prepare("INSERT INTO job_images (job_id, filename, created_at) VALUES (?, ?, NOW())")
                                 ->execute([$jobId, $filename]);
-                            $changes[] = "Dodano zdjęcie: {$filename}";
+                            $changes[] = __t('admin.edit_job.history_image_added', ['filename' => $filename]);
                         } catch (PDOException $e) { /* ignoruj */ }
                     }
                 }
@@ -174,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } catch (PDOException $e) { /* ignoruj jeśli tabela nie istnieje */ }
             }
 
-            $successMessage = 'Zlecenie zostało zaktualizowane.';
+            $successMessage = __t('admin.edit_job.updated');
             // Odśwież dane
             $job = $jobModel->getJobDetails($jobId);
 
@@ -197,10 +198,10 @@ function safeEcho($v, $d = '') { return htmlspecialchars($v ?? $d, ENT_QUOTES, '
 function sel($a, $b) { return $a == $b ? 'selected' : ''; }
 
 $statusLabels = [
-    'open'     => 'Otwarte',
-    'active'   => 'Aktywne',
-    'closed'   => 'Zamknięte',
-    'inactive' => 'Nieaktywne',
+    'open'     => __t('admin.jobs.open'),
+    'active'   => __t('admin.jobs.active'),
+    'closed'   => __t('admin.jobs.closed'),
+    'inactive' => __t('admin.jobs.inactive'),
 ];
 $statusColors = [
     'open'     => 'primary',
@@ -312,7 +313,7 @@ $statusColors = [
 <!-- Admin card wrapper -->
 <div class="card shadow">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
+    <h5 class="mb-0"><i class="bi bi-tools"></i> <?= htmlspecialchars(__t('admin.panel')) ?></h5>
     <nav class="nav"><?php include 'sidebar.php'; ?></nav>
   </div>
 
@@ -322,10 +323,10 @@ $statusColors = [
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <div>
         <a href="manage_jobs.php" class="btn btn-sm btn-outline-secondary">
-          <i class="bi bi-arrow-left"></i> Powrót do listy
+          <i class="bi bi-arrow-left"></i> <?= htmlspecialchars(__t('admin.back_to_list')) ?>
         </a>
         <span class="ms-2 text-muted">
-          Edycja zlecenia <strong>#<?= $jobId ?></strong>
+          <?= htmlspecialchars(__t('admin.edit_job.title', ['id' => $jobId])) ?>
         </span>
       </div>
       <div>
@@ -361,15 +362,15 @@ $statusColors = [
 
           <!-- 1. Podstawowe informacje -->
           <div class="section-card">
-            <div class="section-head"><i class="bi bi-file-text"></i> Podstawowe informacje</div>
+            <div class="section-head"><i class="bi bi-file-text"></i> <?= htmlspecialchars(__t('admin.edit_job.basic_info')) ?></div>
             <div class="section-body">
               <div class="mb-3">
-                <label class="form-label fw-semibold">Tytuł zlecenia <span class="text-danger">*</span></label>
+                <label class="form-label fw-semibold"><?= htmlspecialchars(__t('admin.edit_job.job_title')) ?> <span class="text-danger">*</span></label>
                 <input type="text" name="title" class="form-control form-control-lg"
                        value="<?= safeEcho($job['title']) ?>" required maxlength="255">
               </div>
               <div class="mb-0">
-                <label class="form-label fw-semibold">Opis zlecenia <span class="text-danger">*</span></label>
+                <label class="form-label fw-semibold"><?= htmlspecialchars(__t('admin.edit_job.job_description')) ?> <span class="text-danger">*</span></label>
                 <textarea name="description" class="form-control" rows="8" required
                           style="resize:vertical"><?= safeEcho($job['description']) ?></textarea>
               </div>
@@ -378,12 +379,12 @@ $statusColors = [
 
           <!-- 2. Zdjęcia -->
           <div class="section-card">
-            <div class="section-head"><i class="bi bi-images"></i> Zdjęcia zlecenia</div>
+            <div class="section-head"><i class="bi bi-images"></i> <?= htmlspecialchars(__t('admin.edit_job.job_images')) ?></div>
             <div class="section-body">
 
               <?php if (!empty($jobImages)): ?>
                 <p class="text-muted small mb-2">
-                  Kliknij zdjęcie, aby zaznaczyć je do <strong>usunięcia</strong> (pojawi się czerwona ramka).
+                  <?= htmlspecialchars(__t('admin.edit_job.delete_image_hint')) ?>
                 </p>
                 <div class="img-grid mb-3">
                   <?php foreach ($jobImages as $img): ?>
@@ -392,23 +393,23 @@ $statusColors = [
                              value="<?= $img['id'] ?>"
                              id="del-<?= $img['id'] ?>"
                              class="d-none img-del-chk">
-                      <label for="del-<?= $img['id'] ?>" class="img-delete-label" title="Kliknij, aby usunąć">
+                      <label for="del-<?= $img['id'] ?>" class="img-delete-label" title="<?= htmlspecialchars(__t('admin.edit_job.delete_image_title')) ?>">
                         <span class="del-icon"><i class="bi bi-trash-fill"></i></span>
                       </label>
                       <img src="/uploads/jobs/<?= safeEcho($img['filename']) ?>"
-                           alt="Zdjęcie zlecenia">
+                           alt="<?= htmlspecialchars(__t('admin.edit_job.image_alt')) ?>">
                     </div>
                   <?php endforeach; ?>
                 </div>
               <?php else: ?>
-                <p class="text-muted small">Brak zdjęć dla tego zlecenia.</p>
+                <p class="text-muted small"><?= htmlspecialchars(__t('admin.edit_job.no_images')) ?></p>
               <?php endif; ?>
 
               <!-- Upload nowych -->
               <label class="upload-zone d-block" for="new_images">
                 <i class="bi bi-cloud-upload fs-2 text-primary"></i>
-                <div class="mt-1 fw-semibold">Kliknij lub przeciągnij pliki</div>
-                <div class="text-muted small">JPG, PNG, WEBP, GIF · max 5 MB · wiele plików</div>
+                <div class="mt-1 fw-semibold"><?= htmlspecialchars(__t('admin.edit_job.upload_click')) ?></div>
+                <div class="text-muted small"><?= htmlspecialchars(__t('admin.edit_job.upload_hint')) ?></div>
                 <input type="file" id="new_images" name="new_images[]"
                        class="d-none" multiple accept="image/*"
                        onchange="previewNewImages(this)">
@@ -426,11 +427,11 @@ $statusColors = [
 
           <!-- 3. Parametry -->
           <div class="section-card">
-            <div class="section-head"><i class="bi bi-sliders"></i> Parametry zlecenia</div>
+            <div class="section-head"><i class="bi bi-sliders"></i> <?= htmlspecialchars(__t('admin.edit_job.parameters')) ?></div>
             <div class="section-body">
 
               <div class="mb-3">
-                <label class="form-label fw-semibold">Status</label>
+                <label class="form-label fw-semibold"><?= htmlspecialchars(__t('admin.common.status')) ?></label>
                 <select name="status" class="form-select">
                   <?php foreach ($statusLabels as $val => $label): ?>
                     <option value="<?= $val ?>" <?= sel($job['status'], $val) ?>>
@@ -441,20 +442,20 @@ $statusColors = [
               </div>
 
               <div class="mb-3">
-                <label class="form-label fw-semibold">Punkty wymagane od wykonawcy</label>
+                <label class="form-label fw-semibold"><?= htmlspecialchars(__t('admin.edit_job.points_required')) ?></label>
                 <div class="input-group">
                   <input type="number" name="points_required" class="form-control"
                          value="<?= (int)$job['points_required'] ?>"
                          min="1" max="100" required>
                   <span class="input-group-text">pkt</span>
                 </div>
-                <div class="form-text">Zakres: 1–100</div>
+                <div class="form-text"><?= htmlspecialchars(__t('admin.edit_job.range_1_100')) ?></div>
               </div>
 
               <div class="mb-3">
-                <label class="form-label fw-semibold">Kategoria</label>
+                <label class="form-label fw-semibold"><?= htmlspecialchars(__t('admin.common.category')) ?></label>
                 <select name="category_id" class="form-select">
-                  <option value="">— Brak kategorii —</option>
+                  <option value=""><?= htmlspecialchars(__t('admin.edit_job.no_category')) ?></option>
                   <?php foreach ($categories as $cat): ?>
                     <option value="<?= $cat['id'] ?>"
                             <?= sel($job['category_id'] ?? '', $cat['id']) ?>>
@@ -465,7 +466,7 @@ $statusColors = [
               </div>
 
               <div class="mb-0">
-                <label class="form-label fw-semibold">Właściciel zlecenia</label>
+                <label class="form-label fw-semibold"><?= htmlspecialchars(__t('admin.edit_job.owner')) ?></label>
                 <select name="user_id" class="form-select">
                   <?php foreach ($allUsers as $u): ?>
                     <option value="<?= $u['id'] ?>"
@@ -477,7 +478,7 @@ $statusColors = [
                 </select>
                 <div class="form-text text-danger">
                   <i class="bi bi-exclamation-triangle"></i>
-                  Zmiana właściciela jest nieodwracalna bez dodatkowej edycji.
+                  <?= htmlspecialchars(__t('admin.edit_job.owner_warning')) ?>
                 </div>
               </div>
 
@@ -486,7 +487,7 @@ $statusColors = [
 
           <!-- 4. Metadane (tylko odczyt) -->
           <div class="section-card">
-            <div class="section-head"><i class="bi bi-info-circle"></i> Informacje systemowe</div>
+            <div class="section-head"><i class="bi bi-info-circle"></i> <?= htmlspecialchars(__t('admin.system_info')) ?></div>
             <div class="section-body p-0">
               <table class="table table-sm mb-0">
                 <tr>
@@ -494,19 +495,19 @@ $statusColors = [
                   <td class="fw-bold pe-3">#<?= $jobId ?></td>
                 </tr>
                 <tr>
-                  <td class="text-muted ps-3">Utworzono</td>
+                  <td class="text-muted ps-3"><?= htmlspecialchars(__t('admin.edit_job.created_at')) ?></td>
                   <td class="pe-3"><?= date('d.m.Y H:i', strtotime($job['created_at'])) ?></td>
                 </tr>
                 <tr>
-                  <td class="text-muted ps-3">Aktualizacja</td>
+                  <td class="text-muted ps-3"><?= htmlspecialchars(__t('admin.updated_at')) ?></td>
                   <td class="pe-3"><?= date('d.m.Y H:i', strtotime($job['updated_at'])) ?></td>
                 </tr>
                 <tr>
-                  <td class="text-muted ps-3">Właściciel</td>
+                  <td class="text-muted ps-3"><?= htmlspecialchars(__t('admin.owner')) ?></td>
                   <td class="pe-3"><?= safeEcho($job['user_name'] ?? '—') ?></td>
                 </tr>
                 <tr>
-                  <td class="text-muted ps-3">Zdjęcia</td>
+                  <td class="text-muted ps-3"><?= htmlspecialchars(__t('admin.images')) ?></td>
                   <td class="pe-3"><?= count($jobImages) ?></td>
                 </tr>
               </table>
@@ -520,7 +521,7 @@ $statusColors = [
       <!-- Historia zmian — pełna szerokość -->
       <div class="section-card">
         <div class="section-head">
-          <i class="bi bi-clock-history"></i> Historia zmian
+          <i class="bi bi-clock-history"></i> <?= htmlspecialchars(__t('admin.change_history')) ?>
           <span class="badge bg-white text-dark ms-auto"><?= count($changeHistory) ?></span>
         </div>
         <div class="section-body p-0">
@@ -529,9 +530,9 @@ $statusColors = [
               <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
                   <tr>
-                    <th class="ps-3" style="width:160px">Data</th>
-                    <th style="width:160px">Administrator</th>
-                    <th>Opis zmian</th>
+                    <th class="ps-3" style="width:160px"><?= htmlspecialchars(__t('admin.date')) ?></th>
+                    <th style="width:160px"><?= htmlspecialchars(__t('admin.admin')) ?></th>
+                    <th><?= htmlspecialchars(__t('admin.edit_job.change_description')) ?></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -553,7 +554,7 @@ $statusColors = [
             </div>
           <?php else: ?>
             <p class="text-muted text-center py-3 mb-0">
-              <i class="bi bi-clock"></i> Brak zarejestrowanych zmian.
+              <i class="bi bi-clock"></i> <?= htmlspecialchars(__t('admin.no_changes')) ?>
             </p>
           <?php endif; ?>
         </div>
@@ -562,14 +563,14 @@ $statusColors = [
       <!-- Sticky bar zapisu -->
       <div class="sticky-bar">
         <a href="manage_jobs.php" class="btn btn-outline-secondary">
-          <i class="bi bi-x-circle"></i> Anuluj
+          <i class="bi bi-x-circle"></i> <?= htmlspecialchars(__t('admin.users.cancel')) ?>
         </a>
         <div class="d-flex align-items-center gap-3">
           <small class="text-muted d-none d-md-block">
-            Ostatnia edycja: <?= date('d.m.Y H:i', strtotime($job['updated_at'])) ?>
+            <?= htmlspecialchars(__t('admin.last_edit')) ?>: <?= date('d.m.Y H:i', strtotime($job['updated_at'])) ?>
           </small>
           <button type="submit" class="btn btn-primary px-4" form="editJobForm">
-            <i class="bi bi-floppy-fill me-1"></i> Zapisz zmiany
+            <i class="bi bi-floppy-fill me-1"></i> <?= htmlspecialchars(__t('admin.save_changes')) ?>
           </button>
         </div>
       </div>

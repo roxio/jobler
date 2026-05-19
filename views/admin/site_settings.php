@@ -34,9 +34,9 @@ function encodeListSetting($values) {
 
 function decodeTemplateSetting($value) {
     $defaults = [
-        'offer_received' => 'Otrzymałeś nową ofertę do ogłoszenia {job_title}.',
-        'offer_accepted' => 'Twoja oferta do ogłoszenia {job_title} została zaakceptowana.',
-        'conversation_reported' => 'Konwersacja {conversation_id} została zgłoszona do administracji.',
+        'offer_received' => __t('admin.settings.default_offer_received'),
+        'offer_accepted' => __t('admin.settings.default_offer_accepted'),
+        'conversation_reported' => __t('admin.settings.default_conversation_reported'),
     ];
     $decoded = json_decode((string)$value, true);
     return is_array($decoded) ? array_merge($defaults, $decoded) : $defaults;
@@ -48,13 +48,13 @@ function uploadSettingsAsset($file, $prefix, $currentFile) {
     }
 
     if ($file['error'] !== UPLOAD_ERR_OK) {
-        throw new RuntimeException('Nie udało się przesłać pliku.');
+        throw new RuntimeException(__t('admin.settings.file_upload_error'));
     }
 
     $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     $allowed = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'ico', 'webp'];
     if (!in_array($extension, $allowed, true)) {
-        throw new RuntimeException('Nieprawidłowy format pliku.');
+        throw new RuntimeException(__t('admin.settings.invalid_file_format'));
     }
 
     $uploadDir = '../../img/';
@@ -64,7 +64,7 @@ function uploadSettingsAsset($file, $prefix, $currentFile) {
 
     $fileName = uniqid($prefix . '_', true) . '.' . $extension;
     if (!move_uploaded_file($file['tmp_name'], $uploadDir . $fileName)) {
-        throw new RuntimeException('Nie udało się zapisać pliku.');
+        throw new RuntimeException(__t('admin.settings.file_save_error'));
     }
 
     return $fileName;
@@ -105,13 +105,13 @@ function createSystemBackup() {
     $path = backupDir() . '/' . $fileName;
 
     if (!class_exists('ZipArchive')) {
-        throw new RuntimeException('Rozszerzenie ZipArchive nie jest dostępne.');
+        throw new RuntimeException(__t('admin.settings.zip_missing'));
     }
 
     $root = dirname(__DIR__, 2);
     $zip = new ZipArchive();
     if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-        throw new RuntimeException('Nie udało się utworzyć backupu systemu.');
+        throw new RuntimeException(__t('admin.settings.system_backup_error'));
     }
 
     $iterator = new RecursiveIteratorIterator(
@@ -184,7 +184,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_backup') {
     $path = backupDir() . '/' . $file;
     if ($file === '' || !is_file($path)) {
         http_response_code(404);
-        exit('Nie znaleziono backupu.');
+        exit(__t('admin.settings.backup_not_found'));
     }
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . $file . '"');
@@ -200,7 +200,7 @@ $currentSettings = $settingsModel->getSettings();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_type'])) {
     $token = $_POST['csrf_token'] ?? '';
     if (!hash_equals($_SESSION['csrf_token'], $token)) {
-        $errorMessage = 'Błąd bezpieczeństwa. Odśwież stronę i spróbuj ponownie.';
+        $errorMessage = __t('cms.security_error');
     } else {
         $formType = $_POST['form_type'];
 
@@ -244,11 +244,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_type'])) {
                 ];
 
                 if ($settingsModel->updateSettings($settingsData)) {
-                    $successMessage = 'Ustawienia zostały zapisane.';
+                    $successMessage = __t('admin.settings.saved');
                     $currentSettings = $settingsModel->getSettings();
                     $settingsModel->logSettingsChange($_SESSION['user_id'], 'Zaktualizowane ustawienia strony', date('Y-m-d H:i:s'));
                 } else {
-                    $errorMessage = 'Nie udało się zapisać ustawień.';
+                    $errorMessage = __t('admin.settings.save_error');
                 }
             }
 
@@ -256,43 +256,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_type'])) {
                 $name = trim($_POST['category_name'] ?? '');
                 $parentId = $_POST['parent_category'] !== '' ? (int)$_POST['parent_category'] : null;
                 if ($name === '') {
-                    $errorMessage = 'Nazwa kategorii jest wymagana.';
+                    $errorMessage = __t('admin.settings.category_name_required');
                 } else {
                     $settingsModel->addCategory($name, $parentId);
-                    $successMessage = 'Kategoria została dodana.';
+                    $successMessage = __t('admin.settings.category_added');
                 }
             }
 
             if ($formType === 'update_category') {
                 $settingsModel->updateCategory((int)$_POST['category_id'], trim($_POST['category_name'] ?? ''), $_POST['parent_category'] !== '' ? (int)$_POST['parent_category'] : null);
-                $successMessage = 'Kategoria została zaktualizowana.';
+                $successMessage = __t('admin.settings.category_updated');
             }
 
             if ($formType === 'delete_category') {
                 $successMessage = $settingsModel->deleteCategory((int)$_POST['category_id'])
-                    ? 'Kategoria została usunięta.'
-                    : 'Nie można usunąć kategorii, która ma podkategorie.';
+                    ? __t('admin.settings.category_deleted')
+                    : __t('admin.settings.category_delete_blocked');
             }
 
             if ($formType === 'generate_sitemap') {
                 generateSitemap($pdo);
                 $settingsModel->updateSettingValue('sitemap_last_generated', date('Y-m-d H:i:s'));
                 $currentSettings = $settingsModel->getSettings();
-                $successMessage = 'Sitemap została wygenerowana.';
+                $successMessage = __t('admin.settings.sitemap_generated');
             }
 
             if ($formType === 'backup_database') {
                 $fileName = createDatabaseBackup($pdo);
                 $settingsModel->updateSettingValue('last_database_backup', $fileName);
                 $currentSettings = $settingsModel->getSettings();
-                $successMessage = 'Backup bazy danych został utworzony.';
+                $successMessage = __t('admin.settings.database_backup_created');
             }
 
             if ($formType === 'backup_system') {
                 $fileName = createSystemBackup();
                 $settingsModel->updateSettingValue('last_system_backup', $fileName);
                 $currentSettings = $settingsModel->getSettings();
-                $successMessage = 'Backup systemu został utworzony.';
+                $successMessage = __t('admin.settings.system_backup_created');
             }
         } catch (Throwable $e) {
             $errorMessage = $e->getMessage();
@@ -317,7 +317,7 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
         <div class="col-md-12 col-lg-12 main-content">
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> <?= safeEcho(__t('admin.panel')) ?></h5>
                     <nav class="nav"><?php include 'sidebar.php'; ?></nav>
                 </div>
 
@@ -330,38 +330,38 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
                         <input type="hidden" name="form_type" value="update_settings">
 
                         <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
-                            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#companyTab" type="button">Firma</button></li>
-                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#brandingTab" type="button">Logo</button></li>
+                            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#companyTab" type="button"><?= safeEcho(__t('admin.settings.tab_company')) ?></button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#brandingTab" type="button"><?= safeEcho(__t('admin.settings.tab_branding')) ?></button></li>
                             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#seoTab" type="button">SEO</button></li>
-                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#systemTab" type="button">System</button></li>
-                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#emailTab" type="button">Email</button></li>
-                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#categoriesTab" type="button">Kategorie</button></li>
-                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#maintenanceTab" type="button">Sitemap / Backup</button></li>
-                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#logsTab" type="button">Logi</button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#systemTab" type="button"><?= safeEcho(__t('admin.settings.tab_system')) ?></button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#emailTab" type="button"><?= safeEcho(__t('admin.settings.tab_email')) ?></button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#categoriesTab" type="button"><?= safeEcho(__t('admin.settings.tab_categories')) ?></button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#maintenanceTab" type="button"><?= safeEcho(__t('admin.settings.tab_maintenance')) ?></button></li>
+                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#logsTab" type="button"><?= safeEcho(__t('admin.settings.tab_logs')) ?></button></li>
                         </ul>
 
                         <div class="tab-content border border-top-0 p-3">
                             <div class="tab-pane fade show active" id="companyTab">
                                 <div class="row g-3">
-                                    <div class="col-md-6"><label class="form-label">Nazwa firmy</label><input name="company_name" class="form-control" value="<?= safeEcho($currentSettings['company_name'] ?? '') ?>"></div>
-                                    <div class="col-md-6"><label class="form-label">NIP / identyfikator</label><input name="company_tax_id" class="form-control" value="<?= safeEcho($currentSettings['company_tax_id'] ?? '') ?>"></div>
-                                    <div class="col-md-4"><label class="form-label">Adresy siedziby</label><div class="multi-field" data-name="company_addresses"><?php foreach ($companyAddresses ?: [''] as $value): ?><div class="input-group mb-2"><input name="company_addresses[]" class="form-control" value="<?= safeEcho($value) ?>"><button type="button" class="btn btn-outline-danger remove-field"><i class="bi bi-x"></i></button></div><?php endforeach; ?></div><button type="button" class="btn btn-sm btn-outline-primary add-field">Dodaj adres</button></div>
-                                    <div class="col-md-4"><label class="form-label">Emaile firmowe</label><div class="multi-field" data-name="company_emails"><?php foreach ($companyEmails ?: [''] as $value): ?><div class="input-group mb-2"><input type="email" name="company_emails[]" class="form-control" value="<?= safeEcho($value) ?>"><button type="button" class="btn btn-outline-danger remove-field"><i class="bi bi-x"></i></button></div><?php endforeach; ?></div><button type="button" class="btn btn-sm btn-outline-primary add-field">Dodaj email</button></div>
-                                    <div class="col-md-4"><label class="form-label">Telefony firmowe</label><div class="multi-field" data-name="company_phones"><?php foreach ($companyPhones ?: [''] as $value): ?><div class="input-group mb-2"><input name="company_phones[]" class="form-control" value="<?= safeEcho($value) ?>"><button type="button" class="btn btn-outline-danger remove-field"><i class="bi bi-x"></i></button></div><?php endforeach; ?></div><button type="button" class="btn btn-sm btn-outline-primary add-field">Dodaj telefon</button></div>
-                                    <div class="col-md-6"><label class="form-label">Email kontaktowy</label><input type="email" name="contact_email" class="form-control" value="<?= safeEcho($currentSettings['contact_email'] ?? '') ?>"></div>
-                                    <div class="col-md-6"><label class="form-label">Godziny otwarcia</label><input name="business_hours" class="form-control" value="<?= safeEcho($currentSettings['business_hours'] ?? '') ?>"></div>
-                                    <div class="col-12"><label class="form-label">Adres główny / stopka</label><textarea name="contact_address" class="form-control" rows="2"><?= safeEcho($currentSettings['contact_address'] ?? '') ?></textarea></div>
+                                    <div class="col-md-6"><label class="form-label"><?= safeEcho(__t('admin.settings.company_name')) ?></label><input name="company_name" class="form-control" value="<?= safeEcho($currentSettings['company_name'] ?? '') ?>"></div>
+                                    <div class="col-md-6"><label class="form-label"><?= safeEcho(__t('admin.settings.company_tax_id')) ?></label><input name="company_tax_id" class="form-control" value="<?= safeEcho($currentSettings['company_tax_id'] ?? '') ?>"></div>
+                                    <div class="col-md-4"><label class="form-label"><?= safeEcho(__t('admin.settings.company_addresses')) ?></label><div class="multi-field" data-name="company_addresses"><?php foreach ($companyAddresses ?: [''] as $value): ?><div class="input-group mb-2"><input name="company_addresses[]" class="form-control" value="<?= safeEcho($value) ?>"><button type="button" class="btn btn-outline-danger remove-field"><i class="bi bi-x"></i></button></div><?php endforeach; ?></div><button type="button" class="btn btn-sm btn-outline-primary add-field"><?= safeEcho(__t('admin.settings.add_address')) ?></button></div>
+                                    <div class="col-md-4"><label class="form-label"><?= safeEcho(__t('admin.settings.company_emails')) ?></label><div class="multi-field" data-name="company_emails"><?php foreach ($companyEmails ?: [''] as $value): ?><div class="input-group mb-2"><input type="email" name="company_emails[]" class="form-control" value="<?= safeEcho($value) ?>"><button type="button" class="btn btn-outline-danger remove-field"><i class="bi bi-x"></i></button></div><?php endforeach; ?></div><button type="button" class="btn btn-sm btn-outline-primary add-field"><?= safeEcho(__t('admin.settings.add_email')) ?></button></div>
+                                    <div class="col-md-4"><label class="form-label"><?= safeEcho(__t('admin.settings.company_phones')) ?></label><div class="multi-field" data-name="company_phones"><?php foreach ($companyPhones ?: [''] as $value): ?><div class="input-group mb-2"><input name="company_phones[]" class="form-control" value="<?= safeEcho($value) ?>"><button type="button" class="btn btn-outline-danger remove-field"><i class="bi bi-x"></i></button></div><?php endforeach; ?></div><button type="button" class="btn btn-sm btn-outline-primary add-field"><?= safeEcho(__t('admin.settings.add_phone')) ?></button></div>
+                                    <div class="col-md-6"><label class="form-label"><?= safeEcho(__t('admin.settings.contact_email')) ?></label><input type="email" name="contact_email" class="form-control" value="<?= safeEcho($currentSettings['contact_email'] ?? '') ?>"></div>
+                                    <div class="col-md-6"><label class="form-label"><?= safeEcho(__t('admin.settings.business_hours')) ?></label><input name="business_hours" class="form-control" value="<?= safeEcho($currentSettings['business_hours'] ?? '') ?>"></div>
+                                    <div class="col-12"><label class="form-label"><?= safeEcho(__t('admin.settings.footer_address')) ?></label><textarea name="contact_address" class="form-control" rows="2"><?= safeEcho($currentSettings['contact_address'] ?? '') ?></textarea></div>
                                     <input type="hidden" name="contact_phone" value="<?= safeEcho($currentSettings['contact_phone'] ?? '') ?>">
                                 </div>
                             </div>
 
                             <div class="tab-pane fade" id="brandingTab">
                                 <div class="row g-3">
-                                    <div class="col-md-6"><label class="form-label">Tytuł strony</label><input name="site_title" class="form-control" value="<?= safeEcho($currentSettings['title'] ?? '') ?>" required></div>
-                                    <div class="col-md-6"><label class="form-label">Layout</label><select name="layout_variant" class="form-select"><option value="classic" <?= ($currentSettings['layout_variant'] ?? '') === 'classic' ? 'selected' : '' ?>>Klasyczny</option><option value="compact" <?= ($currentSettings['layout_variant'] ?? '') === 'compact' ? 'selected' : '' ?>>Kompaktowy</option><option value="modern" <?= ($currentSettings['layout_variant'] ?? '') === 'modern' ? 'selected' : '' ?>>Nowoczesny</option></select></div>
+                                    <div class="col-md-6"><label class="form-label"><?= safeEcho(__t('admin.settings.site_title')) ?></label><input name="site_title" class="form-control" value="<?= safeEcho($currentSettings['title'] ?? '') ?>" required></div>
+                                    <div class="col-md-6"><label class="form-label"><?= safeEcho(__t('admin.settings.layout')) ?></label><select name="layout_variant" class="form-select"><option value="classic" <?= ($currentSettings['layout_variant'] ?? '') === 'classic' ? 'selected' : '' ?>><?= safeEcho(__t('admin.settings.layout_classic')) ?></option><option value="compact" <?= ($currentSettings['layout_variant'] ?? '') === 'compact' ? 'selected' : '' ?>><?= safeEcho(__t('admin.settings.layout_compact')) ?></option><option value="modern" <?= ($currentSettings['layout_variant'] ?? '') === 'modern' ? 'selected' : '' ?>><?= safeEcho(__t('admin.settings.layout_modern')) ?></option></select></div>
                                     <div class="col-md-6"><label class="form-label">Logo</label><input type="file" name="site_logo" class="form-control" accept="image/*"><?php if (!empty($currentSettings['logo']) && file_exists('../../img/' . $currentSettings['logo'])): ?><img src="/img/<?= safeEcho($currentSettings['logo']) ?>" class="mt-2" style="height:50px;max-width:220px;" alt="Logo"><?php endif; ?></div>
                                     <div class="col-md-6"><label class="form-label">Favicon</label><input type="file" name="site_favicon" class="form-control" accept="image/*,.ico"><?php if (!empty($currentSettings['favicon']) && file_exists('../../img/' . $currentSettings['favicon'])): ?><img src="/img/<?= safeEcho($currentSettings['favicon']) ?>" class="mt-2" style="height:32px;width:32px;" alt="Favicon"><?php endif; ?></div>
-                                    <div class="col-12"><label class="form-label">Tekst copyright</label><input name="copyright_text" class="form-control" value="<?= safeEcho($currentSettings['copyright_text'] ?? '© {year} {site_title} - Wszelkie prawa zastrzeżone.') ?>"><div class="form-text">Mozesz uzyc: {year}, {site_title}</div></div>
+                                    <div class="col-12"><label class="form-label"><?= safeEcho(__t('admin.settings.copyright_text')) ?></label><input name="copyright_text" class="form-control" value="<?= safeEcho($currentSettings['copyright_text'] ?? __t('admin.settings.default_copyright')) ?>"><div class="form-text"><?= safeEcho(__t('admin.settings.copyright_hint')) ?></div></div>
                                     <div class="col-md-3"><label class="form-label">Facebook</label><input type="url" name="facebook_url" class="form-control" value="<?= safeEcho($currentSettings['facebook_url'] ?? '') ?>"></div>
                                     <div class="col-md-3"><label class="form-label">Twitter</label><input type="url" name="twitter_url" class="form-control" value="<?= safeEcho($currentSettings['twitter_url'] ?? '') ?>"></div>
                                     <div class="col-md-3"><label class="form-label">Instagram</label><input type="url" name="instagram_url" class="form-control" value="<?= safeEcho($currentSettings['instagram_url'] ?? '') ?>"></div>
@@ -373,7 +373,7 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
                                 <div class="row g-3">
                                     <div class="col-12"><label class="form-label">Meta Title</label><input name="meta_title" class="form-control" value="<?= safeEcho($currentSettings['meta_title'] ?? '') ?>"></div>
                                     <div class="col-md-6"><label class="form-label">Meta Description</label><textarea name="meta_description" class="form-control" rows="5"><?= safeEcho($currentSettings['meta_description'] ?? '') ?></textarea></div>
-                                    <div class="col-md-6"><label class="form-label">Słowa kluczowe</label><textarea name="meta_keywords" class="form-control" rows="5"><?= safeEcho($currentSettings['meta_keywords'] ?? '') ?></textarea></div>
+                                    <div class="col-md-6"><label class="form-label"><?= safeEcho(__t('admin.settings.meta_keywords')) ?></label><textarea name="meta_keywords" class="form-control" rows="5"><?= safeEcho($currentSettings['meta_keywords'] ?? '') ?></textarea></div>
                                 </div>
                             </div>
 
@@ -399,10 +399,10 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-md-3"><label class="form-label">Maks. ogłoszeń</label><input type="number" min="1" name="max_ads" class="form-control" value="<?= safeEcho($currentSettings['max_ads'] ?? 10) ?>"></div>
-                                    <div class="col-md-3"><label class="form-label">Promowanie</label><input type="number" min="0" step="0.01" name="promotion_fee" class="form-control" value="<?= safeEcho($currentSettings['promotion_fee'] ?? 10) ?>"></div>
-                                    <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="maintenance_mode" value="1" <?= !empty($currentSettings['maintenance_mode']) ? 'checked' : '' ?>><label class="form-check-label">Tryb maintenance</label></div></div>
-                                    <div class="col-12"><label class="form-label">Komunikat maintenance</label><textarea name="maintenance_message" class="form-control" rows="3"><?= safeEcho($currentSettings['maintenance_message'] ?? '') ?></textarea></div>
+                                    <div class="col-md-3"><label class="form-label"><?= safeEcho(__t('admin.settings.max_ads')) ?></label><input type="number" min="1" name="max_ads" class="form-control" value="<?= safeEcho($currentSettings['max_ads'] ?? 10) ?>"></div>
+                                    <div class="col-md-3"><label class="form-label"><?= safeEcho(__t('admin.settings.promotion_fee')) ?></label><input type="number" min="0" step="0.01" name="promotion_fee" class="form-control" value="<?= safeEcho($currentSettings['promotion_fee'] ?? 10) ?>"></div>
+                                    <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="maintenance_mode" value="1" <?= !empty($currentSettings['maintenance_mode']) ? 'checked' : '' ?>><label class="form-check-label"><?= safeEcho(__t('admin.settings.maintenance_mode')) ?></label></div></div>
+                                    <div class="col-12"><label class="form-label"><?= safeEcho(__t('admin.settings.maintenance_message')) ?></label><textarea name="maintenance_message" class="form-control" rows="3"><?= safeEcho($currentSettings['maintenance_message'] ?? '') ?></textarea></div>
                                 </div>
                             </div>
 
@@ -410,9 +410,9 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
                                 <div class="row g-3">
                                     <div class="col-md-4"><label class="form-label">SMTP server</label><input name="smtp_server" class="form-control" value="<?= safeEcho($currentSettings['smtp_server'] ?? '') ?>"></div>
                                     <div class="col-md-2"><label class="form-label">Port</label><input name="smtp_port" class="form-control" value="<?= safeEcho($currentSettings['smtp_port'] ?? '') ?>"></div>
-                                    <div class="col-md-3"><label class="form-label">Użytkownik</label><input name="smtp_username" class="form-control" value="<?= safeEcho($currentSettings['smtp_username'] ?? '') ?>"></div>
-                                    <div class="col-md-3"><label class="form-label">Hasło</label><input type="password" name="smtp_password" class="form-control" value="<?= safeEcho($currentSettings['smtp_password'] ?? '') ?>"></div>
-                                    <?php foreach ($emailTemplates as $key => $template): ?><div class="col-12"><label class="form-label">Szablon: <?= safeEcho($key) ?></label><textarea name="email_templates[<?= safeEcho($key) ?>]" class="form-control" rows="3"><?= safeEcho($template) ?></textarea></div><?php endforeach; ?>
+                                    <div class="col-md-3"><label class="form-label"><?= safeEcho(__t('admin.settings.smtp_user')) ?></label><input name="smtp_username" class="form-control" value="<?= safeEcho($currentSettings['smtp_username'] ?? '') ?>"></div>
+                                    <div class="col-md-3"><label class="form-label"><?= safeEcho(__t('admin.settings.smtp_password')) ?></label><input type="password" name="smtp_password" class="form-control" value="<?= safeEcho($currentSettings['smtp_password'] ?? '') ?>"></div>
+                                    <?php foreach ($emailTemplates as $key => $template): ?><div class="col-12"><label class="form-label"><?= safeEcho(__t('admin.settings.email_template', ['key' => $key])) ?></label><textarea name="email_templates[<?= safeEcho($key) ?>]" class="form-control" rows="3"><?= safeEcho($template) ?></textarea></div><?php endforeach; ?>
                                 </div>
                             </div>
 
@@ -420,17 +420,17 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
                                 <div class="row g-3">
                                     <div class="col-lg-4">
                                         <div class="border rounded p-3">
-                                            <h6>Kategoria</h6>
+                                            <h6><?= safeEcho(__t('admin.settings.category')) ?></h6>
                                             <div id="categoryFormExternal">
                                                 <input type="hidden" id="categoryFormType" value="add_category">
                                                 <input type="hidden" id="categoryId">
                                                 <input type="hidden" id="parentCategory">
-                                                <label class="form-label">Nazwa</label>
+                                                <label class="form-label"><?= safeEcho(__t('admin.settings.name')) ?></label>
                                                 <input type="text" id="categoryName" class="form-control">
-                                                <div class="form-text" id="categoryParentHint">Dodajesz kategorię główną.</div>
+                                                <div class="form-text" id="categoryParentHint"><?= safeEcho(__t('admin.settings.adding_root_category')) ?></div>
                                                 <div class="d-flex gap-2 mt-2">
-                                                    <button type="button" class="btn btn-primary btn-sm" id="submitCategoryForm">Dodaj</button>
-                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetCategoryForm">Wyczyść</button>
+                                                    <button type="button" class="btn btn-primary btn-sm" id="submitCategoryForm"><?= safeEcho(__t('admin.settings.add')) ?></button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetCategoryForm"><?= safeEcho(__t('admin.common.clear')) ?></button>
                                                 </div>
                                             </div>
                                         </div>
@@ -456,22 +456,22 @@ $loginHistoryModel->logLogin($_SESSION['user_id'], $_SERVER['REMOTE_ADDR'], date
 
                             <div class="tab-pane fade" id="maintenanceTab">
                                 <div class="row g-3">
-                                    <div class="col-md-6"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="sitemap_enabled" value="1" <?= !isset($currentSettings['sitemap_enabled']) || (int)$currentSettings['sitemap_enabled'] === 1 ? 'checked' : '' ?>><label class="form-check-label">Włącz sitemapę</label></div><p class="text-muted mt-2">Ostatnio: <?= safeEcho($currentSettings['sitemap_last_generated'] ?? 'brak') ?></p></div>
-                                    <div class="col-md-6"><button type="submit" name="form_type" value="generate_sitemap" class="btn btn-outline-primary">Generuj sitemap.xml</button></div>
-                                    <div class="col-md-6"><button type="submit" name="form_type" value="backup_system" class="btn btn-outline-secondary">Backup systemu</button><p class="text-muted mt-2">Ostatni: <?= safeEcho($currentSettings['last_system_backup'] ?? 'brak') ?></p><?php if (!empty($currentSettings['last_system_backup'])): ?><a href="?action=download_backup&file=<?= urlencode($currentSettings['last_system_backup']) ?>">Pobierz</a><?php endif; ?></div>
-                                    <div class="col-md-6"><button type="submit" name="form_type" value="backup_database" class="btn btn-outline-secondary">Backup bazy danych</button><p class="text-muted mt-2">Ostatni: <?= safeEcho($currentSettings['last_database_backup'] ?? 'brak') ?></p><?php if (!empty($currentSettings['last_database_backup'])): ?><a href="?action=download_backup&file=<?= urlencode($currentSettings['last_database_backup']) ?>">Pobierz</a><?php endif; ?></div>
+                                    <div class="col-md-6"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="sitemap_enabled" value="1" <?= !isset($currentSettings['sitemap_enabled']) || (int)$currentSettings['sitemap_enabled'] === 1 ? 'checked' : '' ?>><label class="form-check-label"><?= safeEcho(__t('admin.settings.enable_sitemap')) ?></label></div><p class="text-muted mt-2"><?= safeEcho(__t('admin.settings.last')) ?>: <?= safeEcho($currentSettings['sitemap_last_generated'] ?? __t('admin.settings.none')) ?></p></div>
+                                    <div class="col-md-6"><button type="submit" name="form_type" value="generate_sitemap" class="btn btn-outline-primary"><?= safeEcho(__t('admin.settings.generate_sitemap')) ?></button></div>
+                                    <div class="col-md-6"><button type="submit" name="form_type" value="backup_system" class="btn btn-outline-secondary"><?= safeEcho(__t('admin.settings.system_backup')) ?></button><p class="text-muted mt-2"><?= safeEcho(__t('admin.settings.last')) ?>: <?= safeEcho($currentSettings['last_system_backup'] ?? __t('admin.settings.none')) ?></p><?php if (!empty($currentSettings['last_system_backup'])): ?><a href="?action=download_backup&file=<?= urlencode($currentSettings['last_system_backup']) ?>"><?= safeEcho(__t('admin.settings.download')) ?></a><?php endif; ?></div>
+                                    <div class="col-md-6"><button type="submit" name="form_type" value="backup_database" class="btn btn-outline-secondary"><?= safeEcho(__t('admin.settings.database_backup')) ?></button><p class="text-muted mt-2"><?= safeEcho(__t('admin.settings.last')) ?>: <?= safeEcho($currentSettings['last_database_backup'] ?? __t('admin.settings.none')) ?></p><?php if (!empty($currentSettings['last_database_backup'])): ?><a href="?action=download_backup&file=<?= urlencode($currentSettings['last_database_backup']) ?>"><?= safeEcho(__t('admin.settings.download')) ?></a><?php endif; ?></div>
                                 </div>
                             </div>
 
                             <div class="tab-pane fade" id="logsTab">
                                 <div class="row g-3">
-                                    <div class="col-md-6"><h6>Ostatnie błędy</h6><ul><?php foreach (array_slice($errors, 0, 10) as $error): ?><li><?= safeEcho($error['error_message'] ?? '') ?> - <?= safeEcho($error['timestamp'] ?? '') ?></li><?php endforeach; ?></ul></div>
-                                    <div class="col-md-6"><h6>Ostatnie transakcje</h6><ul><?php foreach (array_slice($transactions, 0, 10) as $transaction): ?><li><?= safeEcho($transaction['description'] ?? '') ?> - <?= safeEcho($transaction['amount'] ?? '') ?> PLN</li><?php endforeach; ?></ul></div>
+                                    <div class="col-md-6"><h6><?= safeEcho(__t('admin.settings.recent_errors')) ?></h6><ul><?php foreach (array_slice($errors, 0, 10) as $error): ?><li><?= safeEcho($error['error_message'] ?? '') ?> - <?= safeEcho($error['timestamp'] ?? '') ?></li><?php endforeach; ?></ul></div>
+                                    <div class="col-md-6"><h6><?= safeEcho(__t('admin.settings.recent_transactions')) ?></h6><ul><?php foreach (array_slice($transactions, 0, 10) as $transaction): ?><li><?= safeEcho($transaction['description'] ?? '') ?> - <?= safeEcho($transaction['amount'] ?? '') ?> PLN</li><?php endforeach; ?></ul></div>
                                 </div>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-success mt-3">Zapisz ustawienia</button>
+                        <button type="submit" class="btn btn-success mt-3"><?= safeEcho(__t('admin.settings.save_settings')) ?></button>
                     </form>
                 </div>
             </div>
@@ -522,10 +522,10 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadChildren(node) {
         const children = node.querySelector(':scope > .category-children');
         if (children.dataset.loaded === '1') return;
-        children.innerHTML = '<div class="text-muted small">Ładowanie...</div>';
+        children.innerHTML = '<div class="text-muted small"><?= safeEcho(__t('admin.settings.loading')) ?></div>';
         const response = await fetch(`site_settings.php?action=category_children&parent_id=${encodeURIComponent(node.dataset.categoryId)}`);
         const data = await response.json();
-        children.innerHTML = data.categories.map(renderCategory).join('') || '<div class="text-muted small">Brak podkategorii.</div>';
+        children.innerHTML = data.categories.map(renderCategory).join('') || '<div class="text-muted small"><?= safeEcho(__t('admin.settings.no_subcategories')) ?></div>';
         children.dataset.loaded = '1';
     }
 
@@ -534,7 +534,7 @@ document.addEventListener('DOMContentLoaded', function() {
         categoryId.value = '';
         parentCategory.value = '';
         categoryName.value = '';
-        parentHint.textContent = 'Dodajesz kategorię główną.';
+        parentHint.textContent = <?= json_encode(__t('admin.settings.adding_root_category'), JSON_UNESCAPED_UNICODE) ?>;
     }
 
     document.querySelectorAll('.add-field').forEach(button => {
@@ -566,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function() {
             categoryId.value = '';
             parentCategory.value = node.dataset.categoryId;
             categoryName.value = '';
-            parentHint.textContent = `Dodajesz podkategorię do: ${node.dataset.categoryName}`;
+            parentHint.textContent = <?= json_encode(__t('admin.settings.adding_subcategory', ['name' => '__NAME__']), JSON_UNESCAPED_UNICODE) ?>.replace('__NAME__', node.dataset.categoryName);
             categoryName.focus();
         }
 
@@ -575,11 +575,11 @@ document.addEventListener('DOMContentLoaded', function() {
             categoryId.value = node.dataset.categoryId;
             parentCategory.value = node.dataset.parentId || '';
             categoryName.value = node.dataset.categoryName;
-            parentHint.textContent = 'Edytujesz nazwę kategorii.';
+            parentHint.textContent = <?= json_encode(__t('admin.settings.editing_category'), JSON_UNESCAPED_UNICODE) ?>;
             categoryName.focus();
         }
 
-        if (event.target.closest('.delete-category') && confirm('Usunąć tę kategorię?')) {
+        if (event.target.closest('.delete-category') && confirm(<?= json_encode(__t('admin.settings.delete_category_confirm'), JSON_UNESCAPED_UNICODE) ?>)) {
             actionType.value = 'delete_category';
             actionId.value = node.dataset.categoryId;
             actionForm.submit();

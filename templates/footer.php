@@ -173,7 +173,7 @@ $(document).ready(function() {
         messageDiv.removeClass('alert-danger alert-success').html('');
         
         $.ajax({
-            url: '/subscribe-newsletter.php',
+            url: '/subscribe-newsletter.php?lang=<?= urlencode($footerLocale) ?>',
             type: 'POST',
             data: formData,
             dataType: 'json',
@@ -186,7 +186,7 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                messageDiv.addClass('alert alert-danger').html('Wystąpił błąd podczas przetwarzania żądania.');
+                messageDiv.addClass('alert alert-danger').html(<?= json_encode(__t('newsletter.ajax_error'), JSON_UNESCAPED_UNICODE) ?>);
             }
         });
     });

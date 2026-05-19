@@ -25,14 +25,14 @@ $editingPage = null;
 if (isset($_GET['edit'])) {
     $editingPage = $pageModel->getById((int)$_GET['edit']);
     if (!$editingPage) {
-        $errorMessage = 'Nie znaleziono podstrony do edycji.';
+        $errorMessage = __t('cms.not_found_edit');
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
     if (!hash_equals($_SESSION['csrf_token'], $token)) {
-        $errorMessage = 'Blad bezpieczenstwa. Odswiez strone i sprobuj ponownie.';
+        $errorMessage = __t('cms.security_error');
     } else {
         $action = $_POST['action'] ?? 'save';
 
@@ -61,20 +61,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $errorMessage = $result['error'] ?? 'Nie udalo sie zapisac podstrony.';
+        $errorMessage = $result['error'] ?? __t('cms.save_error');
         $editingPage = $_POST;
     }
 }
 
 if (isset($_GET['message'])) {
     if ($_GET['message'] === 'saved') {
-        $successMessage = 'Podstrona zostala zapisana.';
+        $successMessage = __t('cms.saved');
     }
     if ($_GET['message'] === 'deleted') {
-        $successMessage = 'Podstrona zostala usunieta.';
+        $successMessage = __t('cms.deleted');
     }
     if ($_GET['message'] === 'error') {
-        $errorMessage = 'Nie udalo sie wykonac operacji.';
+        $errorMessage = __t('cms.error');
     }
 }
 
@@ -102,9 +102,9 @@ $pageTranslations = $isEditing ? $pageModel->getTranslations((int)$editingPage['
                         <div class="col-lg-5">
                             <div class="card h-100">
                                 <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Podstrony</h5>
+                                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> <?= safeEcho(__t('cms.pages')) ?></h5>
                                     <?php if ($isEditing): ?>
-                                        <a href="pages.php" class="btn btn-sm btn-outline-primary">Dodaj nowa</a>
+                                        <a href="pages.php" class="btn btn-sm btn-outline-primary"><?= safeEcho(__t('cms.add_new')) ?></a>
                                     <?php endif; ?>
                                 </div>
                                 <div class="card-body p-0">
@@ -112,10 +112,10 @@ $pageTranslations = $isEditing ? $pageModel->getTranslations((int)$editingPage['
                                         <table class="table table-hover align-middle mb-0">
                                             <thead>
                                                 <tr>
-                                                    <th>Tytul</th>
-                                                    <th>Status</th>
-                                                    <th>Widocznosc</th>
-                                                    <th class="text-end">Akcje</th>
+                                                    <th><?= safeEcho(__t('cms.title')) ?></th>
+                                                    <th><?= safeEcho(__t('cms.status')) ?></th>
+                                                    <th><?= safeEcho(__t('cms.visibility')) ?></th>
+                                                    <th class="text-end"><?= safeEcho(__t('cms.actions')) ?></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -127,25 +127,25 @@ $pageTranslations = $isEditing ? $pageModel->getTranslations((int)$editingPage['
                                                         </td>
                                                         <td>
                                                             <span class="badge <?= ($page['status'] ?? '') === 'published' ? 'bg-success' : 'bg-secondary' ?>">
-                                                                <?= ($page['status'] ?? '') === 'published' ? 'Opublikowana' : 'Szkic' ?>
+                                                                <?= safeEcho(($page['status'] ?? '') === 'published' ? __t('cms.published') : __t('cms.draft')) ?>
                                                             </span>
                                                         </td>
                                                         <td>
-                                                            <?php if (!empty($page['show_in_menu'])): ?><span class="badge bg-primary">Menu</span><?php endif; ?>
-                                                            <?php if (!empty($page['show_in_footer'])): ?><span class="badge bg-info">Stopka</span><?php endif; ?>
+                                                            <?php if (!empty($page['show_in_menu'])): ?><span class="badge bg-primary"><?= safeEcho(__t('cms.menu')) ?></span><?php endif; ?>
+                                                            <?php if (!empty($page['show_in_footer'])): ?><span class="badge bg-info"><?= safeEcho(__t('cms.footer')) ?></span><?php endif; ?>
                                                         </td>
                                                         <td class="text-end">
-                                                            <a href="pages.php?edit=<?= (int)$page['id'] ?>" class="btn btn-sm btn-outline-warning" title="Edytuj">
+                                                            <a href="pages.php?edit=<?= (int)$page['id'] ?>" class="btn btn-sm btn-outline-warning" title="<?= safeEcho(__t('cms.edit_page')) ?>">
                                                                 <i class="bi bi-pencil"></i>
                                                             </a>
-                                                            <a href="<?= safeEcho($pageModel->publicUrl($page)) ?>" target="_blank" class="btn btn-sm btn-outline-info" title="Podglad">
+                                                            <a href="<?= safeEcho($pageModel->publicUrl($page)) ?>" target="_blank" class="btn btn-sm btn-outline-info" title="<?= safeEcho(__t('cms.preview')) ?>">
                                                                 <i class="bi bi-box-arrow-up-right"></i>
                                                             </a>
                                                         </td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                                 <?php if (empty($pages)): ?>
-                                                    <tr><td colspan="4" class="text-muted text-center py-4">Brak podstron.</td></tr>
+                                                    <tr><td colspan="4" class="text-muted text-center py-4"><?= safeEcho(__t('cms.no_pages')) ?></td></tr>
                                                 <?php endif; ?>
                                             </tbody>
                                         </table>
@@ -159,7 +159,7 @@ $pageTranslations = $isEditing ? $pageModel->getTranslations((int)$editingPage['
                                 <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="bi <?= $isEditing ? 'bi-pencil-square' : 'bi-plus-circle' ?>"></i>
-                                        <?= $isEditing ? 'Edytuj podstrone' : 'Dodaj podstrone' ?>
+                                        <?= safeEcho($isEditing ? __t('cms.edit_page') : __t('cms.add_page')) ?>
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -170,32 +170,32 @@ $pageTranslations = $isEditing ? $pageModel->getTranslations((int)$editingPage['
 
                                         <div class="row g-3">
                                             <div class="col-md-8">
-                                                <label class="form-label">Tytul</label>
+                                                <label class="form-label"><?= safeEcho(__t('cms.title')) ?></label>
                                                 <input name="title" class="form-control" value="<?= safeEcho($editingPage['title'] ?? '') ?>" required>
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label">Kolejnosc</label>
+                                                <label class="form-label"><?= safeEcho(__t('cms.order')) ?></label>
                                                 <input type="number" name="sort_order" class="form-control" value="<?= safeEcho($editingPage['sort_order'] ?? 100) ?>">
                                             </div>
                                             <div class="col-md-8">
-                                                <label class="form-label">Adres URL</label>
+                                                <label class="form-label"><?= safeEcho(__t('cms.slug')) ?></label>
                                                 <div class="input-group">
                                                     <span class="input-group-text">/page.php?slug=</span>
                                                     <input name="slug" class="form-control" value="<?= safeEcho($editingPage['slug'] ?? '') ?>" placeholder="np. regulamin">
                                                 </div>
-                                                <div class="form-text">Gdy zostawisz puste, adres utworzy sie z tytulu.</div>
+                                                <div class="form-text"><?= safeEcho(__t('cms.slug_hint')) ?></div>
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label">Status</label>
+                                                <label class="form-label"><?= safeEcho(__t('cms.status')) ?></label>
                                                 <select name="status" class="form-select">
-                                                    <option value="published" <?= ($editingPage['status'] ?? 'published') === 'published' ? 'selected' : '' ?>>Opublikowana</option>
-                                                    <option value="draft" <?= ($editingPage['status'] ?? '') === 'draft' ? 'selected' : '' ?>>Szkic</option>
+                                                    <option value="published" <?= ($editingPage['status'] ?? 'published') === 'published' ? 'selected' : '' ?>><?= safeEcho(__t('cms.published')) ?></option>
+                                                    <option value="draft" <?= ($editingPage['status'] ?? '') === 'draft' ? 'selected' : '' ?>><?= safeEcho(__t('cms.draft')) ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-12">
-                                                <label class="form-label">Tresc</label>
+                                                <label class="form-label"><?= safeEcho(__t('cms.content')) ?></label>
                                                 <textarea name="content" class="form-control" rows="12"><?= safeEcho($editingPage['content'] ?? '') ?></textarea>
-                                                <div class="form-text">Tresc jest wyswietlana jako zwykly tekst z zachowaniem nowych linii.</div>
+                                                <div class="form-text"><?= safeEcho(__t('cms.content_hint')) ?></div>
                                             </div>
                                             <div class="col-12">
                                                 <label class="form-label"><?= safeEcho(__t('cms.translations')) ?></label>
@@ -214,11 +214,11 @@ $pageTranslations = $isEditing ? $pageModel->getTranslations((int)$editingPage['
                                                         <div class="tab-pane fade <?= $languageIndex === 0 ? 'show active' : '' ?>" id="translation-<?= safeEcho($language['code']) ?>">
                                                             <div class="row g-3">
                                                                 <div class="col-12">
-                                                                    <label class="form-label">Tytuł (<?= safeEcho($language['short']) ?>)</label>
+                                                                    <label class="form-label"><?= safeEcho(__t('cms.translation_title', ['language' => $language['short']])) ?></label>
                                                                     <input name="translations[<?= safeEcho($language['code']) ?>][title]" class="form-control" value="<?= safeEcho($translation['title'] ?? '') ?>">
                                                                 </div>
                                                                 <div class="col-12">
-                                                                    <label class="form-label">Treść (<?= safeEcho($language['short']) ?>)</label>
+                                                                    <label class="form-label"><?= safeEcho(__t('cms.translation_content', ['language' => $language['short']])) ?></label>
                                                                     <textarea name="translations[<?= safeEcho($language['code']) ?>][content]" class="form-control" rows="8"><?= safeEcho($translation['content'] ?? '') ?></textarea>
                                                                 </div>
                                                                 <div class="col-md-6">
@@ -233,7 +233,7 @@ $pageTranslations = $isEditing ? $pageModel->getTranslations((int)$editingPage['
                                                         </div>
                                                     <?php $languageIndex++; endforeach; ?>
                                                 </div>
-                                                <div class="form-text">Puste pola tłumaczenia użyją treści domyślnej.</div>
+                                                <div class="form-text"><?= safeEcho(__t('cms.translation_empty_hint')) ?></div>
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label">Meta title</label>
@@ -246,29 +246,29 @@ $pageTranslations = $isEditing ? $pageModel->getTranslations((int)$editingPage['
                                             <div class="col-12">
                                                 <div class="form-check form-check-inline">
                                                     <input class="form-check-input" type="checkbox" name="show_in_menu" id="showInMenu" <?= !empty($editingPage['show_in_menu']) ? 'checked' : '' ?>>
-                                                    <label class="form-check-label" for="showInMenu">Pokaz link w menu glownym</label>
+                                                    <label class="form-check-label" for="showInMenu"><?= safeEcho(__t('cms.show_menu')) ?></label>
                                                 </div>
                                                 <div class="form-check form-check-inline">
                                                     <input class="form-check-input" type="checkbox" name="show_in_footer" id="showInFooter" <?= !empty($editingPage['show_in_footer']) ? 'checked' : '' ?>>
-                                                    <label class="form-check-label" for="showInFooter">Pokaz link w stopce</label>
+                                                    <label class="form-check-label" for="showInFooter"><?= safeEcho(__t('cms.show_footer')) ?></label>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div class="mt-4">
                                             <button type="submit" class="btn btn-primary">
-                                                <i class="bi bi-save me-1"></i>Zapisz podstrone
+                                                <i class="bi bi-save me-1"></i><?= safeEcho(__t('cms.save')) ?>
                                             </button>
                                         </div>
                                     </form>
 
                                     <?php if ($isEditing): ?>
-                                        <form method="POST" class="mt-2" onsubmit="return confirm('Usunac te podstrone?');">
+                                        <form method="POST" class="mt-2" onsubmit="return confirm('<?= safeEcho(__t('cms.delete_confirm')) ?>');">
                                             <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?= safeEcho($editingPage['id']) ?>">
                                             <button type="submit" class="btn btn-outline-danger">
-                                                <i class="bi bi-trash me-1"></i>Usun
+                                                <i class="bi bi-trash me-1"></i><?= safeEcho(__t('cms.delete')) ?>
                                             </button>
                                         </form>
                                     <?php endif; ?>

@@ -7,6 +7,7 @@ requireAdminAccess();
 include_once('../../config/config.php');
 include_once('../../models/User.php');
 include_once('../../models/TransactionHistory.php');
+include_once('../../models/Language.php');
 
 // Inicjalizacja modeli
 $userModel = new User();
@@ -52,7 +53,7 @@ try {
     
 } catch (Exception $e) {
     error_log("Błąd przy pobieraniu użytkowników: " . $e->getMessage());
-    $error = "Wystąpił błąd przy pobieraniu danych. Proszę spróbować później.";
+    $error = __t('admin.users.fetch_error');
     $users = [];
     $totalPages = 1;
     $total_users = $executors_count = $clients_count = $admin_count = $active_users = $need_attention = $users_with_jobs = $verified_users = 0;
@@ -86,7 +87,7 @@ if (empty($_SESSION['csrf_token'])) {
         <div class="col-md-12 col-lg-12 main-content">
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> <?= htmlspecialchars(__t('admin.panel')) ?></h5>
                     <nav class="nav">
                         <?php include 'sidebar.php'; ?>
                     </nav>
@@ -97,20 +98,20 @@ if (empty($_SESSION['csrf_token'])) {
                         <div class="alert <?php echo ($_GET['status'] == 'error' || $_GET['status'] == 'error_points') ? 'alert-danger' : 'alert-success'; ?> alert-dismissible fade show" role="alert">
                             <?php 
                                 $messages = [
-                                    'deleted' => '✅ Użytkownik został pomyślnie usunięty. Zamknięto ' . ($_GET['jobs_closed'] ?? 0) . ' ogłoszeń.',
-    'delete_failed' => '❌ Błąd podczas usuwania użytkownika.',
-    'cannot_delete_self' => '❌ Nie możesz usunąć własnego konta.',
-    'user_not_found' => '❌ Użytkownik nie istnieje.',
-    'system_error' => '❌ Błąd systemowy podczas usuwania.',
-                                    'activated' => '✅ Konto użytkownika zostało aktywowane.',
-                                    'deactivated' => '✅ Konto użytkownika zostało dezaktywowane.',
-                                    'error' => '❌ Wystąpił błąd. Spróbuj ponownie.',
-                                    'points_added' => '✅ Punkty zostały dodane.',
-                                    'error_points' => '❌ Wystąpił błąd podczas dodawania punktów.',
-                                    'bulk_success' => '✅ Akcja zbiorowa wykonana pomyślnie.',
-                                    'export_success' => '✅ Eksport danych zakończony powodzeniem.',
-                                    'role_changed' => '✅ Rola użytkownika została zmieniona.',
-                                    'message_sent' => '✅ Wiadomość została wysłana.'
+                                    'deleted' => __t('admin.users.deleted', ['count' => $_GET['jobs_closed'] ?? 0]),
+                                    'delete_failed' => __t('admin.users.delete_failed'),
+                                    'cannot_delete_self' => __t('admin.users.cannot_delete_self'),
+                                    'user_not_found' => __t('admin.users.not_found'),
+                                    'system_error' => __t('admin.users.system_error'),
+                                    'activated' => __t('admin.users.activated'),
+                                    'deactivated' => __t('admin.users.deactivated'),
+                                    'error' => __t('admin.users.error'),
+                                    'points_added' => __t('admin.users.points_added'),
+                                    'error_points' => __t('admin.users.points_error'),
+                                    'bulk_success' => __t('admin.users.bulk_success'),
+                                    'export_success' => __t('admin.users.export_success'),
+                                    'role_changed' => __t('admin.users.role_changed'),
+                                    'message_sent' => __t('admin.users.message_sent')
 									
                                 ];
                                 echo safeEcho($messages[$_GET['status']] ?? '');
@@ -132,7 +133,7 @@ if (empty($_SESSION['csrf_token'])) {
                             <div class="card bg-primary text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($total_users) ?></h5>
-                                    <p class="mb-0 small">Wszyscy użytkownicy</p>
+                                    <p class="mb-0 small"><?= htmlspecialchars(__t('admin.users.all_users')) ?></p>
                                 </div>
                             </div>
                         </div>
@@ -140,7 +141,7 @@ if (empty($_SESSION['csrf_token'])) {
                             <div class="card bg-success text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($executors_count) ?></h5>
-                                    <p class="mb-0 small">Wykonawcy</p>
+                                    <p class="mb-0 small"><?= htmlspecialchars(__t('admin.users.executors')) ?></p>
                                 </div>
                             </div>
                         </div>
@@ -148,7 +149,7 @@ if (empty($_SESSION['csrf_token'])) {
                             <div class="card bg-info text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($clients_count) ?></h5>
-                                    <p class="mb-0 small">Zleceniodawcy</p>
+                                    <p class="mb-0 small"><?= htmlspecialchars(__t('admin.users.clients')) ?></p>
                                 </div>
                             </div>
                         </div>
@@ -156,7 +157,7 @@ if (empty($_SESSION['csrf_token'])) {
                             <div class="card bg-warning text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($active_users) ?></h5>
-                                    <p class="mb-0 small">Aktywni</p>
+                                    <p class="mb-0 small"><?= htmlspecialchars(__t('admin.users.active')) ?></p>
                                 </div>
                             </div>
                         </div>
@@ -164,7 +165,7 @@ if (empty($_SESSION['csrf_token'])) {
                             <div class="card bg-danger text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($need_attention) ?></h5>
-                                    <p class="mb-0 small">Do weryfikacji</p>
+                                    <p class="mb-0 small"><?= htmlspecialchars(__t('admin.users.needs_verification')) ?></p>
                                 </div>
                             </div>
                         </div>
@@ -172,7 +173,7 @@ if (empty($_SESSION['csrf_token'])) {
                             <div class="card bg-secondary text-white">
                                 <div class="card-body text-center p-2">
                                     <h5 class="mb-0"><?= number_format($users_with_jobs) ?></h5>
-                                    <p class="mb-0 small">Z ogłoszeniami</p>
+                                    <p class="mb-0 small"><?= htmlspecialchars(__t('admin.users.with_jobs')) ?></p>
                                 </div>
                             </div>
                         </div>
@@ -181,13 +182,13 @@ if (empty($_SESSION['csrf_token'])) {
                     <!-- Główna karta zarządzania -->
                     <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-1"><i class="bi bi-people"></i> Zarządzaj użytkownikami</h5>
+                            <h5 class="mb-1"><i class="bi bi-people"></i> <?= htmlspecialchars(__t('admin.manage_users')) ?></h5>
                             <div class="d-flex align-items-center">
                                 <button class="btn btn-sm btn-outline-primary me-2" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
-                                    <i class="bi bi-funnel"></i> Filtry
+                                    <i class="bi bi-funnel"></i> <?= htmlspecialchars(__t('admin.common.filters')) ?>
                                 </button>
                                 <a href="<?= buildUrl(['search' => null, 'status_filter' => null, 'role_filter' => null, 'date_from' => null, 'date_to' => null, 'balance_min' => null, 'balance_max' => null, 'has_jobs' => null, 'is_verified' => null, 'page' => 1]) ?>" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-x-circle"></i> Wyczyść
+                                    <i class="bi bi-x-circle"></i> <?= htmlspecialchars(__t('admin.common.clear')) ?>
                                 </a>
                             </div>
                         </div>
@@ -197,23 +198,23 @@ if (empty($_SESSION['csrf_token'])) {
                             <div class="card-body border-bottom">
                                 <form method="GET" class="row g-3">
                                     <div class="col-md-3">
-                                        <label class="form-label">Wyszukaj</label>
-                                        <input type="text" name="search" class="form-control form-control-sm" placeholder="ID, imię, email..." value="<?= safeEcho($search); ?>">
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.common.search')) ?></label>
+                                        <input type="text" name="search" class="form-control form-control-sm" placeholder="<?= htmlspecialchars(__t('admin.users.search_placeholder')) ?>" value="<?= safeEcho($search); ?>">
                                     </div>
                                     
                                     <div class="col-md-2">
-                                        <label class="form-label">Status</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.common.status')) ?></label>
                                         <select name="status_filter" class="form-select form-select-sm">
-                                            <option value="">Wszystkie</option>
-                                            <option value="active" <?= $statusFilter == 'active' ? 'selected' : ''; ?>>Aktywne</option>
-                                            <option value="inactive" <?= $statusFilter == 'inactive' ? 'selected' : ''; ?>>Nieaktywne</option>
+                                            <option value=""><?= htmlspecialchars(__t('admin.common.all')) ?></option>
+                                            <option value="active" <?= $statusFilter == 'active' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.status.active')) ?></option>
+                                            <option value="inactive" <?= $statusFilter == 'inactive' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.status.inactive')) ?></option>
                                         </select>
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Rola</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.common.role')) ?></label>
                                         <select name="role_filter" class="form-select form-select-sm">
-                                            <option value="">Wszystkie</option>
+                                            <option value=""><?= htmlspecialchars(__t('admin.common.all')) ?></option>
                                             <?php foreach (AccessControl::roles() as $roleKey => $roleLabel): ?>
                                                 <option value="<?= htmlspecialchars($roleKey) ?>" <?= $roleFilter == $roleKey ? 'selected' : ''; ?>><?= htmlspecialchars($roleLabel) ?></option>
                                             <?php endforeach; ?>
@@ -221,45 +222,45 @@ if (empty($_SESSION['csrf_token'])) {
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Saldo od</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.users.balance_from')) ?></label>
                                         <input type="number" name="balance_min" class="form-control form-control-sm" value="<?= safeEcho($balanceMin); ?>" placeholder="Min" step="0.01">
                                     </div>
                                     
                                     <div class="col-md-2">
-                                        <label class="form-label">Saldo do</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.users.balance_to')) ?></label>
                                         <input type="number" name="balance_max" class="form-control form-control-sm" value="<?= safeEcho($balanceMax); ?>" placeholder="Max" step="0.01">
                                     </div>
 
                                     <div class="col-md-3">
-                                        <label class="form-label">Data od</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.common.from_date')) ?></label>
                                         <input type="date" name="date_from" class="form-control form-control-sm" value="<?= safeEcho($dateFrom); ?>">
                                     </div>
                                     
                                     <div class="col-md-3">
-                                        <label class="form-label">Data do</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.common.to_date')) ?></label>
                                         <input type="date" name="date_to" class="form-control form-control-sm" value="<?= safeEcho($dateTo); ?>">
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Ma ogłoszenia</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.users.has_jobs')) ?></label>
                                         <select name="has_jobs" class="form-select form-select-sm">
-                                            <option value="">Wszyscy</option>
-                                            <option value="1" <?= $hasJobs == '1' ? 'selected' : ''; ?>>Tak</option>
-                                            <option value="0" <?= $hasJobs == '0' ? 'selected' : ''; ?>>Nie</option>
+                                            <option value=""><?= htmlspecialchars(__t('admin.common.all_male')) ?></option>
+                                            <option value="1" <?= $hasJobs == '1' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.users.yes')) ?></option>
+                                            <option value="0" <?= $hasJobs == '0' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.users.no')) ?></option>
                                         </select>
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Zweryfikowany</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.users.verified')) ?></label>
                                         <select name="is_verified" class="form-select form-select-sm">
-                                            <option value="">Wszyscy</option>
-                                            <option value="1" <?= $isVerified == '1' ? 'selected' : ''; ?>>Tak</option>
-                                            <option value="0" <?= $isVerified == '0' ? 'selected' : ''; ?>>Nie</option>
+                                            <option value=""><?= htmlspecialchars(__t('admin.common.all_male')) ?></option>
+                                            <option value="1" <?= $isVerified == '1' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.users.yes')) ?></option>
+                                            <option value="0" <?= $isVerified == '0' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.users.no')) ?></option>
                                         </select>
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Na stronę</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.common.per_page')) ?></label>
                                         <select name="per_page" class="form-select form-select-sm">
                                             <option value="10" <?= $limit == 10 ? 'selected' : ''; ?>>10</option>
                                             <option value="25" <?= $limit == 25 ? 'selected' : ''; ?>>25</option>
@@ -269,29 +270,29 @@ if (empty($_SESSION['csrf_token'])) {
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Sortuj według</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.common.sort_by')) ?></label>
                                         <select name="sort" class="form-select form-select-sm">
                                             <option value="id" <?= $sortColumn == 'id' ? 'selected' : ''; ?>>ID</option>
-                                            <option value="name" <?= $sortColumn == 'name' ? 'selected' : ''; ?>>Imię</option>
+                                            <option value="name" <?= $sortColumn == 'name' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.users.name')) ?></option>
                                             <option value="email" <?= $sortColumn == 'email' ? 'selected' : ''; ?>>Email</option>
-                                            <option value="created_at" <?= $sortColumn == 'created_at' ? 'selected' : ''; ?>>Data rejestracji</option>
-                                            <option value="account_balance" <?= $sortColumn == 'account_balance' ? 'selected' : ''; ?>>Punkty</option>
-                                            <option value="registration_ip" <?= $sortColumn == 'registration_ip' ? 'selected' : ''; ?>>Adres IP</option>
-                                            <option value="last_login" <?= $sortColumn == 'last_login' ? 'selected' : ''; ?>>Ostatnie logowanie</option>
+                                            <option value="created_at" <?= $sortColumn == 'created_at' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.users.registration_date')) ?></option>
+                                            <option value="account_balance" <?= $sortColumn == 'account_balance' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.common.points')) ?></option>
+                                            <option value="registration_ip" <?= $sortColumn == 'registration_ip' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.users.registration_ip')) ?></option>
+                                            <option value="last_login" <?= $sortColumn == 'last_login' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.users.last_login')) ?></option>
                                         </select>
                                     </div>
 
                                     <div class="col-md-2">
-                                        <label class="form-label">Kolejność</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.common.order')) ?></label>
                                         <select name="order" class="form-select form-select-sm">
-                                            <option value="ASC" <?= $sortOrder == 'ASC' ? 'selected' : ''; ?>>Rosnąco</option>
-                                            <option value="DESC" <?= $sortOrder == 'DESC' ? 'selected' : ''; ?>>Malejąco</option>
+                                            <option value="ASC" <?= $sortOrder == 'ASC' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.common.asc')) ?></option>
+                                            <option value="DESC" <?= $sortOrder == 'DESC' ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.common.desc')) ?></option>
                                         </select>
                                     </div>
 
                                     <div class="col-12">
                                         <button type="submit" class="btn btn-primary btn-sm">
-                                            <i class="bi bi-search"></i> Zastosuj filtry
+                                            <i class="bi bi-search"></i> <?= htmlspecialchars(__t('admin.common.apply_filters')) ?>
                                         </button>
                                     </div>
                                 </form>
@@ -306,18 +307,18 @@ if (empty($_SESSION['csrf_token'])) {
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div class="d-flex align-items-center">
                                         <select name="bulk_action" class="form-select form-select-sm me-2" style="width: 200px;">
-                                            <option value="">Wybierz akcję...</option>
-                                            <option value="activate">Aktywuj zaznaczonych</option>
-                                            <option value="deactivate">Dezaktywuj zaznaczonych</option>
-                                            <option value="delete">Usuń zaznaczonych</option>
-                                            <option value="export">Eksportuj zaznaczonych</option>
-                                            <option value="message">Wyślij wiadomość</option>
+                                            <option value=""><?= htmlspecialchars(__t('admin.common.bulk_action')) ?></option>
+                                            <option value="activate"><?= htmlspecialchars(__t('admin.users.bulk_activate')) ?></option>
+                                            <option value="deactivate"><?= htmlspecialchars(__t('admin.users.bulk_deactivate')) ?></option>
+                                            <option value="delete"><?= htmlspecialchars(__t('admin.users.bulk_delete')) ?></option>
+                                            <option value="export"><?= htmlspecialchars(__t('admin.users.bulk_export')) ?></option>
+                                            <option value="message"><?= htmlspecialchars(__t('admin.users.bulk_message')) ?></option>
                                         </select>
-                                        <button type="submit" class="btn btn-primary btn-sm me-2">Zastosuj</button>
+                                        <button type="submit" class="btn btn-primary btn-sm me-2"><?= htmlspecialchars(__t('admin.common.apply')) ?></button>
                                         
                                         <div class="btn-group">
                                             <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-                                                <i class="bi bi-download"></i> Eksportuj
+                                                <i class="bi bi-download"></i> <?= htmlspecialchars(__t('admin.common.export')) ?>
                                             </button>
                                             <ul class="dropdown-menu">
                                                 <li><button type="submit" formaction="export_users.php?format=csv" class="dropdown-item">CSV</button></li>
@@ -328,7 +329,7 @@ if (empty($_SESSION['csrf_token'])) {
                                     </div>
                                     
                                     <div class="text-muted">
-                                        Znaleziono: <strong><?= number_format($total_users) ?></strong> użytkowników
+                                        <?= htmlspecialchars(__t('admin.common.found_users', ['count' => number_format($total_users)])) ?>
                                     </div>
                                 </div>
 
@@ -338,18 +339,18 @@ if (empty($_SESSION['csrf_token'])) {
                                         <thead class="table-light">
                                             <tr>
                                                 <th style="width: 1%">
-                                                    <input type="checkbox" id="select-all" title="Zaznacz wszystkich">
+                                                    <input type="checkbox" id="select-all" title="<?= htmlspecialchars(__t('admin.users.bulk_activate')) ?>">
                                                 </th>
                                                 <th style="width: 1%">ID</th>
-                                                <th style="width: 12%">Użytkownik</th>
+                                                <th style="width: 12%"><?= htmlspecialchars(__t('admin.users.table_user')) ?></th>
                                                 <th style="width: 18%">Email</th>
-                                                <th style="width: 8%">Rola</th>
-                                                <th style="width: 8%">Utworzone</th>
-                                                <th style="width: 8%">Ostatnie logowanie</th>
-                                                <th style="width: 8%">IP rejestracji</th>
-                                                <th style="width: 8%">Status</th>
-                                                <th style="width: 8%">Saldo</th>
-                                                <th style="width: 20%">Akcje</th>
+                                                <th style="width: 8%"><?= htmlspecialchars(__t('admin.common.role')) ?></th>
+                                                <th style="width: 8%"><?= htmlspecialchars(__t('admin.common.created')) ?></th>
+                                                <th style="width: 8%"><?= htmlspecialchars(__t('admin.users.last_login')) ?></th>
+                                                <th style="width: 8%"><?= htmlspecialchars(__t('admin.users.registration_ip')) ?></th>
+                                                <th style="width: 8%"><?= htmlspecialchars(__t('admin.common.status')) ?></th>
+                                                <th style="width: 8%"><?= htmlspecialchars(__t('admin.common.balance')) ?></th>
+                                                <th style="width: 20%"><?= htmlspecialchars(__t('admin.common.actions')) ?></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -383,14 +384,14 @@ if (empty($_SESSION['csrf_token'])) {
                     </div>
                     <div class="flex-grow-1 ms-2">
                         <div class="fw-bold"><?= safeEcho($user['name']); ?></div>
-                        <small class="text-muted"><?= safeEcho($user['username'] ?? 'Brak nazwy'); ?></small>
+                        <small class="text-muted"><?= safeEcho($user['username'] ?? __t('admin.users.no_username')); ?></small>
                     </div>
                 </div>
             </td>
             <td>
                 <?= safeEcho($user['email']); ?>
                 <?php if (!empty($user['email_verified_at'])): ?>
-                    <span class="badge bg-success ms-1" title="Email zweryfikowany">✓</span>
+                    <span class="badge bg-success ms-1" title="<?= htmlspecialchars(__t('admin.users.email_verified')) ?>">✓</span>
                 <?php endif; ?>
             </td>
             <td>
@@ -403,7 +404,7 @@ if (empty($_SESSION['csrf_token'])) {
                             <input type="hidden" name="user_id" value="<?= safeEcho($user['id']); ?>">
                             <input type="hidden" name="current_role" value="<?= safeEcho($user['role']); ?>">
                             <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
-                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Zmień rolę">
+                            <button type="submit" class="btn btn-sm btn-outline-primary" title="<?= htmlspecialchars(__t('admin.users.change_role')) ?>">
                                 <i class="bi bi-arrow-repeat"></i>
                             </button>
                         </form>
@@ -419,7 +420,7 @@ if (empty($_SESSION['csrf_token'])) {
                     <small><?= date('Y-m-d', strtotime($user['last_login'])) ?></small>
                     <br><small class="text-muted"><?= date('H:i', strtotime($user['last_login'])) ?></small>
                 <?php else: ?>
-                    <span class="text-muted">Nigdy</span>
+                    <span class="text-muted"><?= htmlspecialchars(__t('admin.common.never')) ?></span>
                 <?php endif; ?>
             </td>
             <td>
@@ -427,7 +428,7 @@ if (empty($_SESSION['csrf_token'])) {
             </td>
             <td>
                 <span class="badge <?= $user['status'] == 'active' ? 'bg-success' : ($user['status'] == 'deleted' ? 'bg-secondary' : 'bg-warning'); ?>">
-                    <?= $user['status'] == 'active' ? 'Aktywny' : ($user['status'] == 'deleted' ? 'Usunięty' : 'Nieaktywny'); ?>
+                    <?= htmlspecialchars($user['status'] == 'active' ? __t('admin.status.active') : ($user['status'] == 'deleted' ? __t('admin.status.deleted') : __t('admin.status.inactive'))); ?>
                 </span>
             </td>
             <td>
@@ -439,38 +440,38 @@ if (empty($_SESSION['csrf_token'])) {
                 <div class="btn-group btn-group-sm" role="group">
                     <!-- Dodawanie punktów -->
                     <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addPointsModal" data-user-id="<?= safeEcho($user['id']); ?>" data-user-name="<?= safeEcho($user['name']); ?>">
-                        <i class="bi bi-plus-circle" title="Dodaj punkty"></i>
+                        <i class="bi bi-plus-circle" title="<?= htmlspecialchars(__t('admin.users.add_points')) ?>"></i>
                     </button>
                     
                     <!-- Edycja -->
-                    <a href="../admin/edit_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-warning" title="Edytuj">
+                    <a href="../admin/edit_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-warning" title="<?= htmlspecialchars(__t('common.edit')) ?>">
                         <i class="bi bi-pencil"></i>
                     </a>
                     
                     <!-- Podgląd -->
-                    <a href="../admin/view_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-info" title="Podgląd">
+                    <a href="../admin/view_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-info" title="<?= htmlspecialchars(__t('admin.common.preview')) ?>">
                         <i class="bi bi-eye"></i>
                     </a>
                     
                     <!-- Aktywacja/Deaktywacja -->
                     <?php if ($user['status'] == 'active'): ?>
-                        <a href="../admin/deactivate_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-secondary" title="Dezaktywuj" onclick="return confirm('Czy na pewno chcesz dezaktywować tego użytkownika?');">
+                        <a href="../admin/deactivate_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-secondary" title="<?= htmlspecialchars(__t('admin.common.deactivate')) ?>" onclick="return confirm('<?= htmlspecialchars(__t('admin.users.deactivate_confirm'), ENT_QUOTES) ?>');">
                             <i class="bi bi-person-x"></i>
                         </a>
                     <?php elseif ($user['status'] == 'inactive'): ?>
-                        <a href="../admin/activate_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-success" title="Aktywuj">
+                        <a href="../admin/activate_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-success" title="<?= htmlspecialchars(__t('admin.common.activate')) ?>">
                             <i class="bi bi-person-check"></i>
                         </a>
                     <?php endif; ?>
                     
                     <!-- Usuwanie - pokazuj tylko jeśli użytkownik nie jest już usunięty -->
                     <?php if ($user['status'] !== 'deleted'): ?>
-                        <a href="../admin/delete_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-danger" title="Usuń" onclick="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Ta operacja jest nieodwracalna.');">
+                        <a href="../admin/delete_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-danger" title="<?= htmlspecialchars(__t('admin.common.delete')) ?>" onclick="return confirm('<?= htmlspecialchars(__t('admin.users.delete_confirm'), ENT_QUOTES) ?>');">
                             <i class="bi bi-trash"></i>
                         </a>
                     <?php else: ?>
                         <!-- Przycisk informacyjny dla już usuniętych -->
-                        <button class="btn btn-outline-secondary" title="Użytkownik już usunięty" disabled>
+                        <button class="btn btn-outline-secondary" title="<?= htmlspecialchars(__t('admin.users.already_deleted')) ?>" disabled>
                             <i class="bi bi-trash"></i>
                         </button>
                     <?php endif; ?>
@@ -482,9 +483,9 @@ if (empty($_SESSION['csrf_token'])) {
     <tr>
         <td colspan="11" class="text-center py-5">
             <i class="bi bi-people display-4 text-muted"></i>
-            <p class="mt-3">Brak użytkowników spełniających kryteria wyszukiwania</p>
+            <p class="mt-3"><?= htmlspecialchars(__t('admin.users.empty')) ?></p>
             <a href="<?= buildUrl(['search' => null, 'status_filter' => null, 'role_filter' => null, 'date_from' => null, 'date_to' => null, 'balance_min' => null, 'balance_max' => null, 'has_jobs' => null, 'is_verified' => null]) ?>" class="btn btn-primary btn-sm">
-                Wyczyść filtry
+                <?= htmlspecialchars(__t('admin.common.clear')) ?>
             </a>
         </td>
     </tr>
@@ -498,19 +499,19 @@ if (empty($_SESSION['csrf_token'])) {
                                 <div class="d-flex justify-content-between align-items-center mt-4">
                                     <div>
                                         <span class="text-muted">
-                                            Wyświetlono <?= count($users) ?> z <?= number_format($total_users) ?> użytkowników
+                                            <?= htmlspecialchars(__t('admin.common.displayed_users', ['shown' => count($users), 'total' => number_format($total_users)])) ?>
                                         </span>
                                     </div>
                                     <div>
                                         <nav aria-label="Page navigation">
                                             <ul class="pagination pagination-sm">
                                                 <li class="page-item <?= $page <= 1 ? 'disabled' : ''; ?>">
-                                                    <a class="page-link" href="<?= buildUrl(['page' => 1]) ?>" aria-label="Pierwsza">
+                                                    <a class="page-link" href="<?= buildUrl(['page' => 1]) ?>" aria-label="<?= htmlspecialchars(__t('admin.common.first')) ?>">
                                                         <span aria-hidden="true">&laquo;&laquo;</span>
                                                     </a>
                                                 </li>
                                                 <li class="page-item <?= $page <= 1 ? 'disabled' : ''; ?>">
-                                                    <a class="page-link" href="<?= buildUrl(['page' => $page - 1]) ?>" aria-label="Poprzednia">
+                                                    <a class="page-link" href="<?= buildUrl(['page' => $page - 1]) ?>" aria-label="<?= htmlspecialchars(__t('admin.common.previous')) ?>">
                                                         <span aria-hidden="true">&laquo;</span>
                                                     </a>
                                                 </li>
@@ -525,12 +526,12 @@ if (empty($_SESSION['csrf_token'])) {
                                                 <?php endfor; ?>
                                                 
                                                 <li class="page-item <?= $page >= $totalPages ? 'disabled' : ''; ?>">
-                                                    <a class="page-link" href="<?= buildUrl(['page' => $page + 1]) ?>" aria-label="Następna">
+                                                    <a class="page-link" href="<?= buildUrl(['page' => $page + 1]) ?>" aria-label="<?= htmlspecialchars(__t('admin.common.next')) ?>">
                                                         <span aria-hidden="true">&raquo;</span>
                                                     </a>
                                                 </li>
                                                 <li class="page-item <?= $page >= $totalPages ? 'disabled' : ''; ?>">
-                                                    <a class="page-link" href="<?= buildUrl(['page' => $totalPages]) ?>" aria-label="Ostatnia">
+                                                    <a class="page-link" href="<?= buildUrl(['page' => $totalPages]) ?>" aria-label="<?= htmlspecialchars(__t('admin.common.last')) ?>">
                                                         <span aria-hidden="true">&raquo;&raquo;</span>
                                                     </a>
                                                 </li>
@@ -554,8 +555,8 @@ if (empty($_SESSION['csrf_token'])) {
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Dodaj punkty użytkownikowi</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title"><?= htmlspecialchars(__t('admin.users.add_points_title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars(__t('common.close')) ?>"></button>
             </div>
             <form action="add_points.php" method="POST">
                 <div class="modal-body">
@@ -563,23 +564,23 @@ if (empty($_SESSION['csrf_token'])) {
                     <input type="hidden" name="user_id" id="modalUserId">
                     
                     <div class="mb-3">
-                        <label class="form-label">Użytkownik</label>
+                        <label class="form-label"><?= htmlspecialchars(__t('admin.user')) ?></label>
                         <input type="text" class="form-control" id="modalUserName" readonly>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Ilość punktów</label>
+                        <label class="form-label"><?= htmlspecialchars(__t('admin.users.points_amount')) ?></label>
                         <input type="number" name="points_to_add" class="form-control" min="1" max="10000" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Powód (opcjonalnie)</label>
-                        <textarea name="reason" class="form-control" rows="2" placeholder="Np. bonus, refundacja, itp."></textarea>
+                        <label class="form-label"><?= htmlspecialchars(__t('admin.users.reason_optional')) ?></label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="<?= htmlspecialchars(__t('admin.users.reason_placeholder')) ?>"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
-                    <button type="submit" class="btn btn-primary">Dodaj punkty</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars(__t('admin.users.cancel')) ?></button>
+                    <button type="submit" class="btn btn-primary"><?= htmlspecialchars(__t('admin.users.add_points')) ?></button>
                 </div>
             </form>
         </div>
@@ -621,8 +622,8 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             Swal.fire({
                 icon: 'warning',
-                title: 'Brak wybranych użytkowników',
-                text: 'Proszę wybrać przynajmniej jednego użytkownika do wykonania akcji zbiorowej'
+                title: <?= json_encode(__t('admin.users.no_selected_title'), JSON_UNESCAPED_UNICODE) ?>,
+                text: <?= json_encode(__t('admin.users.no_selected_text'), JSON_UNESCAPED_UNICODE) ?>
             });
         }
     });

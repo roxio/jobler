@@ -3,12 +3,13 @@
 session_start();
 require_once('../../config/config.php');
 require_once('../../models/User.php');
+include_once('../../models/Language.php');
 
 require_once __DIR__ . '/_auth.php';
 requireAdminAccess();
 
 if (!isset($_GET['user_id']) || !is_numeric($_GET['user_id'])) {
-    echo json_encode(['error' => 'Nieprawidłowe ID użytkownika']);
+    echo json_encode(['error' => __t('admin.users.invalid_id')]);
     exit();
 }
 
@@ -18,7 +19,7 @@ $userModel = new User();
 try {
     $user = $userModel->getUserById($userId);
     if (!$user) {
-        echo json_encode(['error' => 'Użytkownik nie istnieje']);
+        echo json_encode(['error' => __t('admin.users.not_found')]);
         exit();
     }
 
@@ -33,5 +34,5 @@ try {
     
 } catch (Exception $e) {
     error_log("Błąd przy sprawdzaniu statusu online: " . $e->getMessage());
-    echo json_encode(['error' => 'Wystąpił błąd']);
+    echo json_encode(['error' => __t('admin.users.error')]);
 }

@@ -23,6 +23,7 @@ include_once('../../models/Job.php');
 include_once('../../models/TransactionHistory.php');
 include_once('../../models/Message.php');
 include_once('../../models/AdminLogger.php'); // Nowa klasa loggera
+include_once('../../models/Language.php');
 
 $userModel = new User();
 $jobModel = new Job();
@@ -32,16 +33,14 @@ $adminLogger = new AdminLogger(); // Nowy logger
 
 // Funkcje pomocnicze
 function logUserDeletion($adminLogger, $adminId, $userId, $userData, $jobs, $transactions) {
-    $description = sprintf(
-        "Usunięcie użytkownika ID: %d, Email: %s, Nazwa: %s. " .
-        "Ilość ogłoszeń: %d, Ilość transakcji: %d, Saldo: %d",
-        $userId,
-        $userData['email'],
-        $userData['name'],
-        count($jobs),
-        count($transactions),
-        $userData['account_balance'] ?? 0
-    );
+    $description = __t('admin.delete_user.log_description', [
+        'id' => $userId,
+        'email' => $userData['email'],
+        'name' => $userData['name'],
+        'jobs' => count($jobs),
+        'transactions' => count($transactions),
+        'balance' => $userData['account_balance'] ?? 0,
+    ]);
     
     // Zapis do bazy danych
     $adminLogger->logAction(
@@ -102,7 +101,7 @@ try {
         $adminLogger->logAction(
             $_SESSION['user_id'],
             'user_delete_attempt',
-            "Próba usunięcia nieistniejącego użytkownika ID: $userId",
+            __t('admin.delete_user.not_found_attempt', ['id' => $userId]),
             $userId
         );
         
@@ -131,7 +130,7 @@ try {
     $closedJobs = getClosedJobsCount($pdo, $userId);
     
     if (!$jobsClosed) {
-        throw new Exception("Błąd podczas zamykania ogłoszeń użytkownika");
+        throw new Exception(__t('admin.delete_user.close_jobs_error'));
     }
     
     // 2. Wykonaj soft delete użytkownika
@@ -147,7 +146,7 @@ try {
         $adminLogger->logAction(
             $adminId,
             'user_delete_error',
-            "Błąd podczas usuwania użytkownika ID: $userId",
+            __t('admin.delete_user.delete_error_log', ['id' => $userId]),
             $userId
         );
         
@@ -164,11 +163,11 @@ try {
     $adminLogger->logAction(
         $_SESSION['user_id'],
         'user_delete_system_error',
-        "Błąd systemowy przy usuwaniu użytkownika ID: $userId - " . $e->getMessage(),
+        __t('admin.delete_user.system_error_log', ['id' => $userId, 'error' => $e->getMessage()]),
         $userId
     );
     
-    error_log("Błąd przy usuwaniu użytkownika ID: $userId - " . $e->getMessage());
+    error_log(__t('admin.delete_user.error_log', ['id' => $userId, 'error' => $e->getMessage()]));
     header('Location: manage_users.php?status=error&message=system_error');
     exit();
 }

@@ -1,6 +1,7 @@
 <?php
 include_once(__DIR__ . '/Database.php');
 include_once(__DIR__ . '/AccessControl.php');
+include_once(__DIR__ . '/Language.php');
 
 class User {
     private $pdo;
@@ -54,7 +55,7 @@ class User {
         $stmt->execute();
 
         if ($stmt->rowCount() > 0) {
-            return ['error' => 'Użytkownik o tym adresie email lub nazwie użytkownika już istnieje.'];
+            return ['error' => __t('auth.user_exists')];
         }
 
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
@@ -75,10 +76,10 @@ class User {
 
         if ($stmt->execute()) {
             $userId = $this->pdo->lastInsertId();
-            return ['success' => 'Rejestracja zakończona pomyślnie.', 'id' => $userId, 'role' => $role];
+            return ['success' => __t('auth.registration_success'), 'id' => $userId, 'role' => $role];
         }
 
-        return ['error' => 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.'];
+        return ['error' => __t('auth.registration_error')];
     }
 
     public function login($email, $password) {
@@ -92,7 +93,7 @@ class User {
 
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($user && $user['status'] !== 'active') {
-            return ['error' => 'Konto zostało zablokowane przez administratora.'];
+            return ['error' => __t('auth.account_blocked')];
         }
 
         if ($user && password_verify($password, $user['password'])) {
@@ -132,11 +133,11 @@ public function getUserById($userId) {
         $newsletter = !empty($data['newsletter_subscription']) ? 1 : 0;
 
         if ($name === '' || $username === '' || $email === '') {
-            return ['error' => 'Imię, nazwa użytkownika i email są wymagane.'];
+            return ['error' => __t('auth.profile_required')];
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return ['error' => 'Podaj poprawny adres email.'];
+            return ['error' => __t('auth.email_invalid')];
         }
 
         $stmt = $this->pdo->prepare("SELECT id FROM users WHERE (email = :email OR username = :username) AND id <> :user_id LIMIT 1");
@@ -147,7 +148,7 @@ public function getUserById($userId) {
         ]);
 
         if ($stmt->fetch(PDO::FETCH_ASSOC)) {
-            return ['error' => 'Ten email lub nazwa użytkownika są już używane.'];
+            return ['error' => __t('auth.profile_duplicate')];
         }
 
         $stmt = $this->pdo->prepare("
@@ -172,11 +173,11 @@ public function getUserById($userId) {
         ]);
 
         if (!$saved) {
-            return ['error' => 'Nie udało się zapisać zmian profilu.'];
+            return ['error' => __t('auth.profile_save_error')];
         }
 
         $_SESSION['user_name'] = $name;
-        return ['success' => 'Dane profilu zostały zapisane.'];
+        return ['success' => __t('auth.profile_saved')];
     }
 
     public function changePassword($userId, $newPassword) {

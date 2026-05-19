@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Language.php';
 
 class Newsletter {
     private $pdo;
@@ -26,7 +27,7 @@ class Newsletter {
         $existing = $this->getSubscriptionByEmail($email);
 
         if ($existing && (int)$existing['is_active'] === 1) {
-            return ['success' => false, 'message' => 'Ten adres email jest juz zapisany do newslettera.'];
+            return ['success' => false, 'message' => __t('newsletter.already_subscribed')];
         }
 
         $token = bin2hex(random_bytes(32));
@@ -63,14 +64,14 @@ class Newsletter {
 
                 return [
                     'success' => true,
-                    'message' => 'Adres zostal zapisany do newslettera.',
+                    'message' => __t('newsletter.saved'),
                 ];
             }
 
-            return ['success' => true, 'message' => 'Na podany adres email wyslalismy prosbe o potwierdzenie subskrypcji.'];
+            return ['success' => true, 'message' => __t('newsletter.confirmation_sent')];
         } catch (PDOException $e) {
             error_log('Newsletter subscribe error: ' . $e->getMessage());
-            return ['success' => false, 'message' => 'Nie udalo sie zapisac adresu do newslettera. Sprobuj ponownie pozniej.'];
+            return ['success' => false, 'message' => __t('newsletter.subscribe_error')];
         }
     }
 
@@ -82,16 +83,21 @@ class Newsletter {
 
     private function sendVerificationEmail($email, $token) {
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $subject = 'Potwierdz subskrypcje newslettera';
+        $subject = __t('newsletter.email_subject');
         $verificationLink = 'https://' . $host . '/verify-newsletter.php?token=' . urlencode($token);
+        $emailTitle = htmlspecialchars(__t('newsletter.email_title'), ENT_QUOTES, 'UTF-8');
+        $emailHeading = htmlspecialchars(__t('newsletter.email_heading'), ENT_QUOTES, 'UTF-8');
+        $emailBody = htmlspecialchars(__t('newsletter.email_body'), ENT_QUOTES, 'UTF-8');
+        $emailIgnore = htmlspecialchars(__t('newsletter.email_ignore'), ENT_QUOTES, 'UTF-8');
+        $safeVerificationLink = htmlspecialchars($verificationLink, ENT_QUOTES, 'UTF-8');
         $message = "
             <html>
-            <head><title>Potwierdzenie subskrypcji newslettera</title></head>
+            <head><title>{$emailTitle}</title></head>
             <body>
-                <h2>Dziekujemy za zapisanie sie do newslettera!</h2>
-                <p>Aby potwierdzic subskrypcje, kliknij w ponizszy link:</p>
-                <a href='$verificationLink'>$verificationLink</a>
-                <p>Jesli to nie Ty zapisales/as sie na newsletter, zignoruj te wiadomosc.</p>
+                <h2>{$emailHeading}</h2>
+                <p>{$emailBody}</p>
+                <a href='{$safeVerificationLink}'>{$safeVerificationLink}</a>
+                <p>{$emailIgnore}</p>
             </body>
             </html>
         ";

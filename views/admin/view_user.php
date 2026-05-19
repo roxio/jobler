@@ -16,6 +16,7 @@ include_once('../../models/User.php');
 include_once('../../models/Job.php');
 include_once('../../models/TransactionHistory.php');
 include_once('../../models/Message.php');
+include_once('../../models/Language.php');
 
 $userModel = new User();
 $jobModel = new Job();
@@ -51,7 +52,7 @@ function safeEcho($data, $default = '') {
 }
 
 function formatDate($date) {
-    if (!$date) return 'Nigdy';
+    if (!$date) return __t('admin.common.never');
     return date('Y-m-d H:i', strtotime($date));
 }
 
@@ -74,7 +75,7 @@ if (!empty($user['last_login'])) {
         <div class="col-md-12 col-lg-12 main-content">
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> <?= htmlspecialchars(__t('admin.panel')) ?></h5>
                     <nav class="nav">
                         <?php include 'sidebar.php'; ?>
                     </nav>
@@ -85,27 +86,27 @@ if (!empty($user['last_login'])) {
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <a href="manage_users.php" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> Powrót do listy
+                                <i class="bi bi-arrow-left"></i> <?= htmlspecialchars(__t('admin.back_to_list')) ?>
                             </a>
-                            <span class="ms-2">Podgląd użytkownika</span>
+                            <span class="ms-2"><?= htmlspecialchars(__t('admin.view_user.title')) ?></span>
                         </div>
                         <div class="btn-group">
                             <a href="edit_user.php?id=<?= $userId ?>" class="btn btn-sm btn-outline-warning">
-                                <i class="bi bi-pencil"></i> Edytuj
+                                <i class="bi bi-pencil"></i> <?= htmlspecialchars(__t('common.edit')) ?>
                             </a>
                             <?php if ($user['status'] == 'active'): ?>
                                 <a href="deactivate_user.php?id=<?= $userId ?>" class="btn btn-sm btn-outline-secondary" 
-                                   onclick="return confirm('Czy na pewno chcesz dezaktywować tego użytkownika?');">
-                                    <i class="bi bi-person-x"></i> Dezaktywuj
+                                   onclick="return confirm('<?= htmlspecialchars(__t('admin.users.deactivate_confirm'), ENT_QUOTES) ?>');">
+                                    <i class="bi bi-person-x"></i> <?= htmlspecialchars(__t('admin.common.deactivate')) ?>
                                 </a>
                             <?php else: ?>
                                 <a href="activate_user.php?id=<?= $userId ?>" class="btn btn-sm btn-outline-success">
-                                    <i class="bi bi-person-check"></i> Aktywuj
+                                    <i class="bi bi-person-check"></i> <?= htmlspecialchars(__t('admin.common.activate')) ?>
                                 </a>
                             <?php endif; ?>
                             <a href="delete_user.php?id=<?= $userId ?>" class="btn btn-sm btn-outline-danger"
-                               onclick="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Ta operacja jest nieodwracalna.');">
-                                <i class="bi bi-trash"></i> Usuń
+                               onclick="return confirm('<?= htmlspecialchars(__t('admin.users.delete_confirm'), ENT_QUOTES) ?>');">
+                                <i class="bi bi-trash"></i> <?= htmlspecialchars(__t('admin.common.delete')) ?>
                             </a>
                         </div>
                     </div>
@@ -115,11 +116,11 @@ if (!empty($user['last_login'])) {
                         <div class="alert <?= $_GET['status'] == 'error' ? 'alert-danger' : 'alert-success'; ?> alert-dismissible fade show mb-4" role="alert">
                             <?php
                             $messages = [
-                                'points_added' => '✅ Punkty zostały dodane.',
-                                'role_changed' => '✅ Rola użytkownika została zmieniona.',
-                                'activated' => '✅ Konto zostało aktywowane.',
-                                'deactivated' => '✅ Konto zostało dezaktywowane.',
-                                'error' => '❌ Wystąpił błąd.'
+                                'points_added' => __t('admin.users.points_added'),
+                                'role_changed' => __t('admin.users.role_changed'),
+                                'activated' => __t('admin.users.activated'),
+                                'deactivated' => __t('admin.users.deactivated'),
+                                'error' => __t('admin.users.error')
                             ];
                             echo safeEcho($messages[$_GET['status']] ?? '');
                             ?>
@@ -132,7 +133,7 @@ if (!empty($user['last_login'])) {
                         <div class="col-md-4">
                             <div class="card mb-4">
                                 <div class="card-header">
-                                    <h6 class="mb-0"><i class="bi bi-person"></i> Informacje podstawowe</h6>
+                                    <h6 class="mb-0"><i class="bi bi-person"></i> <?= htmlspecialchars(__t('admin.basic_info')) ?></h6>
                                 </div>
                                 <div class="card-body">
                                     <div class="text-center mb-3">
@@ -154,12 +155,12 @@ if (!empty($user['last_login'])) {
                                             <td>
                                                 <?= safeEcho($user['email']) ?>
                                                 <?php if (!empty($user['email_verified_at'])): ?>
-                                                    <span class="badge bg-success ms-1" title="Email zweryfikowany">✓</span>
+                                                    <span class="badge bg-success ms-1" title="<?= htmlspecialchars(__t('admin.users.email_verified')) ?>">✓</span>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Rola:</strong></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.common.role')) ?>:</strong></td>
                                             <td>
                                                 <span class="badge <?= AccessControl::badgeClass($user['role']) ?>">
                                                     <?= safeEcho(AccessControl::roleLabel($user['role'])) ?>
@@ -167,41 +168,41 @@ if (!empty($user['last_login'])) {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Status:</strong></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.common.status')) ?>:</strong></td>
                                             <td>
                                                 <span class="badge <?= $user['status'] == 'active' ? 'bg-success' : 'bg-secondary'; ?>">
-                                                    <?= $user['status'] == 'active' ? 'Aktywny' : 'Nieaktywny'; ?>
+                                                    <?= htmlspecialchars($user['status'] == 'active' ? __t('admin.status.active') : __t('admin.status.inactive')); ?>
                                                 </span>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Data rejestracji:</strong></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.users.registration_date')) ?>:</strong></td>
                                             <td><?= formatDate($user['created_at']) ?></td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Ostatnie logowanie:</strong></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.users.last_login')) ?>:</strong></td>
                                             <td><?= formatDate($user['last_login'] ?? null) ?></td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Saldo:</strong></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.common.balance')) ?>:</strong></td>
                                             <td class="fw-bold <?= ($user['account_balance'] ?? 0) > 0 ? 'text-success' : 'text-muted'; ?>">
                                                 <?= formatBalance($user['account_balance'] ?? 0) ?>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Dane pierwotne:</strong></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.view_user.original_data')) ?>:</strong></td>
                                             <td>
                                                 <small>
-                                                    <?= safeEcho($user['original_name'] ?? 'Brak') ?>,
-                                                    <?= safeEcho($user['original_username'] ?? 'Brak') ?>,
-                                                    <?= safeEcho($user['original_email'] ?? 'Brak') ?>,
-                                                    tel. <?= safeEcho($user['original_phone'] ?? 'Brak') ?>
+                                                    <?= safeEcho($user['original_name'] ?? __t('admin.newsletter.none')) ?>,
+                                                    <?= safeEcho($user['original_username'] ?? __t('admin.newsletter.none')) ?>,
+                                                    <?= safeEcho($user['original_email'] ?? __t('admin.newsletter.none')) ?>,
+                                                    tel. <?= safeEcho($user['original_phone'] ?? __t('admin.newsletter.none')) ?>
                                                 </small>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Profil zmieniony:</strong></td>
-                                            <td><?= !empty($user['profile_updated_at']) ? formatDate($user['profile_updated_at']) : 'Brak zmian'; ?></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.view_user.profile_changed')) ?>:</strong></td>
+                                            <td><?= !empty($user['profile_updated_at']) ? formatDate($user['profile_updated_at']) : htmlspecialchars(__t('admin.view_user.no_changes')); ?></td>
                                         </tr>
                                     </table>
 
@@ -211,9 +212,9 @@ if (!empty($user['last_login'])) {
     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
     <input type="hidden" name="user_id" value="<?= $userId ?>">
     <div class="input-group input-group-sm">
-        <input type="number" name="points_to_add" class="form-control" placeholder="Punkty" min="1" max="1000" required>
-        <input type="text" name="reason" class="form-control" placeholder="Powód (opcjonalnie)" maxlength="100">
-        <button type="submit" class="btn btn-success">Dodaj</button>
+        <input type="number" name="points_to_add" class="form-control" placeholder="<?= htmlspecialchars(__t('admin.common.points')) ?>" min="1" max="1000" required>
+        <input type="text" name="reason" class="form-control" placeholder="<?= htmlspecialchars(__t('admin.users.reason_optional')) ?>" maxlength="100">
+        <button type="submit" class="btn btn-success"><?= htmlspecialchars(__t('admin.users.add_points')) ?></button>
     </div>
 </form>
 
@@ -223,13 +224,13 @@ if (!empty($user['last_login'])) {
                                                 <input type="hidden" name="user_id" value="<?= $userId ?>">
                                                 <input type="hidden" name="current_role" value="<?= safeEcho($user['role']) ?>">
                                                 <button type="submit" class="btn btn-warning btn-sm w-100">
-                                                    <i class="bi bi-arrow-repeat"></i> Zmień rolę
+                                                    <i class="bi bi-arrow-repeat"></i> <?= htmlspecialchars(__t('admin.users.change_role')) ?>
                                                 </button>
                                             </form>
                                         <?php endif; ?>
 
                                         <button class="btn btn-info btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#sendMessageModal">
-                                            <i class="bi bi-envelope"></i> Wyślij wiadomość
+                                            <i class="bi bi-envelope"></i> <?= htmlspecialchars(__t('admin.view_user.send_message')) ?>
                                         </button>
                                     </div>
                                 </div>
@@ -238,21 +239,21 @@ if (!empty($user['last_login'])) {
                             <!-- Informacje techniczne -->
                             <div class="card mb-4">
                                 <div class="card-header">
-                                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Informacje techniczne</h6>
+                                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> <?= htmlspecialchars(__t('admin.technical_info')) ?></h6>
                                 </div>
                                 <div class="card-body">
                                     <table class="table table-sm">
                                         <tr>
-                                            <td><strong>IP rejestracji:</strong></td>
-                                            <td><code><?= safeEcho($user['registration_ip'] ?? 'Brak') ?></code></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.users.registration_ip')) ?>:</strong></td>
+                                            <td><code><?= safeEcho($user['registration_ip'] ?? __t('admin.newsletter.none')) ?></code></td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Ostatnie IP:</strong></td>
-                                            <td><code><?= safeEcho($user['last_login_ip'] ?? 'Brak') ?></code></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.view_user.last_ip')) ?>:</strong></td>
+                                            <td><code><?= safeEcho($user['last_login_ip'] ?? __t('admin.newsletter.none')) ?></code></td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Przeglądarka:</strong></td>
-                                            <td><small><?= safeEcho($user['user_agent'] ?? 'Brak') ?></small></td>
+                                            <td><strong><?= htmlspecialchars(__t('admin.view_user.browser')) ?>:</strong></td>
+                                            <td><small><?= safeEcho($user['user_agent'] ?? __t('admin.newsletter.none')) ?></small></td>
                                         </tr>
                                     </table>
                                 </div>
@@ -267,7 +268,7 @@ if (!empty($user['last_login'])) {
                                     <div class="card bg-primary text-white text-center">
                                         <div class="card-body py-2">
                                             <h5 class="mb-0"><?= $userStats['total_jobs'] ?? 0 ?></h5>
-                                            <small>Ogłoszenia</small>
+                                            <small><?= htmlspecialchars(__t('admin.view_user.total_jobs')) ?></small>
                                         </div>
                                     </div>
                                 </div>
@@ -275,7 +276,7 @@ if (!empty($user['last_login'])) {
                                     <div class="card bg-success text-white text-center">
                                         <div class="card-body py-2">
                                             <h5 class="mb-0"><?= $userStats['active_jobs'] ?? 0 ?></h5>
-                                            <small>Aktywne</small>
+                                            <small><?= htmlspecialchars(__t('admin.users.active')) ?></small>
                                         </div>
                                     </div>
                                 </div>
@@ -283,7 +284,7 @@ if (!empty($user['last_login'])) {
                                     <div class="card bg-info text-white text-center">
                                         <div class="card-body py-2">
                                             <h5 class="mb-0"><?= $userStats['total_transactions'] ?? 0 ?></h5>
-                                            <small>Transakcje</small>
+                                            <small><?= htmlspecialchars(__t('admin.view_user.transactions')) ?></small>
                                         </div>
                                     </div>
                                 </div>
@@ -291,7 +292,7 @@ if (!empty($user['last_login'])) {
                                     <div class="card bg-warning text-white text-center">
                                         <div class="card-body py-2">
                                             <h5 class="mb-0"><?= $userStats['total_messages'] ?? 0 ?></h5>
-                                            <small>Wiadomości</small>
+                                            <small><?= htmlspecialchars(__t('admin.view_user.messages')) ?></small>
                                         </div>
                                     </div>
                                 </div>
@@ -301,9 +302,9 @@ if (!empty($user['last_login'])) {
                             <!-- Ostatnie ogłoszenia -->
                             <div class="card mb-4">
                                 <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0"><i class="bi bi-briefcase"></i> Ostatnie ogłoszenia</h6>
+                                    <h6 class="mb-0"><i class="bi bi-briefcase"></i> <?= htmlspecialchars(__t('admin.view_user.recent_jobs')) ?></h6>
                                     <a href="../admin/manage_jobs.php?user_id=<?= $userId ?>" class="btn btn-sm btn-outline-primary">
-                                        Zobacz wszystkie
+                                        <?= htmlspecialchars(__t('admin.view_all')) ?>
                                     </a>
                                 </div>
                                 <div class="card-body">
@@ -312,10 +313,10 @@ if (!empty($user['last_login'])) {
                                             <table class="table table-sm">
                                                 <thead>
                                                     <tr>
-                                                        <th>Tytuł</th>
-                                                        <th>Status</th>
-                                                        <th>Data</th>
-                                                        <th>Ofert</th>
+                                                        <th><?= htmlspecialchars(__t('admin.common.title')) ?></th>
+                                                        <th><?= htmlspecialchars(__t('admin.common.status')) ?></th>
+                                                        <th><?= htmlspecialchars(__t('admin.date')) ?></th>
+                                                        <th><?= htmlspecialchars(__t('admin.view_user.offer_count')) ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -339,7 +340,7 @@ if (!empty($user['last_login'])) {
                                             </table>
                                         </div>
                                     <?php else: ?>
-                                        <p class="text-muted text-center mb-0">Brak ogłoszeń</p>
+                                        <p class="text-muted text-center mb-0"><?= htmlspecialchars(__t('admin.view_user.no_jobs')) ?></p>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -347,9 +348,9 @@ if (!empty($user['last_login'])) {
                             <!-- Ostatnie transakcje -->
                             <div class="card mb-4">
                                 <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0"><i class="bi bi-currency-exchange"></i> Ostatnie transakcje</h6>
+                                    <h6 class="mb-0"><i class="bi bi-currency-exchange"></i> <?= htmlspecialchars(__t('admin.view_user.recent_transactions')) ?></h6>
                                     <a href="../admin/transactions.php?user_id=<?= $userId ?>" class="btn btn-sm btn-outline-primary">
-                                        Zobacz wszystkie
+                                        <?= htmlspecialchars(__t('admin.view_all')) ?>
                                     </a>
                                 </div>
                                 <div class="card-body">
@@ -358,11 +359,11 @@ if (!empty($user['last_login'])) {
                                             <table class="table table-sm">
                                                 <thead>
                                                     <tr>
-                                                        <th>Typ</th>
-                                                        <th>Kwota</th>
-                                                        <th>Status</th>
-                                                        <th>Data</th>
-                                                        <th>Opis</th>
+                                                        <th><?= htmlspecialchars(__t('admin.view_user.type')) ?></th>
+                                                        <th><?= htmlspecialchars(__t('admin.view_user.amount')) ?></th>
+                                                        <th><?= htmlspecialchars(__t('admin.common.status')) ?></th>
+                                                        <th><?= htmlspecialchars(__t('admin.date')) ?></th>
+                                                        <th><?= htmlspecialchars(__t('admin.description')) ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -389,7 +390,7 @@ if (!empty($user['last_login'])) {
                                             </table>
                                         </div>
                                     <?php else: ?>
-                                        <p class="text-muted text-center mb-0">Brak transakcji</p>
+                                        <p class="text-muted text-center mb-0"><?= htmlspecialchars(__t('admin.view_user.no_transactions')) ?></p>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -398,9 +399,9 @@ if (!empty($user['last_login'])) {
 <!-- Ostatnie konwersacje -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h6 class="mb-0"><i class="bi bi-chat-dots"></i> Ostatnie konwersacje</h6>
+        <h6 class="mb-0"><i class="bi bi-chat-dots"></i> <?= htmlspecialchars(__t('admin.view_user.recent_conversations')) ?></h6>
         <a href="../admin/manage_messages.php?user_id=<?= $userId ?>" class="btn btn-sm btn-outline-primary">
-            Zobacz wszystkie
+            <?= htmlspecialchars(__t('admin.view_all')) ?>
         </a>
     </div>
     <div class="card-body">
@@ -414,13 +415,13 @@ if (!empty($user['last_login'])) {
                 <table class="table table-sm">
                     <thead>
                         <tr>
-                            <th>ID Konwersacji</th>
-                            <th>Uczestnik</th>
-                            <th>Zlecenie</th>
-                            <th>Ostatnia wiadomość</th>
-                            <th>Wiadomości</th>
-                            <th>Ostatnia aktywność</th>
-                            <th>Akcje</th>
+                            <th><?= htmlspecialchars(__t('admin.view_user.conversation_id')) ?></th>
+                            <th><?= htmlspecialchars(__t('admin.view_user.participant')) ?></th>
+                            <th><?= htmlspecialchars(__t('admin.view_user.job')) ?></th>
+                            <th><?= htmlspecialchars(__t('admin.view_user.last_message')) ?></th>
+                            <th><?= htmlspecialchars(__t('admin.view_user.messages')) ?></th>
+                            <th><?= htmlspecialchars(__t('admin.view_user.last_activity')) ?></th>
+                            <th><?= htmlspecialchars(__t('admin.common.actions')) ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -445,12 +446,12 @@ if (!empty($user['last_login'])) {
                                             #<?= safeEcho($conversation['job_id']) ?>: <?= safeEcho(mb_substr($conversation['job_title'], 0, 15)) ?><?= mb_strlen($conversation['job_title']) > 15 ? '...' : '' ?>
                                         </a>
                                     <?php else: ?>
-                                        <span class="text-muted">Brak zlecenia</span>
+                                        <span class="text-muted"><?= htmlspecialchars(__t('admin.view_user.no_job')) ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php 
-                                    $content = !empty($conversation['last_message_content']) ? $conversation['last_message_content'] : 'Brak treści';
+                                    $content = !empty($conversation['last_message_content']) ? $conversation['last_message_content'] : __t('admin.view_user.no_content');
                                     echo safeEcho(mb_substr($content, 0, 30)) . (mb_strlen($content) > 30 ? '...' : '');
                                     ?>
                                 </td>
@@ -465,11 +466,11 @@ if (!empty($user['last_login'])) {
                                         <button type="button" class="btn btn-outline-info view-conversation" 
                                                 data-bs-toggle="modal" data-bs-target="#conversationModal" 
                                                 data-conversation-id="<?= safeEcho($conversation['conversation_id']); ?>">
-                                            <i class="bi bi-eye" title="Podgląd konwersacji"></i>
+                                            <i class="bi bi-eye" title="<?= htmlspecialchars(__t('admin.view_user.preview_conversation')) ?>"></i>
                                         </button>
                                         <a href="../messages/view.php?conversation_id=<?= safeEcho($conversation['conversation_id']) ?>" 
                                            class="btn btn-outline-primary" target="_blank">
-                                            <i class="bi bi-chat" title="Otwórz konwersację"></i>
+                                            <i class="bi bi-chat" title="<?= htmlspecialchars(__t('admin.view_user.open_conversation')) ?>"></i>
                                         </a>
                                     </div>
                                 </td>
@@ -479,7 +480,7 @@ if (!empty($user['last_login'])) {
                 </table>
             </div>
         <?php else: ?>
-            <p class="text-muted text-center mb-0">Brak konwersacji</p>
+            <p class="text-muted text-center mb-0"><?= htmlspecialchars(__t('admin.view_user.no_conversations')) ?></p>
         <?php endif; ?>
     </div>
 </div>
@@ -487,7 +488,7 @@ if (!empty($user['last_login'])) {
                             <!-- Historia logowań -->
                             <div class="card">
                                 <div class="card-header">
-                                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Ostatnie logowania</h6>
+                                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> <?= htmlspecialchars(__t('admin.view_user.recent_logins')) ?></h6>
                                 </div>
                                 <div class="card-body">
                                     <?php if (!empty($loginHistory)): ?>
@@ -495,9 +496,9 @@ if (!empty($user['last_login'])) {
                                             <table class="table table-sm">
                                                 <thead>
                                                     <tr>
-                                                        <th>Data</th>
+                                                        <th><?= htmlspecialchars(__t('admin.date')) ?></th>
                                                         <th>IP</th>
-                                                        <th>Status</th>
+                                                        <th><?= htmlspecialchars(__t('admin.common.status')) ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -507,7 +508,7 @@ if (!empty($user['last_login'])) {
                                                             <td><code><?= safeEcho($login['ip_address']) ?></code></td>
                                                             <td>
                                                                 <span class="badge bg-<?= $login['success'] ? 'success' : 'danger'; ?>">
-                                                                    <?= $login['success'] ? 'Sukces' : 'Błąd' ?>
+                                                                    <?= htmlspecialchars($login['success'] ? __t('admin.view_user.success') : __t('admin.view_user.error')) ?>
                                                                 </span>
                                                             </td>
                                                         </tr>
@@ -516,7 +517,7 @@ if (!empty($user['last_login'])) {
                                             </table>
                                         </div>
                                     <?php else: ?>
-                                        <p class="text-muted text-center mb-0">Brak historii logowań</p>
+                                        <p class="text-muted text-center mb-0"><?= htmlspecialchars(__t('admin.view_user.no_login_history')) ?></p>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -535,8 +536,8 @@ if (!empty($user['last_login'])) {
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Wyślij wiadomość do <?= safeEcho($user['name']) ?></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title"><?= htmlspecialchars(__t('admin.view_user.send_message_to', ['name' => $user['name']])) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars(__t('common.close')) ?>"></button>
             </div>
             <form action="../admin/send_message.php" method="POST">
                 <div class="modal-body">
@@ -544,28 +545,28 @@ if (!empty($user['last_login'])) {
                     <input type="hidden" name="user_id" value="<?= $userId ?>">
                     
                     <div class="mb-3">
-                        <label class="form-label">Temat</label>
+                        <label class="form-label"><?= htmlspecialchars(__t('admin.view_user.subject')) ?></label>
                         <input type="text" name="subject" class="form-control" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Wiadomość</label>
+                        <label class="form-label"><?= htmlspecialchars(__t('admin.view_user.message')) ?></label>
                         <textarea name="message" class="form-control" rows="5" required></textarea>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Typ wiadomości</label>
+                        <label class="form-label"><?= htmlspecialchars(__t('admin.view_user.message_type')) ?></label>
                         <select name="message_type" class="form-select">
-                            <option value="notification">Powiadomienie</option>
-                            <option value="information">Informacja</option>
-                            <option value="warning">Ostrzeżenie</option>
-                            <option value="promotion">Promocja</option>
+                            <option value="notification"><?= htmlspecialchars(__t('admin.view_user.notification')) ?></option>
+                            <option value="information"><?= htmlspecialchars(__t('admin.view_user.information')) ?></option>
+                            <option value="warning"><?= htmlspecialchars(__t('admin.view_user.warning')) ?></option>
+                            <option value="promotion"><?= htmlspecialchars(__t('admin.view_user.promotion')) ?></option>
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
-                    <button type="submit" class="btn btn-primary">Wyślij wiadomość</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars(__t('admin.users.cancel')) ?></button>
+                    <button type="submit" class="btn btn-primary"><?= htmlspecialchars(__t('admin.view_user.send_message')) ?></button>
                 </div>
             </form>
         </div>
@@ -578,17 +579,17 @@ if (!empty($user['last_login'])) {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Podgląd konwersacji <span id="modalConversationId"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title"><?= htmlspecialchars(__t('admin.view_user.preview_conversation')) ?> <span id="modalConversationId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars(__t('common.close')) ?>"></button>
             </div>
             <div class="modal-body">
                 <div id="conversationContent" class="conversation-messages">
-                    <p class="text-center text-muted">Ładowanie wiadomości...</p>
+                    <p class="text-center text-muted"><?= htmlspecialchars(__t('admin.view_user.loading_messages')) ?></p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
-                <a href="#" id="fullConversationLink" class="btn btn-primary" target="_blank">Pełna konwersacja</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars(__t('common.close')) ?></button>
+                <a href="#" id="fullConversationLink" class="btn btn-primary" target="_blank"><?= htmlspecialchars(__t('admin.view_user.full_conversation')) ?></a>
             </div>
         </div>
     </div>
@@ -643,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .catch(error => {
                     document.getElementById('conversationContent').innerHTML = 
-                        '<p class="text-danger">Błąd podczas ładowania konwersacji.</p>';
+                        '<p class="text-danger"><?= htmlspecialchars(__t('admin.view_user.loading_error'), ENT_QUOTES) ?></p>';
                 });
         });
     }

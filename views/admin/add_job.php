@@ -3,6 +3,7 @@ session_start();
 include_once('../../models/Job.php');
 include_once('../../models/User.php');
 include_once('../../models/Database.php');
+include_once('../../models/Language.php');
 
 // Sprawdź uprawnienia
 require_once __DIR__ . '/_auth.php';
@@ -39,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // CSRF
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        $errorMessage = 'Błąd bezpieczeństwa CSRF.';
+        $errorMessage = __t('admin.edit_job.csrf_error');
     } else {
 
         $form['title']           = trim($_POST['title']           ?? '');
@@ -51,15 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Walidacja
         if (empty($form['title'])) {
-            $errorMessage = 'Tytuł nie może być pusty.';
+            $errorMessage = __t('admin.edit_job.title_required');
         } elseif (empty($form['description'])) {
-            $errorMessage = 'Opis nie może być pusty.';
+            $errorMessage = __t('admin.add_job.description_required');
         } elseif ($form['points_required'] < 1 || $form['points_required'] > 100) {
-            $errorMessage = 'Punkty muszą być w zakresie 1–100.';
+            $errorMessage = __t('admin.edit_job.points_invalid');
         } elseif (!in_array($form['status'], ['open', 'active', 'closed', 'inactive'])) {
-            $errorMessage = 'Nieprawidłowy status.';
+            $errorMessage = __t('admin.edit_job.invalid_status');
         } elseif (empty($form['user_id'])) {
-            $errorMessage = 'Musisz wybrać właściciela zlecenia.';
+            $errorMessage = __t('admin.add_job.owner_required');
         } else {
 
             // Wstaw zlecenie do bazy
@@ -105,9 +106,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Zapisz do historii zmian — zdarzenie "utworzenie"
-            $histDesc = "Zlecenie utworzone przez administratora. Status: {$form['status']}, Punkty: {$form['points_required']}";
+            $histDesc = __t('admin.add_job.history_created', [
+                'status' => $form['status'],
+                'points' => $form['points_required'],
+            ]);
             if (!empty($uploadedImages)) {
-                $histDesc .= '. Dodano ' . count($uploadedImages) . ' zdjęcie(a).';
+                $histDesc .= '. ' . __t('admin.add_job.history_images_added', ['count' => count($uploadedImages)]);
             }
             try {
                 $pdo->prepare(
@@ -127,10 +131,10 @@ function safeEcho($v, $d = '') { return htmlspecialchars($v ?? $d, ENT_QUOTES, '
 function sel($a, $b) { return (string)$a === (string)$b ? 'selected' : ''; }
 
 $statusLabels = [
-    'open'     => 'Otwarte',
-    'active'   => 'Aktywne',
-    'closed'   => 'Zamknięte',
-    'inactive' => 'Nieaktywne',
+    'open'     => __t('admin.jobs.open'),
+    'active'   => __t('admin.jobs.active'),
+    'closed'   => __t('admin.jobs.closed'),
+    'inactive' => __t('admin.jobs.inactive'),
 ];
 ?>
 <?php include '../partials/header.php'; ?>
@@ -233,10 +237,10 @@ $statusLabels = [
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <div>
         <a href="manage_jobs.php" class="btn btn-sm btn-outline-secondary">
-          <i class="bi bi-arrow-left"></i> Powrót do listy
+          <i class="bi bi-arrow-left"></i> <?= safeEcho(__t('admin.add_job.back_to_list')) ?>
         </a>
         <span class="ms-2 text-muted fw-semibold">
-          <i class="bi bi-plus-circle text-success"></i> Nowe zlecenie
+          <i class="bi bi-plus-circle text-success"></i> <?= safeEcho(__t('admin.add_job.new_job')) ?>
         </span>
       </div>
     </div>
@@ -261,30 +265,30 @@ $statusLabels = [
 
           <!-- 1. Podstawowe informacje -->
           <div class="section-card">
-            <div class="section-head"><i class="bi bi-file-text"></i> Podstawowe informacje</div>
+            <div class="section-head"><i class="bi bi-file-text"></i> <?= safeEcho(__t('admin.edit_job.basic_info')) ?></div>
             <div class="section-body">
               <div class="mb-3">
                 <label class="form-label fw-semibold">
-                  Tytuł zlecenia <span class="text-danger">*</span>
+                  <?= safeEcho(__t('admin.edit_job.job_title')) ?> <span class="text-danger">*</span>
                 </label>
                 <input type="text" name="title" class="form-control form-control-lg"
                        value="<?= safeEcho($form['title']) ?>"
-                       placeholder="Np. Potrzebuję pomocy przy remoncie mieszkania"
+                       placeholder="<?= safeEcho(__t('admin.add_job.job_title_placeholder')) ?>"
                        required maxlength="255" autofocus>
                 <div class="tip-box mt-2">
                   <i class="bi bi-lightbulb"></i>
-                  Dobry tytuł jasno opisuje czego szuka zleceniodawca. Maks. 255 znaków.
+                  <?= safeEcho(__t('admin.add_job.title_hint')) ?>
                 </div>
               </div>
               <div class="mb-0">
                 <label class="form-label fw-semibold">
-                  Opis zlecenia <span class="text-danger">*</span>
+                  <?= safeEcho(__t('admin.edit_job.job_description')) ?> <span class="text-danger">*</span>
                 </label>
                 <textarea name="description" class="form-control" rows="10"
                           required style="resize:vertical"
-                          placeholder="Opisz szczegółowo zakres pracy, wymagania, termin realizacji..."><?= safeEcho($form['description']) ?></textarea>
+                          placeholder="<?= safeEcho(__t('admin.add_job.description_placeholder')) ?>"><?= safeEcho($form['description']) ?></textarea>
                 <div class="d-flex justify-content-end mt-1">
-                  <small class="text-muted" id="descCounter">0 znaków</small>
+                  <small class="text-muted" id="descCounter"><?= safeEcho(__t('admin.add_job.char_count', ['count' => 0])) ?></small>
                 </div>
               </div>
             </div>
@@ -292,12 +296,12 @@ $statusLabels = [
 
           <!-- 2. Zdjęcia -->
           <div class="section-card">
-            <div class="section-head"><i class="bi bi-images"></i> Zdjęcia zlecenia</div>
+            <div class="section-head"><i class="bi bi-images"></i> <?= safeEcho(__t('admin.edit_job.job_images')) ?></div>
             <div class="section-body">
               <label class="upload-zone d-block" for="new_images">
                 <i class="bi bi-cloud-upload fs-2 text-primary"></i>
-                <div class="mt-1 fw-semibold">Kliknij lub przeciągnij pliki tutaj</div>
-                <div class="text-muted small">JPG, PNG, WEBP, GIF · max 5 MB · wiele plików jednocześnie</div>
+                <div class="mt-1 fw-semibold"><?= safeEcho(__t('admin.add_job.upload_click')) ?></div>
+                <div class="text-muted small"><?= safeEcho(__t('admin.add_job.upload_hint')) ?></div>
                 <input type="file" id="new_images" name="new_images[]"
                        class="d-none" multiple accept="image/*"
                        onchange="previewNewImages(this)">
@@ -315,7 +319,7 @@ $statusLabels = [
 
           <!-- 3. Parametry -->
           <div class="section-card">
-            <div class="section-head"><i class="bi bi-sliders"></i> Parametry zlecenia</div>
+            <div class="section-head"><i class="bi bi-sliders"></i> <?= safeEcho(__t('admin.add_job.parameters')) ?></div>
             <div class="section-body">
 
               <div class="mb-3">
@@ -329,28 +333,27 @@ $statusLabels = [
                 </select>
                 <div class="tip-box">
                   <i class="bi bi-info-circle"></i>
-                  <strong>Otwarte</strong> — widoczne dla wykonawców;<br>
-                  <strong>Nieaktywne</strong> — ukryte, do późniejszej publikacji.
+                  <?= __t('admin.add_job.status_hint') ?>
                 </div>
               </div>
 
               <div class="mb-3">
                 <label class="form-label fw-semibold">
-                  Punkty wymagane od wykonawcy <span class="text-danger">*</span>
+                  <?= safeEcho(__t('admin.edit_job.points_required')) ?> <span class="text-danger">*</span>
                 </label>
                 <div class="input-group">
                   <input type="number" name="points_required" class="form-control"
                          value="<?= (int)$form['points_required'] ?>"
                          min="1" max="100" required>
-                  <span class="input-group-text">pkt</span>
+                  <span class="input-group-text"><?= safeEcho(__t('admin.add_job.points_unit')) ?></span>
                 </div>
-                <div class="form-text">Zakres: 1–100</div>
+                <div class="form-text"><?= safeEcho(__t('admin.edit_job.range_1_100')) ?></div>
               </div>
 
               <div class="mb-3">
                 <label class="form-label fw-semibold">Kategoria</label>
                 <select name="category_id" class="form-select">
-                  <option value="">— Brak kategorii —</option>
+                  <option value=""><?= safeEcho(__t('admin.edit_job.no_category')) ?></option>
                   <?php foreach ($categories as $cat): ?>
                     <option value="<?= $cat['id'] ?>"
                             <?= sel($form['category_id'], $cat['id']) ?>>
@@ -362,10 +365,10 @@ $statusLabels = [
 
               <div class="mb-0">
                 <label class="form-label fw-semibold">
-                  Właściciel zlecenia <span class="text-danger">*</span>
+                  <?= safeEcho(__t('admin.edit_job.owner')) ?> <span class="text-danger">*</span>
                 </label>
                 <select name="user_id" class="form-select">
-                  <option value="">— Wybierz użytkownika —</option>
+                  <option value=""><?= safeEcho(__t('admin.add_job.select_user')) ?></option>
                   <?php foreach ($allUsers as $u): ?>
                     <option value="<?= $u['id'] ?>"
                             <?= sel($form['user_id'], $u['id']) ?>>
@@ -376,7 +379,7 @@ $statusLabels = [
                 </select>
                 <div class="tip-box mt-2">
                   <i class="bi bi-person-check"></i>
-                  Zlecenie zostanie przypisane do wybranego użytkownika. Domyślnie wybrany jest zalogowany administrator.
+                  <?= safeEcho(__t('admin.add_job.owner_hint')) ?>
                 </div>
               </div>
 
@@ -385,27 +388,27 @@ $statusLabels = [
 
           <!-- 4. Podsumowanie (dynamiczne) -->
           <div class="section-card">
-            <div class="section-head"><i class="bi bi-check2-square"></i> Podsumowanie</div>
+            <div class="section-head"><i class="bi bi-check2-square"></i> <?= safeEcho(__t('admin.add_job.summary')) ?></div>
             <div class="section-body p-0">
               <table class="table table-sm mb-0">
                 <tr>
-                  <td class="text-muted ps-3">Status</td>
-                  <td class="pe-3 fw-bold" id="summStatus">Otwarte</td>
+                  <td class="text-muted ps-3"><?= safeEcho(__t('job.status')) ?></td>
+                  <td class="pe-3 fw-bold" id="summStatus"><?= safeEcho(__t('admin.jobs.open')) ?></td>
                 </tr>
                 <tr>
-                  <td class="text-muted ps-3">Punkty</td>
-                  <td class="pe-3 fw-bold" id="summPoints">1 pkt</td>
+                  <td class="text-muted ps-3"><?= safeEcho(__t('admin.add_job.points')) ?></td>
+                  <td class="pe-3 fw-bold" id="summPoints">1 <?= safeEcho(__t('admin.add_job.points_unit')) ?></td>
                 </tr>
                 <tr>
-                  <td class="text-muted ps-3">Kategoria</td>
-                  <td class="pe-3" id="summCategory">— brak —</td>
+                  <td class="text-muted ps-3"><?= safeEcho(__t('admin.settings.category')) ?></td>
+                  <td class="pe-3" id="summCategory"><?= safeEcho(__t('admin.add_job.none')) ?></td>
                 </tr>
                 <tr>
-                  <td class="text-muted ps-3">Właściciel</td>
-                  <td class="pe-3" id="summOwner">—</td>
+                  <td class="text-muted ps-3"><?= safeEcho(__t('admin.edit_job.owner')) ?></td>
+                  <td class="pe-3" id="summOwner">-</td>
                 </tr>
                 <tr>
-                  <td class="text-muted ps-3">Zdjęcia</td>
+                  <td class="text-muted ps-3"><?= safeEcho(__t('admin.add_job.images')) ?></td>
                   <td class="pe-3" id="summImages">0</td>
                 </tr>
               </table>
@@ -419,10 +422,10 @@ $statusLabels = [
       <!-- Sticky bar -->
       <div class="sticky-bar">
         <a href="manage_jobs.php" class="btn btn-outline-secondary">
-          <i class="bi bi-x-circle"></i> Anuluj
+          <i class="bi bi-x-circle"></i> <?= safeEcho(__t('admin.users.cancel')) ?>
         </a>
         <button type="submit" class="btn btn-success px-4" form="addJobForm">
-          <i class="bi bi-plus-circle-fill me-1"></i> Utwórz zlecenie
+          <i class="bi bi-plus-circle-fill me-1"></i> <?= safeEcho(__t('admin.add_job.create')) ?>
         </button>
       </div>
 
@@ -438,6 +441,17 @@ $statusLabels = [
 <script>
 // ===== Podgląd zdjęć =====
 let selectedFilesCount = 0;
+const addJobText = {
+    filesSelected: <?= json_encode(__t('admin.add_job.files_selected'), JSON_UNESCAPED_UNICODE) ?>,
+    charCount: <?= json_encode(__t('admin.add_job.char_count'), JSON_UNESCAPED_UNICODE) ?>,
+    pointsUnit: <?= json_encode(__t('admin.add_job.points_unit'), JSON_UNESCAPED_UNICODE) ?>,
+    none: <?= json_encode(__t('admin.add_job.none'), JSON_UNESCAPED_UNICODE) ?>,
+    empty: '-',
+};
+
+function translateTemplate(template, values) {
+    return Object.keys(values).reduce((text, key) => text.replaceAll('{' + key + '}', values[key]), template);
+}
 
 function previewNewImages(input) {
     const container = document.getElementById('newImgPreview');
@@ -451,7 +465,7 @@ function previewNewImages(input) {
         return;
     }
 
-    countEl.textContent = `Wybrano ${input.files.length} plik(ów) do przesłania`;
+    countEl.textContent = translateTemplate(addJobText.filesSelected, {count: input.files.length});
     countEl.style.display = 'block';
 
     Array.from(input.files).forEach(file => {
@@ -475,14 +489,19 @@ function previewNewImages(input) {
 const descArea = document.querySelector('textarea[name="description"]');
 const descCounter = document.getElementById('descCounter');
 if (descArea && descCounter) {
-    const update = () => { descCounter.textContent = descArea.value.length + ' znaków'; };
+    const update = () => {
+        descCounter.textContent = translateTemplate(addJobText.charCount, {count: descArea.value.length});
+    };
     descArea.addEventListener('input', update);
     update();
 }
 
 // ===== Dynamiczne podsumowanie =====
 const statusLabels = {
-    open: 'Otwarte', active: 'Aktywne', closed: 'Zamknięte', inactive: 'Nieaktywne'
+    open: <?= json_encode(__t('admin.jobs.open'), JSON_UNESCAPED_UNICODE) ?>,
+    active: <?= json_encode(__t('admin.jobs.active'), JSON_UNESCAPED_UNICODE) ?>,
+    closed: <?= json_encode(__t('admin.jobs.closed'), JSON_UNESCAPED_UNICODE) ?>,
+    inactive: <?= json_encode(__t('admin.jobs.inactive'), JSON_UNESCAPED_UNICODE) ?>
 };
 
 function updateSummary() {
@@ -495,18 +514,18 @@ function updateSummary() {
         statusLabels[status.value] || status.value;
 
     if (points)   document.getElementById('summPoints').textContent =
-        (points.value || 1) + ' pkt';
+        (points.value || 1) + ' ' + addJobText.pointsUnit;
 
     if (category) {
         const opt = category.options[category.selectedIndex];
         document.getElementById('summCategory').textContent =
-            (category.value ? opt.text : '— brak —');
+            (category.value ? opt.text : addJobText.none);
     }
 
     if (owner) {
         const opt = owner.options[owner.selectedIndex];
         document.getElementById('summOwner').textContent =
-            (owner.value ? opt.text : '—');
+            (owner.value ? opt.text : addJobText.empty);
     }
 
     document.getElementById('summImages').textContent = selectedFilesCount;

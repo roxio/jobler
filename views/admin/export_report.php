@@ -5,6 +5,7 @@ require_once __DIR__ . '/_auth.php';
 requireAdminAccess();
 include_once('../../models/Report.php');
 include_once('../../models/Database.php');
+include_once('../../models/Language.php');
 
 // Uzyskanie połączenia z bazą danych
 $pdo = Database::getConnection();
@@ -31,7 +32,12 @@ header('Content-Disposition: attachment; filename="raporty.csv"');
 $output = fopen('php://output', 'w');
 
 // Zapisujemy nagłówki kolumn do pliku CSV
-fputcsv($output, ['ID użytkownika', 'Typ aktywności', 'Data', 'Szczegóły']);
+fputcsv($output, [
+    __t('admin.export.user_id'),
+    __t('admin.export.activity_type'),
+    __t('admin.reports.col.date'),
+    __t('admin.export.details')
+]);
 
 // Zapisujemy dane raportów do pliku CSV
 foreach ($reports as $report) {

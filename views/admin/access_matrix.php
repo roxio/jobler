@@ -3,6 +3,7 @@ session_start();
 
 require_once __DIR__ . '/_auth.php';
 requireAdminAccess('roles.manage');
+require_once dirname(__DIR__, 2) . '/models/Language.php';
 
 $accessControl = currentAccessControl();
 $roles = AccessControl::roles();
@@ -65,7 +66,7 @@ include '../partials/header.php';
         <div class="col-md-12 col-lg-12 main-content">
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Matryca dostepow</h5>
+                    <h5 class="mb-0"><i class="bi bi-shield-lock"></i> <?= htmlspecialchars(__t('admin.access.title')) ?></h5>
                     <nav class="nav">
                         <?php include 'sidebar.php'; ?>
                     </nav>
@@ -75,13 +76,13 @@ include '../partials/header.php';
                     <?php if ($status): ?>
                         <?php
                         $statusMessages = [
-                            'saved' => ['alert-success', 'Uprawnienia zostaly zapisane.'],
-                            'role_added' => ['alert-success', 'Rola zostala dodana. Mozesz teraz ustawic jej dostepy.'],
-                            'error' => ['alert-danger', 'Nie udalo sie zapisac uprawnien.'],
-                            'role_error' => ['alert-danger', 'Nie udalo sie dodac roli. Sprawdz nazwe lub klucz roli.'],
-                            'invalid_role' => ['alert-danger', 'Wybrana rola nie istnieje.'],
+                            'saved' => ['alert-success', __t('admin.access.saved')],
+                            'role_added' => ['alert-success', __t('admin.access.role_added')],
+                            'error' => ['alert-danger', __t('admin.access.error')],
+                            'role_error' => ['alert-danger', __t('admin.access.role_error')],
+                            'invalid_role' => ['alert-danger', __t('admin.access.invalid_role')],
                         ];
-                        [$alertClass, $message] = $statusMessages[$status] ?? ['alert-danger', 'Wystapil blad.'];
+                        [$alertClass, $message] = $statusMessages[$status] ?? ['alert-danger', __t('admin.access.generic_error')];
                         ?>
                         <div class="alert <?= $alertClass ?> alert-dismissible fade show" role="alert">
                             <?= safeEcho($message) ?>
@@ -93,21 +94,21 @@ include '../partials/header.php';
                         <div class="col-lg-3">
                             <div class="card mb-3">
                                 <div class="card-header">
-                                    <h6 class="mb-0">Dodaj role</h6>
+                                    <h6 class="mb-0"><?= htmlspecialchars(__t('admin.access.add_role')) ?></h6>
                                 </div>
                                 <div class="card-body">
                                     <form method="POST" class="vstack gap-2">
                                         <input type="hidden" name="action" value="add_role">
                                         <div>
-                                            <label class="form-label small">Nazwa roli</label>
+                                            <label class="form-label small"><?= htmlspecialchars(__t('admin.access.role_name')) ?></label>
                                             <input type="text" name="role_label" class="form-control form-control-sm" maxlength="120" required>
                                         </div>
                                         <div>
-                                            <label class="form-label small">Klucz roli</label>
-                                            <input type="text" name="role_key" class="form-control form-control-sm" maxlength="40" placeholder="np. konsultant">
+                                            <label class="form-label small"><?= htmlspecialchars(__t('admin.access.role_key')) ?></label>
+                                            <input type="text" name="role_key" class="form-control form-control-sm" maxlength="40" placeholder="<?= htmlspecialchars(__t('admin.access.role_key_placeholder')) ?>">
                                         </div>
                                         <button type="submit" class="btn btn-outline-primary btn-sm">
-                                            <i class="bi bi-plus-circle me-1"></i>Dodaj
+                                            <i class="bi bi-plus-circle me-1"></i><?= htmlspecialchars(__t('admin.access.add')) ?>
                                         </button>
                                     </form>
                                 </div>
@@ -128,11 +129,11 @@ include '../partials/header.php';
                             <form method="POST" class="card">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h6 class="mb-0">Uprawnienia roli: <?= safeEcho($roles[$selectedRole]) ?></h6>
-                                        <small class="text-muted">Zmiany dotycza wszystkich kont z ta rola.</small>
+                                        <h6 class="mb-0"><?= htmlspecialchars(__t('admin.access.permissions_for', ['role' => $roles[$selectedRole]])) ?></h6>
+                                        <small class="text-muted"><?= htmlspecialchars(__t('admin.access.affects_all')) ?></small>
                                     </div>
                                     <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-save me-1"></i>Zapisz
+                                        <i class="bi bi-save me-1"></i><?= htmlspecialchars(__t('admin.access.save')) ?>
                                     </button>
                                 </div>
                                 <div class="card-body">
@@ -141,7 +142,7 @@ include '../partials/header.php';
 
                                     <?php if (in_array($selectedRole, ['user', 'executor'], true)): ?>
                                         <div class="alert alert-info">
-                                            Ta rola nie ma dostepu do panelu administracyjnego. Uprawnienia panelowe zostaja puste.
+                                            <?= htmlspecialchars(__t('admin.access.no_admin_access')) ?>
                                         </div>
                                     <?php endif; ?>
 

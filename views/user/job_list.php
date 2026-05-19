@@ -2,6 +2,9 @@
 session_start();
 
 include_once('../../models/Database.php');
+include_once('../../models/Language.php');
+
+$currentLocale = Language::current('frontend');
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
@@ -101,9 +104,9 @@ $statsStmt->execute(['user_id' => $userId]);
 $stats = $statsStmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
 $statusLabels = [
-    'open' => 'Otwarte',
-    'in_progress' => 'W realizacji',
-    'closed' => 'Zamknięte',
+    'open' => __t('status.open'),
+    'in_progress' => __t('status.in_progress'),
+    'closed' => __t('status.closed'),
 ];
 
 $statusClasses = [
@@ -113,9 +116,9 @@ $statusClasses = [
 ];
 
 $workModeLabels = [
-    'remote' => 'Zdalnie',
-    'onsite' => 'Stacjonarnie',
-    'hybrid' => 'Hybrydowo',
+    'remote' => __t('work_mode.remote'),
+    'onsite' => __t('work_mode.onsite'),
+    'hybrid' => __t('work_mode.hybrid'),
 ];
 
 include('../partials/header.php');
@@ -124,52 +127,52 @@ include('../partials/header.php');
 <div class="container">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h1 class="h3 mb-1">Moje ogłoszenia</h1>
-            <p class="text-muted mb-0">Przeglądaj, edytuj i kontroluj status swoich zleceń.</p>
+            <h1 class="h3 mb-1"><?= htmlspecialchars(__t('user.my_jobs')) ?></h1>
+            <p class="text-muted mb-0"><?= htmlspecialchars(__t('user.my_jobs_intro')) ?></p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="dashboard.php" class="btn btn-outline-secondary"><i class="bi bi-speedometer2"></i> Kokpit</a>
-            <a href="create_job.php" class="btn btn-success"><i class="bi bi-plus-circle"></i> Dodaj ogłoszenie</a>
+            <a href="dashboard.php" class="btn btn-outline-secondary"><i class="bi bi-speedometer2"></i> <?= htmlspecialchars(__t('user.dashboard_title')) ?></a>
+            <a href="create_job.php" class="btn btn-success"><i class="bi bi-plus-circle"></i> <?= htmlspecialchars(__t('user.add_job')) ?></a>
         </div>
     </div>
 
     <?php if (($_GET['status'] ?? '') === 'updated'): ?>
-        <div class="alert alert-success">Ogłoszenie zostało zaktualizowane.</div>
+        <div class="alert alert-success"><?= htmlspecialchars(__t('user.job_updated')) ?></div>
     <?php endif; ?>
     <?php if (($_GET['status'] ?? '') === 'archived'): ?>
-        <div class="alert alert-success">Ogłoszenie zostało przeniesione do archiwum. Zablokowane punkty wykonawców zostały zwrócone.</div>
+        <div class="alert alert-success"><?= htmlspecialchars(__t('user.job_archived')) ?></div>
     <?php endif; ?>
     <?php if (($_GET['status'] ?? '') === 'archive_error'): ?>
-        <div class="alert alert-danger">Nie udało się zarchiwizować ogłoszenia.</div>
+        <div class="alert alert-danger"><?= htmlspecialchars(__t('user.job_archive_error')) ?></div>
     <?php endif; ?>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small">Wszystkie</div><div class="h3 mb-0"><?= (int)($stats['total_jobs'] ?? 0) ?></div></div></div></div>
-        <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small">Otwarte</div><div class="h3 mb-0"><?= (int)($stats['open_jobs'] ?? 0) ?></div></div></div></div>
-        <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small">W realizacji</div><div class="h3 mb-0"><?= (int)($stats['in_progress_jobs'] ?? 0) ?></div></div></div></div>
-        <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small">Zamknięte</div><div class="h3 mb-0"><?= (int)($stats['closed_jobs'] ?? 0) ?></div></div></div></div>
+        <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small"><?= htmlspecialchars(__t('nav.all')) ?></div><div class="h3 mb-0"><?= (int)($stats['total_jobs'] ?? 0) ?></div></div></div></div>
+        <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small"><?= htmlspecialchars(__t('status.open')) ?></div><div class="h3 mb-0"><?= (int)($stats['open_jobs'] ?? 0) ?></div></div></div></div>
+        <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small"><?= htmlspecialchars(__t('status.in_progress')) ?></div><div class="h3 mb-0"><?= (int)($stats['in_progress_jobs'] ?? 0) ?></div></div></div></div>
+        <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small"><?= htmlspecialchars(__t('status.closed')) ?></div><div class="h3 mb-0"><?= (int)($stats['closed_jobs'] ?? 0) ?></div></div></div></div>
     </div>
 
     <div class="card">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <h2 class="h5 mb-0">Lista ogłoszeń</h2>
+            <h2 class="h5 mb-0"><?= htmlspecialchars(__t('user.jobs_list')) ?></h2>
             <form method="GET" class="d-flex gap-2">
                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">Wszystkie statusy</option>
+                    <option value=""><?= htmlspecialchars(__t('user.all_statuses')) ?></option>
                     <?php foreach ($statusLabels as $status => $label): ?>
                         <option value="<?= htmlspecialchars($status) ?>" <?= $statusFilter === $status ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <?php if ($statusFilter !== ''): ?>
-                    <a href="job_list.php" class="btn btn-sm btn-outline-secondary">Wyczyść</a>
+                    <a href="job_list.php" class="btn btn-sm btn-outline-secondary"><?= htmlspecialchars(__t('home.clear_filters')) ?></a>
                 <?php endif; ?>
             </form>
         </div>
         <div class="card-body">
             <?php if (empty($jobs)): ?>
                 <div class="text-center py-5">
-                    <p class="mb-3">Nie masz jeszcze ogłoszeń w tym widoku.</p>
-                    <a href="create_job.php" class="btn btn-success">Dodaj nowe ogłoszenie</a>
+                    <p class="mb-3"><?= htmlspecialchars(__t('user.no_jobs_in_view')) ?></p>
+                    <a href="create_job.php" class="btn btn-success"><?= htmlspecialchars(__t('user.add_new_job')) ?></a>
                 </div>
             <?php else: ?>
                 <div class="vstack gap-3">
@@ -182,34 +185,34 @@ include('../partials/header.php');
                         <div class="border rounded p-3">
                             <div class="row g-3 align-items-start">
                                 <div class="col-md-2">
-                                    <img src="<?= htmlspecialchars($imageUrl) ?>" alt="Zdjęcie ogłoszenia" class="img-fluid rounded border" style="aspect-ratio: 4 / 3; object-fit: cover; width: 100%;">
+                                    <img src="<?= htmlspecialchars($imageUrl) ?>" alt="<?= htmlspecialchars(__t('home.job_image_alt')) ?>" class="img-fluid rounded border" style="aspect-ratio: 4 / 3; object-fit: cover; width: 100%;">
                                 </div>
                                 <div class="col-md-7">
                                     <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                                         <h3 class="h5 mb-0"><?= htmlspecialchars($job['title']) ?></h3>
                                         <span class="badge <?= $statusClasses[$job['status']] ?? 'bg-secondary' ?>"><?= $statusLabels[$job['status']] ?? htmlspecialchars($job['status']) ?></span>
-                                        <?php if ($isExpired): ?><span class="badge bg-danger">Po terminie</span><?php endif; ?>
+                                        <?php if ($isExpired): ?><span class="badge bg-danger"><?= htmlspecialchars(__t('user.expired')) ?></span><?php endif; ?>
                                     </div>
                                     <div class="text-muted small mb-2">
-                                        <?= htmlspecialchars($job['category_name'] ?? 'Bez kategorii') ?> · <?= htmlspecialchars($workModeLabels[$job['work_mode']] ?? $job['work_mode'] ?? '-') ?>
+                                        <?= htmlspecialchars($job['category_name'] ?? __t('home.no_category')) ?> · <?= htmlspecialchars($workModeLabels[$job['work_mode']] ?? $job['work_mode'] ?? '-') ?>
                                     </div>
                                     <?php $shortDescription = strlen($job['description']) > 180 ? substr($job['description'], 0, 180) . '...' : $job['description']; ?>
                                     <p class="mb-2"><?= htmlspecialchars($shortDescription) ?></p>
                                     <div class="d-flex flex-wrap gap-3 small">
-                                        <span><strong>Budżet:</strong> <?= $job['budget_estimate'] !== null ? number_format((float)$job['budget_estimate'], 2, ',', ' ') . ' PLN' : '-' ?></span>
-                                        <span><strong>Realizacja:</strong> <?= htmlspecialchars($job['realization_time'] ?: '-') ?></span>
-                                        <span><strong>Punkty:</strong> <?= (int)$job['points_required'] ?></span>
-                                        <span><strong>Oferty:</strong> <?= (int)$job['offer_count'] ?></span>
+                                        <span><strong><?= htmlspecialchars(__t('user.budget')) ?>:</strong> <?= $job['budget_estimate'] !== null ? number_format((float)$job['budget_estimate'], 2, ',', ' ') . ' PLN' : '-' ?></span>
+                                        <span><strong><?= htmlspecialchars(__t('user.realization')) ?>:</strong> <?= htmlspecialchars($job['realization_time'] ?: '-') ?></span>
+                                        <span><strong><?= htmlspecialchars(__t('user.points')) ?>:</strong> <?= (int)$job['points_required'] ?></span>
+                                        <span><strong><?= htmlspecialchars(__t('user.offers')) ?>:</strong> <?= (int)$job['offer_count'] ?></span>
                                     </div>
                                     <div class="small text-muted mt-1">
-                                        Dodano <?= date('d.m.Y H:i', strtotime($job['created_at'])) ?>
-                                        <?php if ($expiresAt): ?> · Ważne do <?= date('d.m.Y H:i', $expiresAt) ?><?php endif; ?>
+                                        <?= htmlspecialchars(__t('home.added')) ?> <?= date('d.m.Y H:i', strtotime($job['created_at'])) ?>
+                                        <?php if ($expiresAt): ?> · <?= htmlspecialchars(__t('user.valid_until')) ?> <?= date('d.m.Y H:i', $expiresAt) ?><?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="d-grid gap-2">
-                                        <a href="edit_job.php?id=<?= (int)$job['id'] ?>" class="btn btn-outline-primary btn-sm">Edytuj</a>
-                                        <a href="delete_job.php?id=<?= (int)$job['id'] ?>" class="btn btn-outline-danger btn-sm" onclick="return confirm('Ogłoszenie zniknie z Twojej listy i trafi do archiwum administratora. Zablokowane punkty wykonawców zostaną zwrócone. Kontynuować?')">Usuń</a>
+                                        <a href="edit_job.php?id=<?= (int)$job['id'] ?>" class="btn btn-outline-primary btn-sm"><?= htmlspecialchars(__t('common.edit')) ?></a>
+                                        <a href="delete_job.php?id=<?= (int)$job['id'] ?>" class="btn btn-outline-danger btn-sm" onclick="return confirm('<?= htmlspecialchars(__t('user.delete_archive_confirm'), ENT_QUOTES) ?>')"><?= htmlspecialchars(__t('common.delete')) ?></a>
                                     </div>
                                 </div>
                             </div>

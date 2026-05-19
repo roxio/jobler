@@ -1,34 +1,36 @@
 <?php
 require_once 'config/config.php';
 require_once 'models/Newsletter.php';
+require_once 'models/Language.php';
+
+$currentLocale = Language::current('frontend');
 
 if (isset($_GET['email'])) {
-    $email = $_GET['email'];
-    
-    $newsletter = new Newsletter();
-    
-    if ($newsletter->unsubscribe($email)) {
-        $message = "Zostałeś wypisany z newslettera.";
+    $email = filter_var($_GET['email'], FILTER_SANITIZE_EMAIL);
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $message = __t('newsletter.invalid_email');
     } else {
-        $message = "Błąd podczas wypisywania z newslettera.";
+        $newsletter = new Newsletter();
+    
+        if ($newsletter->unsubscribe($email)) {
+            $message = __t('newsletter.unsubscribed');
+        } else {
+            $message = __t('newsletter.unsubscribe_error');
+        }
     }
 } else {
-    $message = "Brak adresu email do wypisania.";
-}
-
-$email = filter_var($_GET['email'], FILTER_SANITIZE_EMAIL);
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    die("Nieprawidłowy adres email");
+    $message = __t('newsletter.missing_email');
 }
 
 ?>
 
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="<?= htmlspecialchars(substr($currentLocale, 0, 2)) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wypisanie z newslettera</title>
+    <title><?= htmlspecialchars(__t('newsletter.unsubscribe_title')) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
@@ -37,9 +39,9 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             <div class="col-md-6">
                 <div class="card shadow">
                     <div class="card-body text-center">
-                        <h2 class="mb-4">Wypisanie z newslettera</h2>
-                        <p><?= $message ?></p>
-                        <a href="/" class="btn btn-primary mt-3">Powrót do strony głównej</a>
+                        <h2 class="mb-4"><?= htmlspecialchars(__t('newsletter.unsubscribe_title')) ?></h2>
+                        <p><?= htmlspecialchars($message) ?></p>
+                        <a href="/?lang=<?= urlencode($currentLocale) ?>" class="btn btn-primary mt-3"><?= htmlspecialchars(__t('common.back_home')) ?></a>
                     </div>
                 </div>
             </div>

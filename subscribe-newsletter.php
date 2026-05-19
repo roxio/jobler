@@ -6,6 +6,9 @@ session_start();
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/models/Newsletter.php';
 require_once __DIR__ . '/models/User.php';
+require_once __DIR__ . '/models/Language.php';
+
+$currentLocale = Language::current('frontend');
 
 function newsletterJsonResponse(array $payload) {
     if (ob_get_length()) {
@@ -18,13 +21,13 @@ function newsletterJsonResponse(array $payload) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    newsletterJsonResponse(['success' => false, 'message' => 'Nieprawidlowe zadanie.']);
+    newsletterJsonResponse(['success' => false, 'message' => __t('newsletter.invalid_request')]);
 }
 
 $email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    newsletterJsonResponse(['success' => false, 'message' => 'Podaj poprawny adres email.']);
+    newsletterJsonResponse(['success' => false, 'message' => __t('newsletter.email_invalid_json')]);
 }
 
 try {
@@ -40,6 +43,6 @@ try {
     newsletterJsonResponse($newsletter->subscribe($email, $userId));
 } catch (Throwable $e) {
     error_log('Newsletter endpoint error: ' . $e->getMessage());
-    newsletterJsonResponse(['success' => false, 'message' => 'Wystapil blad podczas zapisu do newslettera. Sprobuj ponownie pozniej.']);
+    newsletterJsonResponse(['success' => false, 'message' => __t('newsletter.endpoint_error')]);
 }
 ?>

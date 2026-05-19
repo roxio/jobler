@@ -8,6 +8,7 @@ include_once('../../config/config.php');
 include_once('../../models/User.php');
 include_once('../../models/Message.php');
 include_once('../../models/TransactionHistory.php');
+include_once('../../models/Language.php');
 
 // Sprawdzenie tokena CSRF
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
@@ -84,7 +85,7 @@ function bulkActivateUsers($userModel, $userIds) {
             $successCount++;
             
             // Logowanie akcji
-            logUserAction($userId, 'bulk_activation', 'Aktywacja konta przez administratora');
+            logUserAction($userId, 'bulk_activation', __t('admin.bulk.log_activation'));
             
         } else {
             $failedCount++;
@@ -108,7 +109,7 @@ function bulkDeactivateUsers($userModel, $userIds) {
             $successCount++;
             
             // Logowanie akcji
-            logUserAction($userId, 'bulk_deactivation', 'Dezaktywacja konta przez administratora');
+            logUserAction($userId, 'bulk_deactivation', __t('admin.bulk.log_deactivation'));
             
         } else {
             $failedCount++;
@@ -134,7 +135,7 @@ function bulkDeleteUsers($userModel, $userIds) {
                 $successCount++;
                 
                 // Logowanie akcji
-                logUserAction($userId, 'bulk_deletion', 'Usunięcie konta przez administratora');
+                logUserAction($userId, 'bulk_deletion', __t('admin.bulk.log_deletion'));
                 
             } else {
                 $failedCount++;
@@ -168,9 +169,9 @@ function bulkExportUsers($userModel, $userIds) {
     
     // Nagłówki CSV
     fputcsv($output, [
-        'ID', 'Imię', 'Email', 'Rola', 'Status', 
-        'Data rejestracji', 'Ostatnie logowanie', 'Saldo', 
-        'IP rejestracji', 'Zweryfikowany'
+        __t('admin.reports.col.id'), __t('admin.edit_user.full_name'), __t('admin.reports.col.email'), __t('admin.common.role'), __t('admin.common.status'),
+        __t('admin.users.registration_date'), __t('admin.users.last_login'), __t('admin.common.balance'),
+        __t('admin.users.registration_ip'), __t('admin.users.verified')
     ]);
     
     // Dane użytkowników
@@ -182,10 +183,10 @@ function bulkExportUsers($userModel, $userIds) {
             $user['role'],
             $user['status'],
             $user['created_at'],
-            $user['last_login'] ?? 'Nigdy',
+            $user['last_login'] ?? __t('admin.common.never'),
             $user['account_balance'] ?? 0,
             $user['registration_ip'],
-            !empty($user['email_verified_at']) ? 'Tak' : 'Nie'
+            !empty($user['email_verified_at']) ? __t('admin.users.yes') : __t('admin.users.no')
         ]);
     }
     

@@ -14,6 +14,7 @@ $userId = (int)$_GET['id'];
 include_once('../../config/config.php');
 include_once('../../models/User.php');
 include_once('../../models/Database.php');
+include_once('../../models/Language.php');
 
 $userModel = new User();
 $database = Database::getConnection();
@@ -39,7 +40,7 @@ $resetMessage = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        $formErrors[] = "❌ Błąd bezpieczeństwa: Nieprawidłowy token CSRF.";
+        $formErrors[] = __t('admin.edit_user.csrf_error');
     } else {
         $updateData = [];
 
@@ -61,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $updateData['email'] = $email;
                 }
             } else {
-                $formErrors[] = "❌ Podano nieprawidłowy adres email.";
+                $formErrors[] = __t('admin.edit_user.invalid_email');
             }
         }
 
@@ -101,13 +102,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $stmt = $database->prepare($sql);
                 if ($stmt->execute($params)) {
-                    $successMessage = "✅ Dane użytkownika zostały zaktualizowane.";
+                    $successMessage = __t('admin.edit_user.updated');
                     $user = $userModel->getUserById($userId);
                 } else {
-                    $formErrors[] = "❌ Nie udało się zaktualizować danych użytkownika.";
+                    $formErrors[] = __t('admin.edit_user.update_error');
                 }
             } catch (Exception $e) {
-                $formErrors[] = "❌ Błąd podczas aktualizacji danych: " . $e->getMessage();
+                $formErrors[] = __t('admin.edit_user.update_exception', ['error' => $e->getMessage()]);
             }
         }
 
@@ -122,9 +123,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':expiry' => $resetExpiry,
                     ':id' => $userId
                 ]);
-                $resetMessage = "✅ Link do resetowania hasła został wysłany na adres email użytkownika.";
+                $resetMessage = __t('admin.edit_user.reset_sent');
             } catch (Exception $e) {
-                $formErrors[] = "❌ Błąd podczas generowania linku resetującego: " . $e->getMessage();
+                $formErrors[] = __t('admin.edit_user.reset_error', ['error' => $e->getMessage()]);
             }
         }
 
@@ -144,7 +145,7 @@ function safeEcho($data, $default = '') {
         <div class="col-md-12 col-lg-12 main-content">
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> <?= htmlspecialchars(__t('admin.panel')) ?></h5>
                     <nav class="nav">
                         <?php include 'sidebar.php'; ?>
                     </nav>
@@ -155,9 +156,9 @@ function safeEcho($data, $default = '') {
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <a href="manage_users.php" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> Powrót do listy
+                                <i class="bi bi-arrow-left"></i> <?= htmlspecialchars(__t('admin.back_to_list')) ?>
                             </a>
-                            <span class="ms-2">Edycja użytkownika: <?php echo safeEcho($user['name']); ?> (ID: <?php echo $userId; ?>)</span>
+                            <span class="ms-2"><?= htmlspecialchars(__t('admin.edit_user.title', ['name' => $user['name'], 'id' => $userId])) ?></span>
                         </div>
                     </div>
 
@@ -178,7 +179,7 @@ function safeEcho($data, $default = '') {
 
                     <?php if (!empty($formErrors)): ?>
                         <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-                            <h6 class="alert-heading">Wystąpiły błędy:</h6>
+                            <h6 class="alert-heading"><?= htmlspecialchars(__t('admin.edit_user.errors_heading')) ?></h6>
                             <ul class="mb-0">
                                 <?php foreach ($formErrors as $error): ?>
                                     <li><?php echo safeEcho($error); ?></li>
@@ -191,7 +192,7 @@ function safeEcho($data, $default = '') {
                     <!-- Formularz edycji -->
                     <div class="card">
                         <div class="card-header">
-                            <h6 class="mb-0"><i class="bi bi-pencil"></i> Edytuj dane użytkownika</h6>
+                            <h6 class="mb-0"><i class="bi bi-pencil"></i> <?= htmlspecialchars(__t('admin.edit_user.form_title')) ?></h6>
                         </div>
                         <div class="card-body">
                             <form method="POST" action="">
@@ -199,11 +200,11 @@ function safeEcho($data, $default = '') {
                                 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Imię i nazwisko</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.edit_user.full_name')) ?></label>
                                         <input type="text" name="name" class="form-control" value="<?php echo safeEcho($formData['name'] ?? $user['name']); ?>" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Nazwa użytkownika</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.edit_user.username')) ?></label>
                                         <input type="text" name="username" class="form-control" value="<?php echo safeEcho($formData['username'] ?? $user['username']); ?>" required>
                                     </div>
                                 </div>
@@ -214,14 +215,14 @@ function safeEcho($data, $default = '') {
                                         <input type="email" name="email" class="form-control" value="<?php echo safeEcho($formData['email'] ?? $user['email']); ?>" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Saldo konta</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.edit_user.account_balance')) ?></label>
                                         <input type="number" name="account_balance" class="form-control" value="<?php echo safeEcho($formData['account_balance'] ?? $user['account_balance']); ?>" step="0.01" min="0">
                                     </div>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Rola</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.common.role')) ?></label>
                                         <?php if (canAdminAccess('roles.manage')): ?>
                                             <select name="role" class="form-select">
                                                 <?php foreach (AccessControl::roles() as $roleKey => $roleLabel): ?>
@@ -235,22 +236,22 @@ function safeEcho($data, $default = '') {
                                         <?php endif; ?>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Status konta</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.edit_user.account_status')) ?></label>
                                         <select name="status" class="form-select">
-                                            <option value="active" <?php echo (($formData['status'] ?? $user['status']) === 'active') ? 'selected' : ''; ?>>Aktywny</option>
-                                            <option value="inactive" <?php echo (($formData['status'] ?? $user['status']) === 'inactive') ? 'selected' : ''; ?>>Nieaktywny</option>
+                                            <option value="active" <?php echo (($formData['status'] ?? $user['status']) === 'active') ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.status.active')) ?></option>
+                                            <option value="inactive" <?php echo (($formData['status'] ?? $user['status']) === 'inactive') ? 'selected' : ''; ?>><?= htmlspecialchars(__t('admin.status.inactive')) ?></option>
                                         </select>
                                     </div>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Data rejestracji</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.users.registration_date')) ?></label>
                                         <input type="text" class="form-control" value="<?php echo date('Y-m-d H:i', strtotime($user['created_at'])); ?>" disabled>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Ostatnie logowanie</label>
-                                        <input type="text" class="form-control" value="<?php echo !empty($user['last_login']) ? date('Y-m-d H:i', strtotime($user['last_login'])) : 'Nigdy'; ?>" disabled>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.users.last_login')) ?></label>
+                                        <input type="text" class="form-control" value="<?php echo !empty($user['last_login']) ? date('Y-m-d H:i', strtotime($user['last_login'])) : htmlspecialchars(__t('admin.common.never')); ?>" disabled>
                                     </div>
                                 </div>
 
@@ -258,21 +259,21 @@ function safeEcho($data, $default = '') {
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Telefon</label>
                                         <input type="text" class="form-control" value="<?php echo safeEcho($user['phone'] ?? 'Brak'); ?>" disabled>
-                                        <div class="form-text">Numer telefonu nie może być zmieniony.</div>
+                                        <div class="form-text"><?= htmlspecialchars(__t('admin.edit_user.phone_readonly')) ?></div>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Reset hasła</label>
+                                        <label class="form-label"><?= htmlspecialchars(__t('admin.edit_user.reset_password')) ?></label>
                                         <div class="d-grid">
                                             <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
-                                                <i class="bi bi-key"></i> Wyślij link resetujący
+                                                <i class="bi bi-key"></i> <?= htmlspecialchars(__t('admin.edit_user.send_reset_link')) ?>
                                             </button>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="d-flex justify-content-between mt-4">
-                                    <a href="manage_users.php" class="btn btn-secondary">Anuluj</a>
-                                    <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+                                    <a href="manage_users.php" class="btn btn-secondary"><?= htmlspecialchars(__t('admin.users.cancel')) ?></a>
+                                    <button type="submit" class="btn btn-primary"><?= htmlspecialchars(__t('admin.save_changes')) ?></button>
                                 </div>
                             </form>
                         </div>
@@ -288,18 +289,18 @@ function safeEcho($data, $default = '') {
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Resetowanie hasła</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title"><?= htmlspecialchars(__t('admin.edit_user.reset_title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars(__t('common.close')) ?>"></button>
             </div>
             <form method="POST" action="">
                 <input type="hidden" name="csrf_token" value="<?php echo safeEcho($_SESSION['csrf_token']); ?>">
                 <input type="hidden" name="reset_password" value="1">
                 <div class="modal-body">
-                    <p>Czy wysłać link resetujący na <strong><?php echo safeEcho($user['email']); ?></strong>?</p>
+                    <p><?= htmlspecialchars(__t('admin.edit_user.reset_confirm', ['email' => $user['email']])) ?></p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
-                    <button type="submit" class="btn btn-warning">Wyślij link</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars(__t('admin.users.cancel')) ?></button>
+                    <button type="submit" class="btn btn-warning"><?= htmlspecialchars(__t('admin.edit_user.send_link')) ?></button>
                 </div>
             </form>
         </div>

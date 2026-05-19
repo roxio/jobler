@@ -1,17 +1,18 @@
 <?php
 require_once __DIR__ . '/_auth.php';
+require_once dirname(__DIR__, 2) . '/models/Language.php';
 
 $adminMenuItems = [
-    ['permission' => 'admin.dashboard', 'href' => 'dashboard.php', 'icon' => 'bi-speedometer2', 'label' => 'Dashboard'],
-    ['permission' => 'users.view', 'href' => 'manage_users.php', 'icon' => 'bi-people', 'label' => 'Uzytkownicy'],
-    ['permission' => 'jobs.view', 'href' => 'manage_jobs.php', 'icon' => 'bi-briefcase', 'label' => 'Ogloszenia'],
-    ['permission' => 'messages.moderate', 'href' => 'manage_messages.php', 'icon' => 'bi-chat-dots', 'label' => 'Konwersacje'],
-    ['permission' => 'newsletter.manage', 'href' => 'newsletter_manager.php', 'icon' => 'bi-envelope', 'label' => 'Newsletter'],
-    ['permission' => 'pages.manage', 'href' => 'pages.php', 'icon' => 'bi-file-earmark-text', 'label' => 'Podstrony'],
-    ['permission' => 'settings.manage', 'href' => 'site_settings.php', 'icon' => 'bi-gear', 'label' => 'Ustawienia'],
-    ['permission' => 'reports.view', 'href' => 'reports.php', 'icon' => 'bi-graph-up', 'label' => 'Raporty'],
-    ['permission' => 'transactions.view', 'href' => 'transactions.php', 'icon' => 'bi-cash-stack', 'label' => 'Transakcje'],
-    ['permission' => 'roles.manage', 'href' => 'access_matrix.php', 'icon' => 'bi-shield-lock', 'label' => 'Dostepy'],
+    ['permission' => 'admin.dashboard', 'href' => 'dashboard.php', 'icon' => 'bi-speedometer2', 'label' => __t('admin.dashboard')],
+    ['permission' => 'users.view', 'href' => 'manage_users.php', 'icon' => 'bi-people', 'label' => __t('admin.menu.users')],
+    ['permission' => 'jobs.view', 'href' => 'manage_jobs.php', 'icon' => 'bi-briefcase', 'label' => __t('admin.menu.jobs')],
+    ['permission' => 'messages.moderate', 'href' => 'manage_messages.php', 'icon' => 'bi-chat-dots', 'label' => __t('admin.menu.conversations')],
+    ['permission' => 'newsletter.manage', 'href' => 'newsletter_manager.php', 'icon' => 'bi-envelope', 'label' => __t('admin.menu.newsletter')],
+    ['permission' => 'pages.manage', 'href' => 'pages.php', 'icon' => 'bi-file-earmark-text', 'label' => __t('admin.menu.pages')],
+    ['permission' => 'settings.manage', 'href' => 'site_settings.php', 'icon' => 'bi-gear', 'label' => __t('admin.menu.settings')],
+    ['permission' => 'reports.view', 'href' => 'reports.php', 'icon' => 'bi-graph-up', 'label' => __t('admin.menu.reports')],
+    ['permission' => 'transactions.view', 'href' => 'transactions.php', 'icon' => 'bi-cash-stack', 'label' => __t('admin.menu.transactions')],
+    ['permission' => 'roles.manage', 'href' => 'access_matrix.php', 'icon' => 'bi-shield-lock', 'label' => __t('admin.menu.access')],
 ];
 ?>
 <nav class="navbar navbar-expand-lg">

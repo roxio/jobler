@@ -1,7 +1,9 @@
 <?php
 require_once dirname(__DIR__, 2) . '/models/AccessControl.php';
 require_once dirname(__DIR__, 2) . '/models/Language.php';
-Language::setCurrent(Language::defaultLocale('admin'));
+$languageContext = strpos($_SERVER['REQUEST_URI'] ?? '', '/views/admin/') !== false ? 'admin' : 'frontend';
+Language::setCurrent(Language::defaultLocale($languageContext));
+$currentLocale = Language::current($languageContext);
 $headerAccessControl = new AccessControl();
 if (!isset($categories) || !is_array($categories)) {
     try {
@@ -14,12 +16,12 @@ if (!isset($categories) || !is_array($categories)) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="<?= htmlspecialchars(substr($currentLocale, 0, 2)) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="System zleceń - zarządzaj swoimi usługami i zleceniami.">
-    <title>System Zleceń</title>
+    <meta name="description" content="<?= htmlspecialchars(__t('site.meta_description')) ?>">
+    <title><?= htmlspecialchars(__t('site.title')) ?></title>
     <!-- Link do Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" >
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -44,13 +46,13 @@ if (!isset($categories) || !is_array($categories)) {
         <!-- Dropdown menu "Usługi" -->
  <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Kategorie
+                        <?= htmlspecialchars(__t('nav.categories')) ?>
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
-                        <li><a class="dropdown-item" href="/index.php">Wszystkie</a></li>
+                        <li><a class="dropdown-item" href="/index.php?lang=<?= urlencode($currentLocale) ?>"><?= htmlspecialchars(__t('nav.all')) ?></a></li>
                         <?php foreach ($categories as $category): ?>
                             <li>
-                                <a class="dropdown-item" href="/index.php?category=<?= $category['id'] ?>">
+                                <a class="dropdown-item" href="/index.php?category=<?= $category['id'] ?>&lang=<?= urlencode($currentLocale) ?>">
                                     <?= htmlspecialchars($category['name']) ?>
                                 </a>
                             </li>
@@ -60,25 +62,25 @@ if (!isset($categories) || !is_array($categories)) {
         <!-- Jeżeli użytkownik jest administratorem -->
         <?php if (isset($_SESSION['user_id']) && $headerAccessControl->hasAnyAdminAccess((int)$_SESSION['user_id'])): ?>
             <li class="nav-item">
-              <a class="nav-link" href="../admin/dashboard.php">Panel Administracyjny</a>
+              <a class="nav-link" href="../admin/dashboard.php"><?= htmlspecialchars(__t('nav.admin_panel')) ?></a>
             </li>
         <?php endif; ?>
         <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'executor'): ?>
             <li class="nav-item">
-              <a class="nav-link" href="../executor/dashboard.php">Panel Wykonawcy</a>
+              <a class="nav-link" href="../executor/dashboard.php"><?= htmlspecialchars(__t('nav.executor_panel')) ?></a>
             </li>
         <?php endif; ?>
         <li class="nav-item">
-            <a class="nav-link" href="/views/user/dashboard.php">Panel użytkownika</a>
+            <a class="nav-link" href="/views/user/dashboard.php"><?= htmlspecialchars(__t('nav.user_panel')) ?></a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="/views/user/job_list.php">Moje ogłoszenia</a>
+            <a class="nav-link" href="/views/user/job_list.php"><?= htmlspecialchars(__t('nav.my_jobs')) ?></a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="/logout.php">Wyloguj</a>
+            <a class="nav-link" href="/logout.php"><?= htmlspecialchars(__t('nav.logout')) ?></a>
         </li>
         <?php if (isset($_SESSION['user_account_balance'])): ?>
-            <li class="nav-item"><a class="nav-link" href="/views/executor/payment.php">Stan konta: <?= $_SESSION['user_account_balance'] ?> punktów</a></li>
+            <li class="nav-item"><a class="nav-link" href="/views/executor/payment.php"><?= htmlspecialchars(__t('nav.balance', ['points' => $_SESSION['user_account_balance']])) ?></a></li>
         <?php endif; ?>
       </ul>
     </div>

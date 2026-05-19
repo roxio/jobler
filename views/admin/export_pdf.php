@@ -6,6 +6,7 @@ requireAdminAccess();
 require_once('../../vendor/autoload.php');
 include_once('../../models/Report.php');
 include_once('../../models/Database.php');
+include_once('../../models/Language.php');
 
 // Uzyskanie połączenia z bazą danych
 $pdo = Database::getConnection();
@@ -30,16 +31,16 @@ $pdf->AddPage();
 
 // Ustawiamy tytuł
 $pdf->SetFont('helvetica', 'B', 16);
-$pdf->Cell(0, 10, 'Raporty aktywności użytkowników', 0, 1, 'C');
+$pdf->Cell(0, 10, __t('admin.export.activity_reports_title'), 0, 1, 'C');
 
 // Ustawiamy czcionkę dla tabeli
 $pdf->SetFont('helvetica', '', 12);
 
 // Nagłówki tabeli
-$pdf->Cell(40, 10, 'ID użytkownika', 1);
-$pdf->Cell(40, 10, 'Typ aktywności', 1);
-$pdf->Cell(40, 10, 'Data', 1);
-$pdf->Cell(70, 10, 'Szczegóły', 1);
+$pdf->Cell(40, 10, __t('admin.export.user_id'), 1);
+$pdf->Cell(40, 10, __t('admin.export.activity_type'), 1);
+$pdf->Cell(40, 10, __t('admin.reports.col.date'), 1);
+$pdf->Cell(70, 10, __t('admin.export.details'), 1);
 $pdf->Ln();
 
 // Zawartość tabeli

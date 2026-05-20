@@ -15,7 +15,7 @@ include_once('../../models/Language.php');
 
 $settingsModel = new SiteSettings();
 
-// Utwórz obiekty modelu
+
 $userModel = new User();
 $jobModel = new Job();
 $settingsModel = new SiteSettings($pdo);
@@ -23,12 +23,12 @@ $messageModel = new Message($pdo);
 $transactionModel = new TransactionHistory($pdo);
 $newsletter = new Newsletter();
 
-// Dla charts
+
 $newUsersData = $userModel->getNewUsersPerDay();
 $newJobsData = $jobModel->getNewJobsPerDay();
 $revenueData = $transactionModel->getDailyRevenue();
 
-// Pobierz statystyki
+
 $userCount = $userModel->getUserCount();
 $jobCount = $jobModel->getJobCount();
 $newUsers = $userModel->getNewUsersCount();
@@ -37,13 +37,13 @@ $siteViews = $settingsModel->getSiteViews();
 $pendingChanges = $userModel->getPendingAccountChangesCount();
 $totalRevenue = $transactionModel->getTotalRevenue();
 $activeJobs = $jobModel->getActiveJobsCount();
-// Pobierz statystyki newslettera - TERAZ ZMIENNA $newsletter JEST DOSTĘPNA
+
 $newsletterStats = $newsletter->getNewsletterStats();
 
 $pendingAlerts = [
     'pending_changes' => $pendingChanges,
     'site_errors' => $settingsModel->getSiteErrors(),
-    'unread_reports' => $userModel->getUnreadReportsCount() // Nowe alerty
+    'unread_reports' => $userModel->getUnreadReportsCount()
 ];
 ?>
 <?php include '../partials/header.php'; ?>
@@ -60,13 +60,13 @@ $pendingAlerts = [
                 </div>
 
                 <div class="card-body">
-                
+
                  <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
     <h5 class="mb-1"><i class="bi bi-info-square"></i> <?= htmlspecialchars(__t('admin.dashboard')) ?></h5>
     </div>
                 <div class="card-body">
-            
+
                             <?php if ($pendingAlerts['pending_changes'] > 0): ?>
                                 <div class="alert alert-warning">
                                     <strong><?= htmlspecialchars(__t('admin.attention')) ?></strong> <?= htmlspecialchars(__t('admin.pending_account_changes', ['count' => $pendingAlerts['pending_changes']])) ?>
@@ -79,14 +79,14 @@ $pendingAlerts = [
                                     <strong><?= htmlspecialchars(__t('admin.system_error_notice')) ?></strong>
                                 </div>
                             <?php endif; ?>
-                            
+
                             <?php if ($pendingAlerts['unread_reports'] > 0): ?>
                                 <div class="alert alert-info">
                                     <strong><?= htmlspecialchars(__t('admin.unread_reports_notice', ['count' => $pendingAlerts['unread_reports']])) ?></strong>
                                     <a href="reports.php" class="btn btn-sm btn-outline-info ms-2"><?= htmlspecialchars(__t('admin.go')) ?></a>
                                 </div>
                             <?php endif; ?>
-            
+
             <div class="row">
                 <div class="col-md-3">
                     <h3><?= htmlspecialchars(__t('admin.statistics')) ?></h3>
@@ -151,7 +151,7 @@ $pendingAlerts = [
                         </li>
                     </ul>
                 </div>
-                
+
                 <div class="col-md-3">
     <h3><?= htmlspecialchars(__t('admin.shortcuts')) ?></h3>
     <div class="list-group">
@@ -222,9 +222,9 @@ $pendingAlerts = [
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php 
+                                        <?php
                                         $recentActivities = $userModel->getRecentActivities(5);
-                                        foreach ($recentActivities as $activity): 
+                                        foreach ($recentActivities as $activity):
                                         ?>
                                             <tr>
                                                 <td><?php echo date('Y-m-d H:i', strtotime($activity['timestamp'])); ?></td>
@@ -244,15 +244,14 @@ $pendingAlerts = [
                         </div>
                     </div>
                 </div>
-                
-            </div>    
+
+            </div>
         </div>
     </div>
 </div>
 <?php include '../partials/footer.php'; ?>
 
 <script>
-// Nowy wykres łączący użytkowników i ogłoszenia
 var ctxCombined = document.getElementById('combinedChart').getContext('2d');
 var combinedChart = new Chart(ctxCombined, {
     type: 'line',
@@ -289,7 +288,6 @@ var combinedChart = new Chart(ctxCombined, {
     }
 });
 
-// Wykres przychodów
 var ctxRevenue = document.getElementById('revenueChart').getContext('2d');
 var revenueChart = new Chart(ctxRevenue, {
     type: 'bar',

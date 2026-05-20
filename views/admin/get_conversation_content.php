@@ -133,6 +133,6 @@ try {
         echo '</div>';
     }
 } catch (Exception $e) {
-    error_log("Błąd przy pobieraniu konwersacji: " . $e->getMessage());
+    error_log(__t('admin.logs.fetch_conversation_error', ['error' => $e->getMessage()]));
     echo '<p class="text-danger">' . ht('admin.conversation.fetch_error') . '</p>';
 }

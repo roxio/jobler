@@ -1,32 +1,33 @@
 <?php
-// Załaduj modele
-include_once('../../models/Job.php');
 
-// Utwórz instancję klasy Job
+include_once('../../models/Job.php');
+include_once('../../models/Language.php');
+
+
 $jobModel = new Job();
 
-// Sprawdź, czy użytkownik jest zalogowany
+
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
     exit;
 }
 
-// Pobierz ogłoszenia użytkownika
+
 $userId = $_SESSION['user_id'];
 $jobs = $jobModel->getUserJobs($userId);
 ?>
 
 <div class="job-list">
-    <h2>Twoje ogłoszenia</h2>
+    <h2><?= htmlspecialchars(__t('user.legacy_jobs.title')) ?></h2>
 
     <?php if (!empty($jobs)) : ?>
         <table class="table table-striped">
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Tytuł</th>
-                    <th>Opis</th>
-                    <th>Status</th>
+                    <th><?= htmlspecialchars(__t('admin.common.title')) ?></th>
+                    <th><?= htmlspecialchars(__t('job.description')) ?></th>
+                    <th><?= htmlspecialchars(__t('job.status')) ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -41,6 +42,6 @@ $jobs = $jobModel->getUserJobs($userId);
             </tbody>
         </table>
     <?php else : ?>
-        <p>Nie masz żadnych ogłoszeń. <a href="create_job.php">Dodaj nowe ogłoszenie</a></p>
+        <p><?= htmlspecialchars(__t('user.legacy_jobs.no_jobs')) ?> <a href="create_job.php"><?= htmlspecialchars(__t('user.add_new_job')) ?></a></p>
     <?php endif; ?>
 </div>

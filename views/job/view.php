@@ -6,24 +6,24 @@ include_once('../../models/Language.php');
 
 $currentLocale = Language::current('frontend');
 
-// Utwórz instancję klasy Job
+
 $jobModel = new Job();
 
-// Pobranie ID ogłoszenia z parametru GET
+
 $jobId = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-// Pobranie danych ogłoszenia
+
 $job = $jobModel->getJobDetails($jobId);
 
 if (!$job) {
-    // Jeśli ogłoszenie nie istnieje, wyświetlamy komunikat o błędzie
+
     http_response_code(404);
     echo "<h1>" . htmlspecialchars(__t('job.not_found')) . "</h1>";
     echo "<p><a href='/?lang=" . urlencode($currentLocale) . "'>" . htmlspecialchars(__t('page.back_home')) . "</a></p>";
     exit;
 }
 
-// Sprawdzenie, czy użytkownik jest właścicielem ogłoszenia
+
 $isOwner = isset($_SESSION['user_id']) && $_SESSION['user_id'] === $job['user_id'];
 ?>
 <!DOCTYPE html>

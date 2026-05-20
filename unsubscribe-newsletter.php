@@ -12,7 +12,7 @@ if (isset($_GET['email'])) {
         $message = __t('newsletter.invalid_email');
     } else {
         $newsletter = new Newsletter();
-    
+
         if ($newsletter->unsubscribe($email)) {
             $message = __t('newsletter.unsubscribed');
         } else {

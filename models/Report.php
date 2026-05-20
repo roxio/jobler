@@ -1,16 +1,17 @@
 <?php
 include_once('Database.php');
+include_once('Language.php');
 
 class Report {
     private $pdo;
-    
+
     public function __construct($pdo) {
         $this->pdo = $pdo;
     }
 
-    // Pobranie raportów aktywności użytkowników
+
     public function getUserActivityReports($userId, $activityType = '', $searchTerm = '', $startDate = '', $endDate = '', $sortBy = 'timestamp', $limit = 10, $offset = 0) {
-        // Walidacja sortowania
+
         $allowedSortColumns = ['timestamp', 'activity_type', 'user_id'];
         if (!in_array($sortBy, $allowedSortColumns)) {
             $sortBy = 'timestamp';
@@ -55,7 +56,7 @@ class Report {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Zliczanie raportów aktywności użytkowników
+
     public function countUserReports($userId, $searchTerm = '', $startDate = '', $endDate = '') {
         $query = "SELECT COUNT(*) FROM user_activity_reports WHERE user_id = :user_id";
 
@@ -83,16 +84,16 @@ class Report {
         return $stmt->fetchColumn();
     }
 
-    // Dodanie raportu aktywności użytkownika
+
     public function addUserActivityReport($userId, $activityType, $details) {
-        // Sprawdzenie, czy użytkownik istnieje
+
         $checkQuery = "SELECT COUNT(*) FROM users WHERE id = :user_id";
         $stmt = $this->pdo->prepare($checkQuery);
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
 
         if ($stmt->fetchColumn() == 0) {
-            throw new Exception("Użytkownik o ID $userId nie istnieje.");
+            throw new Exception(__t('model.report.user_not_found', ['id' => $userId]));
         }
 
         $query = "INSERT INTO user_activity_reports (user_id, activity_type, timestamp, details) VALUES (:user_id, :activity_type, NOW(), :details)";
@@ -104,16 +105,16 @@ class Report {
         return $stmt->execute();
     }
 
-    // Dodanie raportu ogłoszenia
+
     public function addJobReport($jobId, $activityType, $details) {
-        // Sprawdzenie, czy ogłoszenie istnieje
+
         $checkQuery = "SELECT COUNT(*) FROM jobs WHERE id = :job_id";
         $stmt = $this->pdo->prepare($checkQuery);
         $stmt->bindParam(':job_id', $jobId, PDO::PARAM_INT);
         $stmt->execute();
 
         if ($stmt->fetchColumn() == 0) {
-            throw new Exception("Ogłoszenie o ID $jobId nie istnieje.");
+            throw new Exception(__t('model.report.job_not_found', ['id' => $jobId]));
         }
 
         $query = "INSERT INTO job_reports (job_id, activity_type, details, timestamp) VALUES (:job_id, :activity_type, :details, NOW())";
@@ -125,16 +126,16 @@ class Report {
         return $stmt->execute();
     }
 
-    // Dodanie raportu płatności
+
     public function addPaymentReport($userId, $details) {
-        // Sprawdzenie, czy użytkownik istnieje
+
         $checkQuery = "SELECT COUNT(*) FROM users WHERE id = :user_id";
         $stmt = $this->pdo->prepare($checkQuery);
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
 
         if ($stmt->fetchColumn() == 0) {
-            throw new Exception("Użytkownik o ID $userId nie istnieje.");
+            throw new Exception(__t('model.report.user_not_found', ['id' => $userId]));
         }
 
         $query = "INSERT INTO payment_reports (user_id, details, timestamp) VALUES (:user_id, :details, NOW())";
@@ -145,7 +146,7 @@ class Report {
         return $stmt->execute();
     }
 
-    // Pobranie raportów płatności użytkowników
+
     public function getPaymentReports($userId, $searchTerm = '', $startDate = '', $endDate = '', $limit = 10, $offset = 0) {
         $query = "SELECT * FROM payment_reports WHERE user_id = :user_id";
 

@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../../models/Executor.php';
+require_once '../../models/Language.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
@@ -10,27 +11,27 @@ if (!isset($_SESSION['user_id'])) {
 $executorId = $_SESSION['user_id'];
 $executor = new Executor();
 
-// Sprawdzenie, czy użytkownik ma rolę "executor"
+
 if (!$executor->isExecutor($executorId)) {
-    $error = "Niestety nie jesteś wykonawcą, nie możesz doładować konta i odpowiadać w ofertach innych uzytkowników. </br>
-              <a href='../../views/user/change_account.php' class='btn btn-link'>Zmień rodzaj konta</a>";
+    $error = __t('executor.not_executor_html');
 } else {
-    // Pobranie salda konta wykonawcy
+
     $executorBalance = $executor->getExecutorBalance($executorId);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pointsToAdd = (int) $_POST['points'];
-        
-        // Sprawdzamy, czy użytkownik wybrał odpowiednią liczbę punktów (większą niż 0)
+
+
         if ($pointsToAdd > 0) {
-            // Wartość do zapłaty (1 punkt = 1 zł)
+
             $paymentAmount = $pointsToAdd;
 
-            // Przekierowanie do strony płatności PayPal z kwotą do zapłaty
-            header("Location: https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=TWÓJ_EMAIL_PAYPAL&item_name=Doładowanie konta wykonawcy&amount=$paymentAmount&currency_code=PLN&return=http://localhost/confirmation.php&cancel_return=http://localhost/cancel.php");
+
+            $itemName = urlencode(__t('executor.paypal_item_name'));
+            header("Location: https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=PAYPAL_EMAIL&item_name=$itemName&amount=$paymentAmount&currency_code=PLN&return=http://localhost/confirmation.php&cancel_return=http://localhost/cancel.php");
             exit;
         } else {
-            $error = "Wybierz liczbę punktów do doładowania.";
+            $error = __t('executor.payment_invalid_points');
         }
     }
 }
@@ -39,7 +40,7 @@ include '../partials/header.php';
 ?>
 
 <div class="container">
-    <h1>Doładuj konto</h1>
+    <h1><?= htmlspecialchars(__t('executor.payment_title')) ?></h1>
 
     <?php if (isset($error)): ?>
         <div class="alert alert-danger">
@@ -50,10 +51,10 @@ include '../partials/header.php';
     <?php if (!isset($error)): ?>
         <form action="payment.php" method="POST">
             <div class="mb-3">
-                <label for="points" class="form-label">Ilość punktów:</label>
+                <label for="points" class="form-label"><?= htmlspecialchars(__t('executor.points_amount')) ?></label>
                 <input type="number" name="points" id="points" class="form-control" min="1" required>
             </div>
-            <button type="submit" class="btn btn-primary">Przejdź do płatności</button>
+            <button type="submit" class="btn btn-primary"><?= htmlspecialchars(__t('executor.go_to_payment')) ?></button>
         </form>
     <?php endif; ?>
 </div>

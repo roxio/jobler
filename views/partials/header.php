@@ -22,19 +22,15 @@ if (!isset($categories) || !is_array($categories)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="<?= htmlspecialchars(__t('site.meta_description')) ?>">
     <title><?= htmlspecialchars(__t('site.title')) ?></title>
-    <!-- Link do Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" >
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Możesz dodać tutaj własne style CSS -->
     <link rel="stylesheet" href="../../css/style.css">
 	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<!-- Nawigacja -->
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
    <div class="container">
-    <!-- Logo -->
     <a class="navbar-brand" href="/">
       <img src="/img/logo.png" alt="Logo" style="height: 40px;">
     </a>
@@ -43,7 +39,6 @@ if (!isset($categories) || !is_array($categories)) {
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto">
-        <!-- Dropdown menu "Usługi" -->
  <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <?= htmlspecialchars(__t('nav.categories')) ?>
@@ -59,7 +54,6 @@ if (!isset($categories) || !is_array($categories)) {
                         <?php endforeach; ?>
                     </ul>
                 </li>
-        <!-- Jeżeli użytkownik jest administratorem -->
         <?php if (isset($_SESSION['user_id']) && $headerAccessControl->hasAnyAdminAccess((int)$_SESSION['user_id'])): ?>
             <li class="nav-item">
               <a class="nav-link" href="../admin/dashboard.php"><?= htmlspecialchars(__t('nav.admin_panel')) ?></a>

@@ -11,7 +11,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 
 $userId = (int)$_GET['id'];
 
-// Zabezpieczenie przed przypadkowym usunięciem samego siebie
+
 if ($userId === (int)$_SESSION['user_id']) {
     header('Location: manage_users.php?status=error&message=cannot_delete_self');
     exit();
@@ -22,16 +22,16 @@ include_once('../../models/User.php');
 include_once('../../models/Job.php');
 include_once('../../models/TransactionHistory.php');
 include_once('../../models/Message.php');
-include_once('../../models/AdminLogger.php'); // Nowa klasa loggera
+include_once('../../models/AdminLogger.php');
 include_once('../../models/Language.php');
 
 $userModel = new User();
 $jobModel = new Job();
 $transactionModel = new TransactionHistory($pdo);
 $messageModel = new Message();
-$adminLogger = new AdminLogger(); // Nowy logger
+$adminLogger = new AdminLogger();
 
-// Funkcje pomocnicze
+
 function logUserDeletion($adminLogger, $adminId, $userId, $userData, $jobs, $transactions) {
     $description = __t('admin.delete_user.log_description', [
         'id' => $userId,
@@ -41,21 +41,21 @@ function logUserDeletion($adminLogger, $adminId, $userId, $userData, $jobs, $tra
         'transactions' => count($transactions),
         'balance' => $userData['account_balance'] ?? 0,
     ]);
-    
-    // Zapis do bazy danych
+
+
     $adminLogger->logAction(
         $adminId,
         'user_delete',
         $description,
         $userId
     );
-    
-    // Dodatkowo do error_log dla pewności
+
+
     error_log("ADMIN DELETE: " . $description);
 }
 
 function softDeleteUser($pdo, $userId) {
-    $query = "UPDATE users SET 
+    $query = "UPDATE users SET
               status = 'deleted',
               email = CONCAT('deleted_', id, '_@ ', UNIX_TIMESTAMP(NOW()), ''),
               name = 'Deleted',
@@ -63,7 +63,7 @@ function softDeleteUser($pdo, $userId) {
               account_balance = 0,
               updated_at = NOW()
               WHERE id = :user_id";
-    
+
     $stmt = $pdo->prepare($query);
     return $stmt->execute([':user_id' => $userId]);
 }
@@ -94,79 +94,79 @@ function getClosedJobsCount($pdo, $userId) {
 }
 
 try {
-    // Sprawdź czy użytkownik istnieje
+
     $user = $userModel->getUserById($userId);
     if (!$user) {
-        // Zapisz próbę usunięcia nieistniejącego użytkownika
+
         $adminLogger->logAction(
             $_SESSION['user_id'],
             'user_delete_attempt',
             __t('admin.delete_user.not_found_attempt', ['id' => $userId]),
             $userId
         );
-        
+
         header('Location: manage_users.php?status=error&message=user_not_found');
         exit();
     }
-    
-    // Pobierz dane administratora
+
+
     $adminId = $_SESSION['user_id'];
     $admin = $userModel->getUserById($adminId);
     $adminName = $admin['name'] ?? $admin['username'] ?? 'Administrator';
-    
-    // Sprawdź zależności przed usunięciem
+
+
     $userJobs = $jobModel->getJobsByUserId($userId, 5);
     $userTransactions = $transactionModel->getUserTransactions($userId, 5);
-    
-    // Zaloguj operację usunięcia
+
+
     logUserDeletion($adminLogger, $adminId, $userId, $user, $userJobs, $userTransactions);
-    
-    // Rozpocznij transakcję
+
+
     $pdo->beginTransaction();
-    
-    // 1. Zamknij ogłoszenia użytkownika
+
+
     $jobsClosed = closeUserJobs($pdo, $userId);
     $totalJobs = getJobsCount($pdo, $userId);
     $closedJobs = getClosedJobsCount($pdo, $userId);
-    
+
     if (!$jobsClosed) {
         throw new Exception(__t('admin.delete_user.close_jobs_error'));
     }
-    
-    // 2. Wykonaj soft delete użytkownika
+
+
     $deleteSuccess = softDeleteUser($pdo, $userId);
-    
+
     if ($deleteSuccess) {
         $pdo->commit();
         header('Location: manage_users.php?status=deleted&jobs_closed=' . $closedJobs . '&total_jobs=' . $totalJobs);
     } else {
         $pdo->rollBack();
-        
-        // Log błędu
+
+
         $adminLogger->logAction(
             $adminId,
             'user_delete_error',
             __t('admin.delete_user.delete_error_log', ['id' => $userId]),
             $userId
         );
-        
+
         header('Location: manage_users.php?status=error&message=delete_failed');
     }
     exit();
-    
+
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    
-    // Log błędu systemowego
+
+
     $adminLogger->logAction(
         $_SESSION['user_id'],
         'user_delete_system_error',
         __t('admin.delete_user.system_error_log', ['id' => $userId, 'error' => $e->getMessage()]),
         $userId
     );
-    
+
     error_log(__t('admin.delete_user.error_log', ['id' => $userId, 'error' => $e->getMessage()]));
     header('Location: manage_users.php?status=error&message=system_error');
     exit();

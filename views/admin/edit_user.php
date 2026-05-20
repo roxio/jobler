@@ -19,7 +19,7 @@ include_once('../../models/Language.php');
 $userModel = new User();
 $database = Database::getConnection();
 
-// Pobierz dane użytkownika
+
 try {
     $user = $userModel->getUserById($userId);
     if (!$user) {
@@ -27,12 +27,12 @@ try {
         exit();
     }
 } catch (Exception $e) {
-    error_log("Błąd przy pobieraniu danych użytkownika: " . $e->getMessage());
+    error_log(__t('admin.logs.fetch_user_error', ['error' => $e->getMessage()]));
     header('Location: manage_users.php?status=error');
     exit();
 }
 
-// Inicjalizacja
+
 $formData = [];
 $formErrors = [];
 $successMessage = '';
@@ -44,17 +44,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $updateData = [];
 
-        // Imię i nazwisko
+
         if (!empty($_POST['name']) && $_POST['name'] !== $user['name']) {
             $updateData['name'] = trim($_POST['name']);
         }
 
-        // Username
+
         if (!empty($_POST['username']) && $_POST['username'] !== $user['username']) {
             $updateData['username'] = trim($_POST['username']);
         }
 
-        // Email
+
         if (!empty($_POST['email'])) {
             $email = filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL);
             if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Saldo
+
         if (isset($_POST['account_balance']) && is_numeric($_POST['account_balance'])) {
             $newBalance = (float)$_POST['account_balance'];
             if ($newBalance != $user['account_balance']) {
@@ -74,21 +74,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Rola
+
         if (canAdminAccess('roles.manage') && !empty($_POST['role']) && array_key_exists($_POST['role'], AccessControl::roles())) {
             if ($_POST['role'] !== $user['role']) {
                 $updateData['role'] = $_POST['role'];
             }
         }
 
-        // Status
+
         if (isset($_POST['status']) && in_array($_POST['status'], ['active', 'inactive'])) {
             if ($_POST['status'] !== $user['status']) {
                 $updateData['status'] = $_POST['status'];
             }
         }
 
-        // Aktualizacja danych
+
         if (empty($formErrors) && !empty($updateData)) {
             try {
                 $setParts = [];
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Reset hasła
+
         if (isset($_POST['reset_password']) && $_POST['reset_password'] === '1' && empty($formErrors)) {
             try {
                 $resetToken = bin2hex(random_bytes(32));
@@ -152,7 +152,6 @@ function safeEcho($data, $default = '') {
                 </div>
 
                 <div class="card-body">
-                    <!-- Nagłówek -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <a href="manage_users.php" class="btn btn-sm btn-outline-secondary">
@@ -162,7 +161,6 @@ function safeEcho($data, $default = '') {
                         </div>
                     </div>
 
-                    <!-- Komunikaty -->
                     <?php if (!empty($successMessage)): ?>
                         <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
                             <?php echo $successMessage; ?>
@@ -189,7 +187,6 @@ function safeEcho($data, $default = '') {
                         </div>
                     <?php endif; ?>
 
-                    <!-- Formularz edycji -->
                     <div class="card">
                         <div class="card-header">
                             <h6 class="mb-0"><i class="bi bi-pencil"></i> <?= htmlspecialchars(__t('admin.edit_user.form_title')) ?></h6>
@@ -197,7 +194,7 @@ function safeEcho($data, $default = '') {
                         <div class="card-body">
                             <form method="POST" action="">
                                 <input type="hidden" name="csrf_token" value="<?php echo safeEcho($_SESSION['csrf_token']); ?>">
-                                
+
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.edit_user.full_name')) ?></label>
@@ -284,7 +281,6 @@ function safeEcho($data, $default = '') {
     </div>
 </div>
 
-<!-- Modal resetowania hasła -->
 <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

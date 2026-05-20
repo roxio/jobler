@@ -1,5 +1,5 @@
 <?php
-// Ustawienia bazy danych
+
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'jobler');
 define('DB_USER', 'root');

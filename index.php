@@ -49,7 +49,7 @@ function jobImageUrl($filename) {
     return '/uploads/jobs/' . rawurlencode($safeFilename);
 }
 
-// Pobierz najnowsze oferty (używając istniejącej metody z limitem)
+
 $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
 ?>
 
@@ -59,17 +59,16 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($siteSettings['title'] ?? 'Jobler') ?> - <?= htmlspecialchars(__t('footer.home'), ENT_QUOTES, 'UTF-8') ?></title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/css/style.css?v=<?= filemtime(__DIR__ . '/css/style.css') ?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
 </head>
 <body>
-    <?php 
+    <?php
     $GLOBALS['siteSettings'] = $siteSettings;
-    include 'templates/navbar.php'; 
+    include 'templates/navbar.php';
     ?>
 
     <div class="container-fluid px-0">
@@ -111,15 +110,13 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                     </div>
                 </div>
             </section>
-            <!-- Formularz wyszukiwania i filtry -->
             <div class="search-container" id="search-section">
                 <h2 class="visually-hidden"><?= htmlspecialchars(__t('home.search_heading'), ENT_QUOTES, 'UTF-8') ?></h2>
-                
+
                 <form method="GET" id="filter-form">
                     <input type="hidden" name="scroll_position" id="scroll_position" value="<?= $scrollPosition ?>">
                     <input type="hidden" name="lang" value="<?= htmlspecialchars($currentLocale, ENT_QUOTES, 'UTF-8') ?>">
                     <div class="row search-row align-items-end">
-                        <!-- Wyszukiwanie -->
                         <div class="col-lg-5 col-md-6 mb-2 search-field">
                             <div class="filter-group">
                                 <label class="filter-label"><?= htmlspecialchars(__t('home.search_label'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -127,14 +124,13 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                                     <span class="input-group-text bg-primary text-white border-0">
                                         <i class="bi bi-search"></i>
                                     </span>
-                                    <input type="text" name="search" class="form-control border-0" 
-                                           placeholder="<?= htmlspecialchars(__t('home.search_placeholder'), ENT_QUOTES, 'UTF-8') ?>" 
+                                    <input type="text" name="search" class="form-control border-0"
+                                           placeholder="<?= htmlspecialchars(__t('home.search_placeholder'), ENT_QUOTES, 'UTF-8') ?>"
                                            value="<?= htmlspecialchars($search) ?>">
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Kategoria -->
+
                         <div class="col-lg-2 col-md-3 mb-2 category-field">
                             <div class="filter-group">
                                 <label class="filter-label"><?= htmlspecialchars(__t('home.category_label'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -148,8 +144,7 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                                 </select>
                             </div>
                         </div>
-                        
-                        <!-- Limit -->
+
                         <div class="col-lg-1 col-md-3 mb-2 limit-field">
                             <div class="filter-group">
                                 <label class="filter-label"><?= htmlspecialchars(__t('home.per_page_label'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -160,8 +155,7 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                                 </select>
                             </div>
                         </div>
-                        
-                        <!-- Widok -->
+
                         <div class="col-lg-2 col-md-4 mb-2 view-field">
                             <div class="filter-group">
                                 <label class="filter-label"><?= htmlspecialchars(__t('home.view_label'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -170,7 +164,7 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                                     <label class="btn btn-outline-primary" for="view-list" title="<?= htmlspecialchars(__t('home.list_view'), ENT_QUOTES, 'UTF-8') ?>">
                                         <i class="bi bi-list-ul"></i>
                                     </label>
-                                    
+
                                     <input type="radio" class="btn-check" name="view" id="view-grid" value="grid" autocomplete="off" <?= $view == 'grid' ? 'checked' : '' ?>>
                                     <label class="btn btn-outline-primary" for="view-grid" title="<?= htmlspecialchars(__t('home.grid_view'), ENT_QUOTES, 'UTF-8') ?>">
                                         <i class="bi bi-grid-3x3"></i>
@@ -178,14 +172,13 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Przyciski akcji -->
+
                         <div class="col-lg-2 col-md-8 mb-2 action-field">
                             <div class="filter-options">
                                 <button type="submit" class="btn btn-primary flex-grow-1">
                                     <i class="bi bi-search me-1"></i><?= htmlspecialchars(__t('home.search_button'), ENT_QUOTES, 'UTF-8') ?>
                                 </button>
-                                
+
                                 <?php if (!empty($search) || !empty($category)): ?>
                                     <a href="index.php?scroll_position=<?= $scrollPosition ?>&lang=<?= urlencode($currentLocale) ?>" class="btn btn-outline-secondary" title="<?= htmlspecialchars(__t('home.clear_filters'), ENT_QUOTES, 'UTF-8') ?>">
                                         <i class="bi bi-x-circle"></i>
@@ -197,13 +190,12 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                 </form>
             </div>
 
-            <!-- Lista lub grid ogłoszeń -->
             <?php if (!empty($jobs)): ?>
                 <div class="results-header d-flex justify-content-between align-items-center mb-4" id="jobs-section">
                     <h2 class="section-title mb-0"><?= htmlspecialchars(__t('home.available_jobs'), ENT_QUOTES, 'UTF-8') ?></h2>
                     <span class="text-muted fw-semibold"><?= htmlspecialchars(__t('home.results_found', ['count' => number_format($totalJobs)]), ENT_QUOTES, 'UTF-8') ?></span>
                 </div>
-                
+
                 <?php if ($view == 'list'): ?>
                     <div class="list-view">
                         <?php foreach ($jobs as $job): ?>
@@ -288,7 +280,6 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                 </div>
             <?php endif; ?>
 
-            <!-- Paginacja -->
             <?php if ($totalPages > 1): ?>
                 <nav aria-label="Paginacja" class="mt-5">
                     <ul class="pagination justify-content-center">
@@ -297,21 +288,21 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                                 <i class="bi bi-chevron-left"></i>
                             </a>
                         </li>
-                        
-                        <?php 
+
+                        <?php
                         $startPage = max(1, $page - 2);
                         $endPage = min($totalPages, $startPage + 4);
-                        
+
                         if ($endPage - $startPage < 4) {
                             $startPage = max(1, $endPage - 4);
                         }
-                        
+
                         for ($i = $startPage; $i <= $endPage; $i++): ?>
                             <li class="page-item <?= $i == $page ? 'active' : '' ?>">
                                 <a class="page-link" href="?page=<?= $i ?>&limit=<?= $limit ?>&view=<?= $view ?>&search=<?= urlencode($search) ?>&category=<?= $category ?>&scroll_position=<?= $scrollPosition ?>&lang=<?= urlencode($currentLocale) ?>"><?= $i ?></a>
                             </li>
                         <?php endfor; ?>
-                        
+
                         <li class="page-item <?= $page == $totalPages ? 'disabled' : '' ?>">
                             <a class="page-link" href="?page=<?= $page+1 ?>&limit=<?= $limit ?>&view=<?= $view ?>&search=<?= urlencode($search) ?>&category=<?= $category ?>&scroll_position=<?= $scrollPosition ?>&lang=<?= urlencode($currentLocale) ?>" aria-label="<?= htmlspecialchars(__t('home.next'), ENT_QUOTES, 'UTF-8') ?>">
                                 <i class="bi bi-chevron-right"></i>
@@ -323,19 +314,17 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
         </div>
     </div>
 
-    <?php 
+    <?php
     $GLOBALS['siteSettings'] = $siteSettings;
-    include 'templates/footer.php'; 
+    include 'templates/footer.php';
     ?>
 
-    <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Przewiń do zapisanej pozycji po załadowaniu strony
             const urlParams = new URLSearchParams(window.location.search);
             const scrollPosition = urlParams.get('scroll_position');
-            
+
             if (scrollPosition && scrollPosition > 0) {
                 setTimeout(function() {
                     window.scrollTo({
@@ -344,39 +333,35 @@ $latestJobs = $jobModel->getJobsWithPaginationAndSearch(4, 0, '', null);
                     });
                 }, 100);
             }
-            
-            // Zapisz pozycję przed wysłaniem formularza
+
             document.getElementById('filter-form').addEventListener('submit', function() {
                 document.getElementById('scroll_position').value = window.pageYOffset || document.documentElement.scrollTop;
             });
-            
-            // Automatyczne wysyłanie formularza przy zmianie filtra z zapisaniem pozycji
+
             document.getElementById('category').addEventListener('change', function() {
                 document.getElementById('scroll_position').value = window.pageYOffset || document.documentElement.scrollTop;
                 document.getElementById('filter-form').submit();
             });
-            
+
             document.getElementById('limit').addEventListener('change', function() {
                 document.getElementById('scroll_position').value = window.pageYOffset || document.documentElement.scrollTop;
                 document.getElementById('filter-form').submit();
             });
-            
+
             document.querySelectorAll('input[name="view"]').forEach(function(radio) {
                 radio.addEventListener('change', function() {
                     document.getElementById('scroll_position').value = window.pageYOffset || document.documentElement.scrollTop;
                     document.getElementById('filter-form').submit();
                 });
             });
-            
-            // Obsługa czyszczenia filtrów
+
             document.querySelectorAll('a[href="index.php"]').forEach(function(link) {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     window.location.href = 'index.php?scroll_position=' + (window.pageYOffset || document.documentElement.scrollTop);
                 });
             });
-            
-            // Zapisz pozycję przed kliknięciem paginacji
+
             document.querySelectorAll('.pagination a').forEach(function(link) {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();

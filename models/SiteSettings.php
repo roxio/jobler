@@ -75,7 +75,7 @@ class SiteSettings {
 
     private function createDefaultSettings() {
         $defaultSettings = [
-            'title' => 'Jobler - Platforma Zleceń',
+            'title' => $this->dictionaryText('model.site.default_title'),
             'logo' => 'default-logo.png',
             'categories' => '',
             'meta_description' => '',
@@ -92,7 +92,7 @@ class SiteSettings {
             'linkedin_url' => '',
             'contact_email' => 'info@jobler.pl',
             'contact_phone' => '+48 123 456 789',
-            'contact_address' => 'ul. Przykładowa 123, 00-000 Warszawa',
+            'contact_address' => $this->dictionaryText('model.site.default_address'),
             'business_hours' => 'Pon-Pt: 8:00-18:00',
             'default_language' => 'pl',
             'frontend_default_language' => 'PL_pl',
@@ -105,7 +105,7 @@ class SiteSettings {
             'company_phones' => '[]',
             'favicon' => '',
             'meta_title' => '',
-            'copyright_text' => '© {year} {site_title} - Wszelkie prawa zastrzeżone.',
+            'copyright_text' => $this->dictionaryText('model.site.default_copyright'),
             'maintenance_mode' => 0,
             'maintenance_message' => '',
             'email_templates' => '{}',
@@ -187,15 +187,21 @@ class SiteSettings {
         $template = trim((string)($settings['copyright_text'] ?? ''));
 
         if ($template === '') {
-            $template = '© {year} {site_title} - Wszelkie prawa zastrzeżone.';
+            $template = $this->dictionaryText('model.site.default_copyright');
         }
 
         $template = html_entity_decode($template, ENT_QUOTES, 'UTF-8');
 
         return strtr($template, [
             '{year}' => date('Y'),
-            '{site_title}' => $settings['title'] ?? 'System Zleceń',
+            '{site_title}' => $settings['title'] ?? $this->dictionaryText('model.site.default_site_title'),
         ]);
+    }
+
+    private function dictionaryText($key) {
+        $file = dirname(__DIR__) . '/lang/PL_pl.php';
+        $dictionary = is_file($file) ? include $file : [];
+        return is_array($dictionary) ? ($dictionary[$key] ?? $key) : $key;
     }
 
     public function getSiteErrors() {

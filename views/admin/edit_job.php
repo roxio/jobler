@@ -5,7 +5,7 @@ include_once('../../models/User.php');
 include_once('../../models/Database.php');
 include_once('../../models/Language.php');
 
-// Sprawdź uprawnienia
+
 require_once __DIR__ . '/_auth.php';
 requireAdminAccess();
 
@@ -20,28 +20,28 @@ $pdo   = Database::getConnection();
 $jobModel  = new Job();
 $userModel = new User();
 
-// Pobierz zlecenie
+
 $job = $jobModel->getJobDetails($jobId);
 if (!$job) {
     header('Location: manage_jobs.php?status=error&message=not_found');
     exit;
 }
 
-// Pobierz kategorie i użytkowników
+
 $categories = $jobModel->getCategories();
 $allUsers   = $userModel->getAllUsers();
 
-// Pobierz zdjęcia zlecenia (jeśli tabela istnieje)
+
 $jobImages = [];
 try {
     $imgStmt = $pdo->prepare("SELECT * FROM job_images WHERE job_id = ? ORDER BY created_at ASC");
     $imgStmt->execute([$jobId]);
     $jobImages = $imgStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    // Tabela może nie istnieć — ignorujemy
+
 }
 
-// Pobierz historię zmian
+
 $changeHistory = [];
 try {
     $histStmt = $pdo->prepare(
@@ -55,10 +55,10 @@ try {
     $histStmt->execute([$jobId]);
     $changeHistory = $histStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    // Tabela może nie istnieć
+
 }
 
-// ----- CSRF -----
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -66,14 +66,14 @@ if (empty($_SESSION['csrf_token'])) {
 $successMessage = '';
 $errorMessage   = '';
 
-// ----- Obsługa formularza -----
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // CSRF
+
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         $errorMessage = __t('admin.edit_job.csrf_error');
     } else {
-        $changes = []; // lista zmian do historii
+        $changes = [];
 
         $newTitle    = trim($_POST['title']          ?? '');
         $newDesc     = trim($_POST['description']    ?? '');
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newCategory = (int)($_POST['category_id']  ?? 0);
         $newOwner    = (int)($_POST['user_id']       ?? $job['user_id']);
 
-        // Walidacja
+
         if (empty($newTitle)) {
             $errorMessage = __t('admin.edit_job.title_required');
         } elseif ($newPoints < 1 || $newPoints > 100) {
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errorMessage = __t('admin.edit_job.invalid_status');
         } else {
 
-            // Zbierz zmiany do historii
+
             if ($newTitle    !== $job['title'])         $changes[] = __t('admin.edit_job.history_title_changed', ['old' => $job['title'], 'new' => $newTitle]);
             if ($newDesc     !== $job['description'])   $changes[] = __t('admin.edit_job.history_description_changed');
             if ($newPoints   !== (int)$job['points_required'])
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                         $changes[] = __t('admin.edit_job.history_category_changed');
             if ($newOwner    !== (int)$job['user_id'])  $changes[] = __t('admin.edit_job.history_owner_changed', ['old' => $job['user_id'], 'new' => $newOwner]);
 
-            // Aktualizuj zlecenie
+
             $sql = "UPDATE jobs
                     SET title = :title,
                         description = :description,
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':id'          => $jobId,
             ]);
 
-            // Obsługa usuwania zdjęć
+
             if (!empty($_POST['delete_images']) && is_array($_POST['delete_images'])) {
                 foreach ($_POST['delete_images'] as $imgId) {
                     $imgId = (int)$imgId;
@@ -136,11 +136,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $pdo->prepare("DELETE FROM job_images WHERE id = ?")->execute([$imgId]);
                             $changes[] = __t('admin.edit_job.history_image_removed', ['filename' => $img['filename']]);
                         }
-                    } catch (PDOException $e) { /* ignoruj */ }
+                    } catch (PDOException $e) {  }
                 }
             }
 
-            // Obsługa dodawania nowych zdjęć
+
             if (!empty($_FILES['new_images']['name'][0])) {
                 $uploadDir = '../../uploads/jobs/';
                 if (!is_dir($uploadDir)) @mkdir($uploadDir, 0755, true);
@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $origName = $_FILES['new_images']['name'][$i];
                     $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
                     if (!in_array($ext, $allowed)) continue;
-                    if ($_FILES['new_images']['size'][$i] > 5 * 1024 * 1024) continue; // max 5 MB
+                    if ($_FILES['new_images']['size'][$i] > 5 * 1024 * 1024) continue;
 
                     $filename = uniqid('job_') . '.' . $ext;
                     if (move_uploaded_file($tmpName, $uploadDir . $filename)) {
@@ -159,12 +159,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $pdo->prepare("INSERT INTO job_images (job_id, filename, created_at) VALUES (?, ?, NOW())")
                                 ->execute([$jobId, $filename]);
                             $changes[] = __t('admin.edit_job.history_image_added', ['filename' => $filename]);
-                        } catch (PDOException $e) { /* ignoruj */ }
+                        } catch (PDOException $e) {  }
                     }
                 }
             }
 
-            // Zapisz historię zmian
+
             if (!empty($changes)) {
                 try {
                     $changeDesc = implode('; ', $changes);
@@ -172,20 +172,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         "INSERT INTO job_change_history (job_id, admin_id, change_description, changed_at)
                          VALUES (?, ?, ?, NOW())"
                     )->execute([$jobId, $_SESSION['user_id'], $changeDesc]);
-                } catch (PDOException $e) { /* ignoruj jeśli tabela nie istnieje */ }
+                } catch (PDOException $e) {  }
             }
 
             $successMessage = __t('admin.edit_job.updated');
-            // Odśwież dane
+
             $job = $jobModel->getJobDetails($jobId);
 
-            // Odśwież zdjęcia
+
             try {
                 $imgStmt->execute([$jobId]);
                 $jobImages = $imgStmt->fetchAll(PDO::FETCH_ASSOC);
             } catch (PDOException $e) { }
 
-            // Odśwież historię
+
             try {
                 $histStmt->execute([$jobId]);
                 $changeHistory = $histStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -213,7 +213,6 @@ $statusColors = [
 <?php include '../partials/header.php'; ?>
 
 <style>
-/* ===== Edit Job — Admin Panel Styles ===== */
 .edit-job-wrap { max-width: 1100px; margin: 0 auto; }
 
 .section-card {
@@ -236,7 +235,6 @@ $statusColors = [
 }
 .section-card .section-body { padding: 1.25rem; }
 
-/* Image grid */
 .img-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -270,14 +268,12 @@ $statusColors = [
 .img-checked { border-color: #e74a3b !important; background: rgba(231,74,59,.1); }
 .img-checked .del-icon { opacity: 1 !important; color: #e74a3b; }
 
-/* History table */
 .history-badge {
     font-size: .72rem;
     padding: .25em .55em;
     border-radius: 6px;
 }
 
-/* Upload zone */
 .upload-zone {
     border: 2px dashed #c5cbe4;
     border-radius: 10px;
@@ -288,7 +284,6 @@ $statusColors = [
 }
 .upload-zone:hover { border-color: #4e73df; background: #f0f4ff; }
 
-/* Sticky save bar */
 .sticky-bar {
     position: sticky;
     bottom: 0;
@@ -310,7 +305,6 @@ $statusColors = [
 <div class="row">
 <div class="col-12 main-content">
 
-<!-- Admin card wrapper -->
 <div class="card shadow">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h5 class="mb-0"><i class="bi bi-tools"></i> <?= htmlspecialchars(__t('admin.panel')) ?></h5>
@@ -319,7 +313,6 @@ $statusColors = [
 
   <div class="card-body">
 
-    <!-- Breadcrumb / nagłówek -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <div>
         <a href="manage_jobs.php" class="btn btn-sm btn-outline-secondary">
@@ -336,7 +329,6 @@ $statusColors = [
       </div>
     </div>
 
-    <!-- Alerty -->
     <?php if ($successMessage): ?>
       <div class="alert alert-success alert-dismissible fade show">
         <i class="bi bi-check-circle me-1"></i> <?= safeEcho($successMessage) ?>
@@ -350,17 +342,14 @@ $statusColors = [
       </div>
     <?php endif; ?>
 
-    <!-- ===== FORMULARZ ===== -->
     <form method="POST" enctype="multipart/form-data" id="editJobForm">
       <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
 
       <div class="edit-job-wrap">
       <div class="row g-4">
 
-        <!-- LEWA KOLUMNA -->
         <div class="col-lg-8">
 
-          <!-- 1. Podstawowe informacje -->
           <div class="section-card">
             <div class="section-head"><i class="bi bi-file-text"></i> <?= htmlspecialchars(__t('admin.edit_job.basic_info')) ?></div>
             <div class="section-body">
@@ -377,7 +366,6 @@ $statusColors = [
             </div>
           </div>
 
-          <!-- 2. Zdjęcia -->
           <div class="section-card">
             <div class="section-head"><i class="bi bi-images"></i> <?= htmlspecialchars(__t('admin.edit_job.job_images')) ?></div>
             <div class="section-body">
@@ -405,7 +393,6 @@ $statusColors = [
                 <p class="text-muted small"><?= htmlspecialchars(__t('admin.edit_job.no_images')) ?></p>
               <?php endif; ?>
 
-              <!-- Upload nowych -->
               <label class="upload-zone d-block" for="new_images">
                 <i class="bi bi-cloud-upload fs-2 text-primary"></i>
                 <div class="mt-1 fw-semibold"><?= htmlspecialchars(__t('admin.edit_job.upload_click')) ?></div>
@@ -415,17 +402,14 @@ $statusColors = [
                        onchange="previewNewImages(this)">
               </label>
 
-              <!-- Podgląd nowych zdjęć -->
               <div id="newImgPreview" class="img-grid mt-3"></div>
             </div>
           </div>
 
-        </div><!-- /lewa -->
+        </div>
 
-        <!-- PRAWA KOLUMNA -->
         <div class="col-lg-4">
 
-          <!-- 3. Parametry -->
           <div class="section-card">
             <div class="section-head"><i class="bi bi-sliders"></i> <?= htmlspecialchars(__t('admin.edit_job.parameters')) ?></div>
             <div class="section-body">
@@ -485,7 +469,6 @@ $statusColors = [
             </div>
           </div>
 
-          <!-- 4. Metadane (tylko odczyt) -->
           <div class="section-card">
             <div class="section-head"><i class="bi bi-info-circle"></i> <?= htmlspecialchars(__t('admin.system_info')) ?></div>
             <div class="section-body p-0">
@@ -514,11 +497,10 @@ $statusColors = [
             </div>
           </div>
 
-        </div><!-- /prawa -->
+        </div>
 
-      </div><!-- /row -->
+      </div>
 
-      <!-- Historia zmian — pełna szerokość -->
       <div class="section-card">
         <div class="section-head">
           <i class="bi bi-clock-history"></i> <?= htmlspecialchars(__t('admin.change_history')) ?>
@@ -560,7 +542,6 @@ $statusColors = [
         </div>
       </div>
 
-      <!-- Sticky bar zapisu -->
       <div class="sticky-bar">
         <a href="manage_jobs.php" class="btn btn-outline-secondary">
           <i class="bi bi-x-circle"></i> <?= htmlspecialchars(__t('admin.users.cancel')) ?>
@@ -575,18 +556,16 @@ $statusColors = [
         </div>
       </div>
 
-      </div><!-- /edit-job-wrap -->
+      </div>
     </form>
-    <!-- /FORMULARZ -->
 
-  </div><!-- /card-body -->
-</div><!-- /card -->
+  </div>
+</div>
 </div>
 </div>
 </div>
 
 <script>
-// Podgląd nowych zdjęć przed uploadem
 function previewNewImages(input) {
     const container = document.getElementById('newImgPreview');
     container.innerHTML = '';
@@ -606,7 +585,6 @@ function previewNewImages(input) {
     });
 }
 
-// Wizualne zaznaczenie zdjęć do usunięcia
 document.querySelectorAll('.img-del-chk').forEach(chk => {
     chk.addEventListener('change', function () {
         const wrap = document.getElementById('wrap-' + this.value);
@@ -618,7 +596,6 @@ document.querySelectorAll('.img-del-chk').forEach(chk => {
     });
 });
 
-// Drag-and-drop na upload zone
 const uploadZone = document.querySelector('.upload-zone');
 if (uploadZone) {
     uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor = '#4e73df'; });
@@ -634,7 +611,6 @@ if (uploadZone) {
     });
 }
 
-// Auto-zamknięcie alertów po 5s
 setTimeout(() => {
     document.querySelectorAll('.alert').forEach(a => {
         try { new bootstrap.Alert(a).close(); } catch(e) {}

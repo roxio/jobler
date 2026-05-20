@@ -5,7 +5,7 @@ include_once('../../models/User.php');
 include_once('../../models/Database.php');
 include_once('../../models/Language.php');
 
-// Sprawdź uprawnienia
+
 require_once __DIR__ . '/_auth.php';
 requireAdminAccess();
 
@@ -13,11 +13,11 @@ $pdo      = Database::getConnection();
 $jobModel = new Job();
 $userModel = new User();
 
-// Pobierz kategorie i użytkowników
+
 $categories = $jobModel->getCategories();
 $allUsers   = $userModel->getAllUsers();
 
-// CSRF
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -25,20 +25,20 @@ if (empty($_SESSION['csrf_token'])) {
 $successMessage = '';
 $errorMessage   = '';
 
-// Wartości formularza (do ponownego wypełnienia po błędzie)
+
 $form = [
     'title'           => '',
     'description'     => '',
     'points_required' => 1,
     'status'          => 'open',
     'category_id'     => '',
-    'user_id'         => $_SESSION['user_id'], // domyślnie zalogowany admin
+    'user_id'         => $_SESSION['user_id'],
 ];
 
-// ===== Obsługa POST =====
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // CSRF
+
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         $errorMessage = __t('admin.edit_job.csrf_error');
     } else {
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $form['category_id']     = (int)($_POST['category_id']    ?? 0);
         $form['user_id']         = (int)($_POST['user_id']        ?? $_SESSION['user_id']);
 
-        // Walidacja
+
         if (empty($form['title'])) {
             $errorMessage = __t('admin.edit_job.title_required');
         } elseif (empty($form['description'])) {
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errorMessage = __t('admin.add_job.owner_required');
         } else {
 
-            // Wstaw zlecenie do bazy
+
             $sql = "INSERT INTO jobs
                         (user_id, title, description, points_required, category_id, status, created_at, updated_at)
                     VALUES
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             $newJobId = (int)$pdo->lastInsertId();
 
-            // Obsługa zdjęć
+
             $uploadedImages = [];
             if (!empty($_FILES['new_images']['name'][0])) {
                 $uploadDir = '../../uploads/jobs/';
@@ -100,12 +100,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 "INSERT INTO job_images (job_id, filename, created_at) VALUES (?, ?, NOW())"
                             )->execute([$newJobId, $filename]);
                             $uploadedImages[] = $filename;
-                        } catch (PDOException $e) { /* ignoruj */ }
+                        } catch (PDOException $e) {  }
                     }
                 }
             }
 
-            // Zapisz do historii zmian — zdarzenie "utworzenie"
+
             $histDesc = __t('admin.add_job.history_created', [
                 'status' => $form['status'],
                 'points' => $form['points_required'],
@@ -118,9 +118,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "INSERT INTO job_change_history (job_id, admin_id, change_description, changed_at)
                      VALUES (?, ?, ?, NOW())"
                 )->execute([$newJobId, $_SESSION['user_id'], $histDesc]);
-            } catch (PDOException $e) { /* ignoruj */ }
+            } catch (PDOException $e) {  }
 
-            // Przekieruj do edycji nowo utworzonego zlecenia
+
             header("Location: edit_job.php?id={$newJobId}&created=1");
             exit;
         }
@@ -140,7 +140,6 @@ $statusLabels = [
 <?php include '../partials/header.php'; ?>
 
 <style>
-/* ===== Add Job — Admin Panel Styles (wspólne z edit_job) ===== */
 .edit-job-wrap { max-width: 1100px; margin: 0 auto; }
 
 .section-card {
@@ -209,7 +208,6 @@ $statusLabels = [
     margin-top: 1.5rem;
 }
 
-/* Wskazówki */
 .tip-box {
     background: #eef2ff;
     border-left: 3px solid #4e73df;
@@ -233,7 +231,6 @@ $statusLabels = [
 
   <div class="card-body">
 
-    <!-- Nagłówek -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <div>
         <a href="manage_jobs.php" class="btn btn-sm btn-outline-secondary">
@@ -245,7 +242,6 @@ $statusLabels = [
       </div>
     </div>
 
-    <!-- Alerty -->
     <?php if ($errorMessage): ?>
       <div class="alert alert-danger alert-dismissible fade show">
         <i class="bi bi-exclamation-triangle me-1"></i> <?= safeEcho($errorMessage) ?>
@@ -253,17 +249,14 @@ $statusLabels = [
       </div>
     <?php endif; ?>
 
-    <!-- ===== FORMULARZ ===== -->
     <form method="POST" enctype="multipart/form-data" id="addJobForm">
       <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
 
       <div class="edit-job-wrap">
       <div class="row g-4">
 
-        <!-- LEWA KOLUMNA -->
         <div class="col-lg-8">
 
-          <!-- 1. Podstawowe informacje -->
           <div class="section-card">
             <div class="section-head"><i class="bi bi-file-text"></i> <?= safeEcho(__t('admin.edit_job.basic_info')) ?></div>
             <div class="section-body">
@@ -294,7 +287,6 @@ $statusLabels = [
             </div>
           </div>
 
-          <!-- 2. Zdjęcia -->
           <div class="section-card">
             <div class="section-head"><i class="bi bi-images"></i> <?= safeEcho(__t('admin.edit_job.job_images')) ?></div>
             <div class="section-body">
@@ -306,18 +298,15 @@ $statusLabels = [
                        class="d-none" multiple accept="image/*"
                        onchange="previewNewImages(this)">
               </label>
-              <!-- Podgląd przed uploadem -->
               <div id="newImgPreview" class="img-grid mt-3"></div>
               <div id="imgCount" class="text-muted small mt-2" style="display:none"></div>
             </div>
           </div>
 
-        </div><!-- /lewa -->
+        </div>
 
-        <!-- PRAWA KOLUMNA -->
         <div class="col-lg-4">
 
-          <!-- 3. Parametry -->
           <div class="section-card">
             <div class="section-head"><i class="bi bi-sliders"></i> <?= safeEcho(__t('admin.add_job.parameters')) ?></div>
             <div class="section-body">
@@ -386,7 +375,6 @@ $statusLabels = [
             </div>
           </div>
 
-          <!-- 4. Podsumowanie (dynamiczne) -->
           <div class="section-card">
             <div class="section-head"><i class="bi bi-check2-square"></i> <?= safeEcho(__t('admin.add_job.summary')) ?></div>
             <div class="section-body p-0">
@@ -415,11 +403,10 @@ $statusLabels = [
             </div>
           </div>
 
-        </div><!-- /prawa -->
+        </div>
 
-      </div><!-- /row -->
+      </div>
 
-      <!-- Sticky bar -->
       <div class="sticky-bar">
         <a href="manage_jobs.php" class="btn btn-outline-secondary">
           <i class="bi bi-x-circle"></i> <?= safeEcho(__t('admin.users.cancel')) ?>
@@ -429,17 +416,16 @@ $statusLabels = [
         </button>
       </div>
 
-      </div><!-- /edit-job-wrap -->
+      </div>
     </form>
 
-  </div><!-- /card-body -->
-</div><!-- /card -->
+  </div>
+</div>
 </div>
 </div>
 </div>
 
 <script>
-// ===== Podgląd zdjęć =====
 let selectedFilesCount = 0;
 const addJobText = {
     filesSelected: <?= json_encode(__t('admin.add_job.files_selected'), JSON_UNESCAPED_UNICODE) ?>,
@@ -485,7 +471,6 @@ function previewNewImages(input) {
     updateSummary();
 }
 
-// ===== Licznik znaków opisu =====
 const descArea = document.querySelector('textarea[name="description"]');
 const descCounter = document.getElementById('descCounter');
 if (descArea && descCounter) {
@@ -496,7 +481,6 @@ if (descArea && descCounter) {
     update();
 }
 
-// ===== Dynamiczne podsumowanie =====
 const statusLabels = {
     open: <?= json_encode(__t('admin.jobs.open'), JSON_UNESCAPED_UNICODE) ?>,
     active: <?= json_encode(__t('admin.jobs.active'), JSON_UNESCAPED_UNICODE) ?>,
@@ -536,10 +520,8 @@ document.querySelector('input[name="points_required"]')?.addEventListener('input
 document.querySelector('select[name="category_id"]')?.addEventListener('change', updateSummary);
 document.querySelector('select[name="user_id"]')?.addEventListener('change', updateSummary);
 
-// Inicjalne podsumowanie
 updateSummary();
 
-// ===== Drag & Drop =====
 const uploadZone = document.querySelector('.upload-zone');
 if (uploadZone) {
     uploadZone.addEventListener('dragover', e => {
@@ -563,7 +545,6 @@ if (uploadZone) {
     });
 }
 
-// ===== Auto-zamknięcie alertów =====
 setTimeout(() => {
     document.querySelectorAll('.alert').forEach(a => {
         try { new bootstrap.Alert(a).close(); } catch(e) {}

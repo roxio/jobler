@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-// Walidacja tokena CSRF
+
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
     header('Location: manage_users.php?status=error&message=csrf_invalid');
     exit();
@@ -36,19 +36,19 @@ include_once('../../models/Language.php');
 $userModel = new User();
 
 try {
-    // Sprawdź czy użytkownik istnieje
+
     $user = $userModel->getUserById($userId);
     if (!$user) {
         header('Location: manage_users.php?status=error&message=user_not_found');
         exit();
     }
-    
-    // Pobierz dane administratora
+
+
     $adminId = $_SESSION['user_id'];
     $admin = $userModel->getUserById($adminId);
     $adminName = $admin['name'] ?? 'Administrator';
-    
-    // Przygotuj opis transakcji z nazwą administratora
+
+
     $description = '';
     if (!empty($reason)) {
         $description = $adminName . " - " . $reason;
@@ -56,16 +56,16 @@ try {
 	else {
         $description = __t('admin.points.added_by', ['name' => $adminName]);
     }
-    // Dodaj punkty z zapisem do historii transakcji
+
     $success = $userModel->addPointsWithTransaction($userId, $pointsToAdd, $description);
-    
+
     if ($success) {
         header('Location: manage_users.php?status=points_added');
     } else {
         header('Location: manage_users.php?status=error_points');
     }
     exit();
-    
+
 } catch (Exception $e) {
     error_log(__t('admin.points.add_error_log', ['error' => $e->getMessage()]));
     header('Location: manage_users.php?status=error_points');

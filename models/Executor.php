@@ -3,6 +3,7 @@
 include_once('Database.php');
 include_once('Job.php');
 include_once('Message.php');
+include_once('Language.php');
 
 class Executor {
     private $pdo;
@@ -122,8 +123,8 @@ class Executor {
             $conversationId = $jobId . '_' . min($executorId, $job['user_id']) . '_' . max($executorId, $job['user_id']);
             $initialMessage = trim(
                 $message .
-                "\n\nWstępna wycena: " . ($proposedPrice !== null && $proposedPrice !== '' ? $proposedPrice : 'nie podano') .
-                "\nZakres prac: " . ($scope !== '' ? $scope : 'nie podano')
+                "\n\n" . __t('executor.initial_price_line', ['price' => ($proposedPrice !== null && $proposedPrice !== '' ? $proposedPrice : __t('user.not_provided'))]) .
+                "\n" . __t('executor.scope_line', ['scope' => ($scope !== '' ? $scope : __t('user.not_provided'))])
             );
 
             $insertMessage = $this->pdo->prepare("
@@ -145,7 +146,7 @@ class Executor {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            error_log("Błąd przy odpowiadaniu na zlecenie: " . $e->getMessage());
+            error_log(__t('executor.respond_error_log', ['error' => $e->getMessage()]));
             return false;
         }
     }
@@ -352,7 +353,7 @@ class Executor {
                 ->execute([':executor_id' => $executorId, ':job_id' => $jobId]);
 
             $conversationId = $jobId . '_' . min($userId, $executorId) . '_' . max($userId, $executorId);
-            $acceptanceMessage = 'Oferta została zaakceptowana. Możecie ustalić szczegóły realizacji w tej rozmowie.';
+            $acceptanceMessage = __t('executor.offer_acceptance_message');
             $this->pdo->prepare("
                 INSERT INTO messages (job_id, sender_id, receiver_id, content, message, conversation_id, created_at, read_status)
                 VALUES (:job_id, :sender_id, :receiver_id, :content, :message, :conversation_id, NOW(), 0)
@@ -371,7 +372,7 @@ class Executor {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            error_log("Błąd przy akceptacji oferty: " . $e->getMessage());
+            error_log(__t('executor.accept_error_log', ['error' => $e->getMessage()]));
             return false;
         }
     }

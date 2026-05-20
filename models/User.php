@@ -59,7 +59,7 @@ class User {
         }
 
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $sql = "INSERT INTO users (email, password, name, username, role, phone, registration_ip, original_email, original_name, original_username, original_phone, created_at, updated_at) 
+        $sql = "INSERT INTO users (email, password, name, username, role, phone, registration_ip, original_email, original_name, original_username, original_phone, created_at, updated_at)
                 VALUES (:email, :password, :name, :username, :role, :phone, :registration_ip, :original_email, :original_name, :original_username, :original_phone, NOW(), NOW())";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':email', $email);
@@ -106,7 +106,7 @@ class User {
     }
 
 public function getUserById($userId) {
-    $sql = "SELECT id, email, name, role, created_at, updated_at, registration_ip, 
+    $sql = "SELECT id, email, name, role, created_at, updated_at, registration_ip,
                    last_login_ip, status, account_balance, last_login,
                    email_verified_at, username, phone, need_change, avatar, newsletter_subscription,
                    user_agent, original_email, original_name, original_username, original_phone, profile_updated_at
@@ -239,7 +239,7 @@ public function getUserById($userId) {
     public function getPaginatedUsersWithFilters($limit, $offset, $sortColumn, $sortOrder, $search, $statusFilter, $roleFilter, $dateFrom, $dateTo) {
         $whereConditions = [];
         $params = [];
-	
+
 
         if ($search) {
             $whereConditions[] = "(name LIKE :search OR email LIKE :search OR id LIKE :search)";
@@ -374,13 +374,13 @@ public function getUserById($userId) {
         return $stmt->fetchColumn();
     }
 
-public function deleteUser($userId) {  
-		if ($userId == $_SESSION['user_id']) {         
-			throw new Exception("Cannot delete yourself");     }          
-			$sql = "DELETE FROM users WHERE id = :user_id";     
-			$stmt = $this->pdo->prepare($sql);     
-			$stmt->bindParam(':user_id', $userId);     
-		return $stmt->execute(); 
+public function deleteUser($userId) {
+		if ($userId == $_SESSION['user_id']) {
+			throw new Exception("Cannot delete yourself");     }
+			$sql = "DELETE FROM users WHERE id = :user_id";
+			$stmt = $this->pdo->prepare($sql);
+			$stmt->bindParam(':user_id', $userId);
+		return $stmt->execute();
 	}
 
     public function deleteUsers($userIds) {
@@ -413,7 +413,7 @@ public function deleteUser($userId) {
     }
 
     public function getResponsesForUserJobs($userId) {
-        $query = "SELECT j.title AS title, r.message AS message, r.created_at AS created_at, 
+        $query = "SELECT j.title AS title, r.message AS message, r.created_at AS created_at,
                  u.name AS executor_name, r.executor_id AS executor_id, j.id AS job_id
                  FROM jobs j
                  INNER JOIN responses r ON j.id = r.job_id
@@ -425,7 +425,7 @@ public function deleteUser($userId) {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    
+
     public function addBalanceToUser($userId, $balanceToAdd) {
         $sql = "UPDATE users SET account_balance = account_balance + :balance_to_add, updated_at = NOW() WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
@@ -480,7 +480,7 @@ public function getUnreadReportsCount() {
 }
 public function getRecentActivities($limit = 10) {
     $stmt = $this->pdo->prepare("
-        SELECT a.*, u.username 
+        SELECT a.*, u.username
         FROM user_activities a
         LEFT JOIN users u ON a.user_id = u.id
         ORDER BY a.timestamp DESC
@@ -502,17 +502,17 @@ public function countVerifiedUsers() {
 }
 public function getUsersByIds($userIds) {
     if (empty($userIds)) return [];
-    
+
     $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-    $query = "SELECT id, name, email, role, status, created_at, last_login, 
-                     account_balance, registration_ip, email_verified_at 
-              FROM users 
-              WHERE id IN ($placeholders) 
+    $query = "SELECT id, name, email, role, status, created_at, last_login,
+                     account_balance, registration_ip, email_verified_at
+              FROM users
+              WHERE id IN ($placeholders)
               ORDER BY name";
-    
+
     $stmt = $this->pdo->prepare($query);
     $stmt->execute($userIds);
-    
+
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -520,7 +520,7 @@ public function hasActiveJobs($userId) {
     $query = "SELECT COUNT(*) FROM jobs WHERE user_id = ? AND status = 'active'";
     $stmt = $this->pdo->prepare($query);
     $stmt->execute([$userId]);
-    
+
     return $stmt->fetchColumn() > 0;
 }
 
@@ -528,7 +528,7 @@ public function hasPendingTransactions($userId) {
     $query = "SELECT COUNT(*) FROM transactions WHERE user_id = ? AND status = 'pending'";
     $stmt = $this->pdo->prepare($query);
     $stmt->execute([$userId]);
-    
+
     return $stmt->fetchColumn() > 0;
 }
 
@@ -536,7 +536,7 @@ public function hasActiveConversations($userId) {
     $query = "SELECT COUNT(*) FROM conversations WHERE user_id = ? AND status = 'active'";
     $stmt = $this->pdo->prepare($query);
     $stmt->execute([$userId]);
-    
+
     return $stmt->fetchColumn() > 0;
 }
 public function getUserStatistics($userId) {
@@ -548,9 +548,9 @@ public function getUserStatistics($userId) {
     ];
 }
 public function getLoginHistory($userId, $limit = 10) {
-    $query = "SELECT * FROM user_login_history 
-              WHERE user_id = ? 
-              ORDER BY login_time DESC 
+    $query = "SELECT * FROM user_login_history
+              WHERE user_id = ?
+              ORDER BY login_time DESC
               LIMIT ?";
     $stmt = $this->pdo->prepare($query);
     $stmt->bindValue(1, $userId, PDO::PARAM_INT);
@@ -586,14 +586,14 @@ private function countUserMessages($userId) {
     return $stmt->fetchColumn();
 }
 public function logLoginAttempt($userId, $ipAddress, $success = true, $userAgent = null) {
-    // Jeśli userId jest null lub 0 (nieistniejący użytkownik), wstaw NULL zamiast 0
+
     $logUserId = (!empty($userId) && is_numeric($userId)) ? (int)$userId : null;
 
-    $sql = "INSERT INTO user_login_history (user_id, ip_address, login_time, success, user_agent) 
+    $sql = "INSERT INTO user_login_history (user_id, ip_address, login_time, success, user_agent)
             VALUES (:user_id, :ip_address, NOW(), :success, :user_agent)";
 
     $stmt = $this->pdo->prepare($sql);
-    $stmt->bindParam(':user_id',    $logUserId,   PDO::PARAM_INT); // NULL gdy brak użytkownika
+    $stmt->bindParam(':user_id',    $logUserId,   PDO::PARAM_INT);
     $stmt->bindParam(':ip_address', $ipAddress);
     $stmt->bindParam(':success',    $success,     PDO::PARAM_BOOL);
     $stmt->bindParam(':user_agent', $userAgent);
@@ -618,36 +618,36 @@ public function getUserIdByEmail($email) {
     $stmt = $this->pdo->prepare($sql);
     $stmt->bindParam(':email', $email);
     $stmt->execute();
-    
+
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     return $result ? $result['id'] : null;
 }
 public function addPointsWithTransaction($userId, $pointsToAdd, $description = '') {
     try {
         $this->pdo->beginTransaction();
-        
-        // Dodaj punkty do salda użytkownika
+
+
         $sql = "UPDATE users SET account_balance = account_balance + :points_to_add, updated_at = NOW() WHERE id = :user_id";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':points_to_add', $pointsToAdd, PDO::PARAM_STR);
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
-        
-        // Zapisz transakcję w historii
-        $transactionSql = "INSERT INTO transactions (user_id, amount, type, description, status, created_at) 
+
+
+        $transactionSql = "INSERT INTO transactions (user_id, amount, type, description, status, created_at)
                           VALUES (:user_id, :amount, 'payment', :description, 'completed', NOW())";
         $transactionStmt = $this->pdo->prepare($transactionSql);
         $transactionStmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
         $transactionStmt->bindParam(':amount', $pointsToAdd, PDO::PARAM_STR);
         $transactionStmt->bindParam(':description', $description, PDO::PARAM_STR);
         $transactionStmt->execute();
-        
+
         $this->pdo->commit();
         return true;
-        
+
     } catch (Exception $e) {
         $this->pdo->rollBack();
-        error_log("Błąd przy dodawaniu punktów: " . $e->getMessage());
+        error_log(__t('model.user.add_points_error_log', ['error' => $e->getMessage()]));
         return false;
     }
 }

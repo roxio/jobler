@@ -5,10 +5,10 @@ class Job {
     private $pdo;
 
     public function __construct() {
-        $this->pdo = Database::getConnection(); // Połączenie z bazą danych
+        $this->pdo = Database::getConnection();
     }
 
-    // Dodawanie nowego ogłoszenia
+
     public function createJob($userId, $title, $description, $pointsRequired, $categoryId) {
         $sql = "INSERT INTO jobs (user_id, title, description, points_required, category_id, status, created_at, updated_at)
                 VALUES (:user_id, :title, :description, :points_required, :category_id, 'open', NOW(), NOW())";
@@ -21,14 +21,14 @@ class Job {
         return $stmt->execute();
     }
 
-    // Metoda pobierania kategorii
+
     public function getCategories() {
         $sql = "SELECT * FROM categories";
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Pobieranie wszystkich ogłoszeń użytkownika
+
     public function getUserJobs($userId) {
         $this->ensureArchiveColumns();
         $sql = "SELECT * FROM jobs WHERE user_id = :user_id AND deleted_at IS NULL AND archived_at IS NULL";
@@ -38,7 +38,7 @@ class Job {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Pobieranie szczegółów ogłoszenia na podstawie jego ID
+
     public function getJobDetails($jobId) {
         $sql = "SELECT jobs.*, users.name as user_name
                 FROM jobs
@@ -50,7 +50,7 @@ class Job {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Edytowanie ogłoszenia
+
     public function updateJob($jobId, $title, $description, $status, $pointsRequired) {
         $sql = "UPDATE jobs SET title = :title, description = :description, points_required = :points_required, status = :status, updated_at = NOW() WHERE id = :job_id";
         $stmt = $this->pdo->prepare($sql);
@@ -62,7 +62,7 @@ class Job {
         return $stmt->execute();
     }
 
-    // Zmiana statusu ogłoszenia (np. zamknięcie oferty)
+
     public function updateJobStatus($jobId, $status) {
         $sql = "UPDATE jobs SET status = :status, updated_at = NOW() WHERE id = :job_id";
         $stmt = $this->pdo->prepare($sql);
@@ -71,7 +71,7 @@ class Job {
         return $stmt->execute();
     }
 
-    // Usuwanie ogłoszenia (miękkie usuwanie)
+
     public function deleteJob($id) {
         $this->ensureArchiveColumns();
         $this->refundResponsePoints($id);
@@ -79,7 +79,7 @@ class Job {
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute(['id' => $id]);
     }
-    // Przywracanie usuniętego ogłoszenia
+
     public function restoreJob($id) {
         $this->ensureArchiveColumns();
         $sql = "UPDATE jobs SET deleted_at = NULL, archived_at = NULL, archive_reason = NULL, updated_at = NOW() WHERE id = :id";
@@ -87,7 +87,7 @@ class Job {
         return $stmt->execute(['id' => $id]);
     }
 
-    // Pobieranie dostępnych ogłoszeń (np. ogłoszenia bez przypisanego wykonawcy)
+
     public function permanentlyDeleteJob($id) {
         $this->ensureArchiveColumns();
         try {
@@ -152,7 +152,7 @@ class Job {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Pobieranie ogłoszeń z przypisanym wykonawcą
+
     public function getJobsWithExecutor() {
         $sql = "SELECT * FROM jobs WHERE executor_id IS NOT NULL";
         $stmt = $this->pdo->prepare($sql);
@@ -160,7 +160,7 @@ class Job {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Dodanie metody do pobierania wszystkich ogłoszeń (NIESTATYCZNA)
+
     public function getAllJobs($limit = null, $offset = null) {
         $sql = "SELECT * FROM jobs ORDER BY created_at DESC";
 
@@ -184,14 +184,14 @@ class Job {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Zwraca liczbę ogłoszeń
+
     public function getJobCount() {
         $sql = "SELECT COUNT(*) FROM jobs";
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchColumn();
     }
 
-    // Metody do paginacji (NIESTATYCZNE)
+
     public function getJobsWithPagination($limit, $offset) {
         $stmt = $this->pdo->prepare("SELECT * FROM jobs ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -200,14 +200,14 @@ class Job {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Liczba wszystkich ogłoszeń (NIESTATYCZNA)
+
     public function countAllJobs() {
         $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM jobs");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result['total'];
     }
 
-    // Nowe metody do paginacji z wyszukiwaniem i kategoriami (NIESTATYCZNE)
+
     public function getJobsWithPaginationAndSearch($limit, $offset, $search, $category = null) {
         $sql = "SELECT * FROM jobs WHERE title LIKE :search";
         if ($category) {
@@ -226,7 +226,7 @@ class Job {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Liczba ogłoszeń z wyszukiwaniem (NIESTATYCZNA)
+
     public function countJobsWithSearch($search) {
         $sql = "SELECT COUNT(*) as total FROM jobs WHERE title LIKE :search";
         $stmt = $this->pdo->prepare($sql);
@@ -236,7 +236,7 @@ class Job {
         return $result['total'];
     }
 
-    // Nowa metoda: Pobieranie liczby nowych ogłoszeń w ciągu ostatnich 30 dni
+
     public function getNewJobsCount() {
         $sql = "SELECT COUNT(*) FROM jobs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
         $stmt = $this->pdo->prepare($sql);
@@ -244,13 +244,13 @@ class Job {
         return $stmt->fetchColumn();
     }
 
-    // Dla charts
+
     public function getNewJobsPerDay() {
         $sql = "SELECT DATE(created_at) as date, COUNT(*) as count FROM jobs WHERE created_at > NOW() - INTERVAL 7 DAY GROUP BY DATE(created_at)";
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Wyszukiwanie ogłoszeń z paginacją (NIESTATYCZNA)
+
     public function searchJobs($searchTerm, $limit = null, $offset = null) {
         $sql = "SELECT id, title, description, status, created_at FROM jobs
                 WHERE id LIKE :search OR title LIKE :search OR description LIKE :search
@@ -278,7 +278,7 @@ class Job {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Liczba wyników wyszukiwania (NIESTATYCZNA)
+
     public function countSearchJobs($searchTerm) {
         $sql = "SELECT COUNT(*) as total FROM jobs
                 WHERE id LIKE :search OR title LIKE :search OR description LIKE :search";
@@ -362,13 +362,13 @@ public function getJobsWithFilters($limit, $offset, $sortColumn, $sortOrder, $se
 
     $whereClause = $whereConditions ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
 
-    // Walidacja kolumny sortowania
+
     $allowedSortColumns = ['id', 'title', 'points_required', 'created_at', 'status'];
     if (!in_array($sortColumn, $allowedSortColumns)) {
         $sortColumn = 'created_at';
     }
 
-    // Walidacja kierunku sortowania
+
     $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
 
     $query = "SELECT j.*, u.name as user_name, c.name as category_name

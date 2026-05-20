@@ -26,23 +26,23 @@ $messageModel = new Message($pdo);
 
 try {
     $user = $userModel->getUserById($userId);
-    
+
      if (!$user) {
          header('Location: manage_users.php?status=error&message=user_not_found');
          exit();
     }
-	
-    
-    //Pobierz dodatkowe informacje
+
+
+
     $userJobs = $jobModel->getJobsByUserId($userId, 5);
      $userTransactions = $transactionModel->getUserTransactions($userId, 5);
      $userStats = $userModel->getUserStatistics($userId);
      $loginHistory = $userModel->getLoginHistory($userId, 5);
-	//$userConversations = $messageModel->getUserConversations($userId, 5);
-	//$conversationStats = $messageModel->getUserConversationStats($userId);
-    
+
+
+
 } catch (Exception $e) {
-     error_log("Błąd przy pobieraniu danych użytkownika: " . $e->getMessage());
+     error_log(__t('admin.logs.fetch_user_error', ['error' => $e->getMessage()]));
      header('Location: manage_users.php?status=error');
      exit();
 }
@@ -60,11 +60,11 @@ function formatBalance($balance) {
     return number_format(floatval($balance), 2) . ' pkt';
 }
 
-// Sprawdź czy użytkownik jest online (ostatnie 15 minut)
+
 $isOnline = false;
 if (!empty($user['last_login'])) {
     $lastLogin = strtotime($user['last_login']);
-    $isOnline = (time() - $lastLogin) < 900; // 15 minut
+    $isOnline = (time() - $lastLogin) < 900;
 }
 ?>
 
@@ -82,7 +82,6 @@ if (!empty($user['last_login'])) {
                 </div>
 
                 <div class="card-body">
-                    <!-- Nagłówek z powrotem i akcjami -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <a href="manage_users.php" class="btn btn-sm btn-outline-secondary">
@@ -95,7 +94,7 @@ if (!empty($user['last_login'])) {
                                 <i class="bi bi-pencil"></i> <?= htmlspecialchars(__t('common.edit')) ?>
                             </a>
                             <?php if ($user['status'] == 'active'): ?>
-                                <a href="deactivate_user.php?id=<?= $userId ?>" class="btn btn-sm btn-outline-secondary" 
+                                <a href="deactivate_user.php?id=<?= $userId ?>" class="btn btn-sm btn-outline-secondary"
                                    onclick="return confirm('<?= htmlspecialchars(__t('admin.users.deactivate_confirm'), ENT_QUOTES) ?>');">
                                     <i class="bi bi-person-x"></i> <?= htmlspecialchars(__t('admin.common.deactivate')) ?>
                                 </a>
@@ -111,7 +110,6 @@ if (!empty($user['last_login'])) {
                         </div>
                     </div>
 
-                    <!-- Alerty -->
                     <?php if (isset($_GET['status'])): ?>
                         <div class="alert <?= $_GET['status'] == 'error' ? 'alert-danger' : 'alert-success'; ?> alert-dismissible fade show mb-4" role="alert">
                             <?php
@@ -129,7 +127,6 @@ if (!empty($user['last_login'])) {
                     <?php endif; ?>
 
                     <div class="row">
-                        <!-- Lewa kolumna - informacje podstawowe -->
                         <div class="col-md-4">
                             <div class="card mb-4">
                                 <div class="card-header">
@@ -137,7 +134,7 @@ if (!empty($user['last_login'])) {
                                 </div>
                                 <div class="card-body">
                                     <div class="text-center mb-3">
-                                        <img src="<?= !empty($user['avatar']) ? safeEcho($user['avatar']) : '../../assets/img/default-avatar.png'; ?>" 
+                                        <img src="<?= !empty($user['avatar']) ? safeEcho($user['avatar']) : '../../assets/img/default-avatar.png'; ?>"
                                              class="rounded-circle mb-2" width="100" height="100" alt="Avatar">
                                         <h5><?= safeEcho($user['name']) ?></h5>
                                         <span class="badge bg-<?= $isOnline ? 'success' : 'secondary'; ?>">
@@ -206,7 +203,6 @@ if (!empty($user['last_login'])) {
                                         </tr>
                                     </table>
 
-                                    <!-- Szybkie akcje -->
                                     <div class="mt-3">
                                         <form action="add_points.php" method="POST" class="mb-2">
     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
@@ -236,7 +232,6 @@ if (!empty($user['last_login'])) {
                                 </div>
                             </div>
 
-                            <!-- Informacje techniczne -->
                             <div class="card mb-4">
                                 <div class="card-header">
                                     <h6 class="mb-0"><i class="bi bi-info-circle"></i> <?= htmlspecialchars(__t('admin.technical_info')) ?></h6>
@@ -260,9 +255,7 @@ if (!empty($user['last_login'])) {
                             </div>
                         </div>
 
-                        <!-- Prawa kolumna - statystyki i aktywność -->
                         <div class="col-md-8">
-                            <!-- Statystyki -->
                             <div class="row mb-4">
                                 <div class="col-md-3 col-6">
                                     <div class="card bg-primary text-white text-center">
@@ -299,7 +292,6 @@ if (!empty($user['last_login'])) {
 
                             </div>
 
-                            <!-- Ostatnie ogłoszenia -->
                             <div class="card mb-4">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0"><i class="bi bi-briefcase"></i> <?= htmlspecialchars(__t('admin.view_user.recent_jobs')) ?></h6>
@@ -345,7 +337,6 @@ if (!empty($user['last_login'])) {
                                 </div>
                             </div>
 
-                            <!-- Ostatnie transakcje -->
                             <div class="card mb-4">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0"><i class="bi bi-currency-exchange"></i> <?= htmlspecialchars(__t('admin.view_user.recent_transactions')) ?></h6>
@@ -395,8 +386,6 @@ if (!empty($user['last_login'])) {
                                 </div>
                             </div>
 
-<!-- Ostatnie konwersacje -->
-<!-- Ostatnie konwersacje -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h6 class="mb-0"><i class="bi bi-chat-dots"></i> <?= htmlspecialchars(__t('admin.view_user.recent_conversations')) ?></h6>
@@ -405,11 +394,11 @@ if (!empty($user['last_login'])) {
         </a>
     </div>
     <div class="card-body">
-        <?php 
-        // Pobierz ostatnie 5 zgrupowanych konwersacji użytkownika
+        <?php
+
         $userConversations = $messageModel->getGroupedConversationsWithAdvancedFilters(5, 0, ['user_id' => $userId]);
         ?>
-        
+
         <?php if (!empty($userConversations)): ?>
             <div class="table-responsive">
                 <table class="table table-sm">
@@ -427,7 +416,7 @@ if (!empty($user['last_login'])) {
                     <tbody>
                         <?php foreach ($userConversations as $conversation): ?>
                             <?php
-                            // Określ drugiego uczestnika konwersacji
+
                             $otherUserId = ($conversation['sender_id'] == $userId) ? $conversation['receiver_id'] : $conversation['sender_id'];
                             $otherUserName = ($conversation['sender_id'] == $userId) ? $conversation['receiver_name'] : $conversation['sender_name'];
                             ?>
@@ -450,7 +439,7 @@ if (!empty($user['last_login'])) {
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php 
+                                    <?php
                                     $content = !empty($conversation['last_message_content']) ? $conversation['last_message_content'] : __t('admin.view_user.no_content');
                                     echo safeEcho(mb_substr($content, 0, 30)) . (mb_strlen($content) > 30 ? '...' : '');
                                     ?>
@@ -463,12 +452,12 @@ if (!empty($user['last_login'])) {
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-info view-conversation" 
-                                                data-bs-toggle="modal" data-bs-target="#conversationModal" 
+                                        <button type="button" class="btn btn-outline-info view-conversation"
+                                                data-bs-toggle="modal" data-bs-target="#conversationModal"
                                                 data-conversation-id="<?= safeEcho($conversation['conversation_id']); ?>">
                                             <i class="bi bi-eye" title="<?= htmlspecialchars(__t('admin.view_user.preview_conversation')) ?>"></i>
                                         </button>
-                                        <a href="../messages/view.php?conversation_id=<?= safeEcho($conversation['conversation_id']) ?>" 
+                                        <a href="../messages/view.php?conversation_id=<?= safeEcho($conversation['conversation_id']) ?>"
                                            class="btn btn-outline-primary" target="_blank">
                                             <i class="bi bi-chat" title="<?= htmlspecialchars(__t('admin.view_user.open_conversation')) ?>"></i>
                                         </a>
@@ -485,7 +474,6 @@ if (!empty($user['last_login'])) {
     </div>
 </div>
 
-                            <!-- Historia logowań -->
                             <div class="card">
                                 <div class="card-header">
                                     <h6 class="mb-0"><i class="bi bi-clock-history"></i> <?= htmlspecialchars(__t('admin.view_user.recent_logins')) ?></h6>
@@ -521,8 +509,8 @@ if (!empty($user['last_login'])) {
                                     <?php endif; ?>
                                 </div>
                             </div>
-												
-							
+
+
                         </div>
                     </div>
                 </div>
@@ -531,7 +519,6 @@ if (!empty($user['last_login'])) {
     </div>
 </div>
 
-<!-- Modal do wysyłania wiadomości -->
 <div class="modal fade" id="sendMessageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -543,17 +530,17 @@ if (!empty($user['last_login'])) {
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                     <input type="hidden" name="user_id" value="<?= $userId ?>">
-                    
+
                     <div class="mb-3">
                         <label class="form-label"><?= htmlspecialchars(__t('admin.view_user.subject')) ?></label>
                         <input type="text" name="subject" class="form-control" required>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label"><?= htmlspecialchars(__t('admin.view_user.message')) ?></label>
                         <textarea name="message" class="form-control" rows="5" required></textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label"><?= htmlspecialchars(__t('admin.view_user.message_type')) ?></label>
                         <select name="message_type" class="form-select">
@@ -574,7 +561,6 @@ if (!empty($user['last_login'])) {
 </div>
 
 
-<!-- Modal do podglądu konwersacji -->
 <div class="modal fade" id="conversationModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -597,7 +583,6 @@ if (!empty($user['last_login'])) {
 <?php include '../partials/footer.php'; ?>
 
 <script>
-// Inicjalizacja tooltipów
 document.addEventListener('DOMContentLoaded', function() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
     tooltipTriggerList.map(function(tooltipTriggerEl) {
@@ -619,31 +604,28 @@ function checkUserOnlineStatus(userId) {
         });
 }
 
-// Wywołanie co 30 sekund
 setInterval(() => {
     checkUserOnlineStatus(<?= $userId ?>);
 }, 30000);
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Modal do podglądu konwersacji
     const conversationModal = document.getElementById('conversationModal');
     if (conversationModal) {
         conversationModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
             const conversationId = button.getAttribute('data-conversation-id');
-            
+
             document.getElementById('modalConversationId').textContent = '#' + conversationId;
             document.getElementById('fullConversationLink').href = '../messages/view.php?conversation_id=' + conversationId;
-            
-            // Pobierz zawartość konwersacji przez AJAX
+
             fetch('../admin/get_conversation_content.php?conversation_id=' + conversationId)
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('conversationContent').innerHTML = data;
                 })
                 .catch(error => {
-                    document.getElementById('conversationContent').innerHTML = 
+                    document.getElementById('conversationContent').innerHTML =
                         '<p class="text-danger"><?= htmlspecialchars(__t('admin.view_user.loading_error'), ENT_QUOTES) ?></p>';
                 });
         });

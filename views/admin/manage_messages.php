@@ -6,11 +6,11 @@ include_once('../../models/User.php');
 include_once('../../models/Job.php');
 include_once('../../models/Language.php');
 
-// Sprawdź czy użytkownik jest zalogowany i ma uprawnienia administratora
+
 require_once __DIR__ . '/_auth.php';
 requireAdminAccess();
 
-// Utwórz instancje klas
+
 $messageModel = new Message($pdo);
 $userModel = new User();
 $jobModel = new Job();
@@ -152,17 +152,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     } catch (RuntimeException $e) {
-        error_log("Błąd uploadu obrazu wiadomości: " . $e->getMessage());
+        error_log(__t('admin.logs.message_image_upload_error', ['error' => $e->getMessage()]));
         header('Location: manage_messages.php?status=error&message=upload_error');
         exit;
     } catch (Exception $e) {
-        error_log("Błąd akcji administratora na wiadomościach: " . $e->getMessage());
+        error_log(__t('admin.logs.message_admin_action_error', ['error' => $e->getMessage()]));
         header('Location: manage_messages.php?status=error&message=system_error');
         exit;
     }
 }
 
-// Pobierz wszystkie filtry
+
 $filters = [
     'user_id' => isset($_GET['user_id']) ? (int)$_GET['user_id'] : '',
     'job_id' => isset($_GET['job_id']) ? (int)$_GET['job_id'] : '',
@@ -175,27 +175,27 @@ $filters = [
     'order' => isset($_GET['order']) ? $_GET['order'] : 'DESC'
 ];
 
-// Parametry paginacji
+
 $limit = isset($_GET['per_page']) && in_array($_GET['per_page'], [10, 25, 50, 100]) ? (int)$_GET['per_page'] : 20;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
 
-// Pobierz listę użytkowników i zleceń dla filtrów
+
 $allUsers = $userModel->getAllUsers();
 $allJobs = $jobModel->getAllJobs();
 
-// Pobierz zgrupowane konwersacje z filtrami
+
 $conversations = $messageModel->getGroupedConversationsWithAdvancedFilters($limit, $offset, $filters);
 $totalConversations = $messageModel->countGroupedConversationsWithAdvancedFilters($filters);
 $totalPages = ceil($totalConversations / $limit);
 
-// Pobierz użytkownika jeśli filtrujemy
+
 $userDetails = null;
 if (!empty($filters['user_id'])) {
     $userDetails = $userModel->getUserById($filters['user_id']);
 }
 
-// Pobierz zlecenie jeśli filtrujemy
+
 $jobDetails = null;
 if (!empty($filters['job_id'])) {
     $jobDetails = $jobModel->getJobById($filters['job_id']);
@@ -276,7 +276,6 @@ if (empty($_SESSION['csrf_token'])) {
                         <?php endif; ?>
                     <?php endif; ?>
 
-                    <!-- Nagłówek z powrotem -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <a href="manage_users.php" class="btn btn-sm btn-outline-secondary">
@@ -300,7 +299,6 @@ if (empty($_SESSION['csrf_token'])) {
                         </div>
                     </div>
 
-                    <!-- Rozwijane filtry -->
                     <div class="collapse <?= isFilterActive($filters) ? 'show' : ''; ?>" id="filtersCollapse">
                         <div class="card mb-4">
                             <div class="card-header">
@@ -310,11 +308,11 @@ if (empty($_SESSION['csrf_token'])) {
                                 <form method="GET" class="row g-3">
                                     <div class="col-md-3">
                                         <label class="form-label"><?= safeEcho(__t('admin.common.search')) ?></label>
-                                        <input type="text" name="search" class="form-control" 
+                                        <input type="text" name="search" class="form-control"
                                                placeholder="<?= safeEcho(__t('admin.messages.search_placeholder')) ?>"
                                                value="<?= safeEcho($filters['search']); ?>">
                                     </div>
-                                    
+
                                     <div class="col-md-2">
                                         <label class="form-label"><?= safeEcho(__t('admin.user')) ?></label>
                                         <select name="user_id" class="form-select">
@@ -341,25 +339,25 @@ if (empty($_SESSION['csrf_token'])) {
 
                                     <div class="col-md-2">
                                         <label class="form-label"><?= safeEcho(__t('admin.reports.date_from')) ?></label>
-                                        <input type="date" name="date_from" class="form-control" 
+                                        <input type="date" name="date_from" class="form-control"
                                                value="<?= safeEcho($filters['date_from']); ?>">
                                     </div>
-                                    
+
                                     <div class="col-md-2">
                                         <label class="form-label"><?= safeEcho(__t('admin.reports.date_to')) ?></label>
-                                        <input type="date" name="date_to" class="form-control" 
+                                        <input type="date" name="date_to" class="form-control"
                                                value="<?= safeEcho($filters['date_to']); ?>">
                                     </div>
 
                                     <div class="col-md-2">
                                         <label class="form-label"><?= safeEcho(__t('admin.messages.min_messages')) ?></label>
-                                        <input type="number" name="min_messages" class="form-control" 
+                                        <input type="number" name="min_messages" class="form-control"
                                                min="1" value="<?= safeEcho($filters['min_messages']); ?>">
                                     </div>
-                                    
+
                                     <div class="col-md-2">
                                         <label class="form-label"><?= safeEcho(__t('admin.messages.max_messages')) ?></label>
-                                        <input type="number" name="max_messages" class="form-control" 
+                                        <input type="number" name="max_messages" class="form-control"
                                                min="1" value="<?= safeEcho($filters['max_messages']); ?>">
                                     </div>
 
@@ -397,12 +395,12 @@ if (empty($_SESSION['csrf_token'])) {
                                                 <i class="bi bi-search"></i> <?= safeEcho(__t('admin.messages.apply_filters')) ?>
                                             </button>
                                             <a href="<?= buildUrl([
-                                                'user_id' => null, 
-                                                'job_id' => null, 
-                                                'search' => null, 
-                                                'date_from' => null, 
-                                                'date_to' => null, 
-                                                'min_messages' => null, 
+                                                'user_id' => null,
+                                                'job_id' => null,
+                                                'search' => null,
+                                                'date_from' => null,
+                                                'date_to' => null,
+                                                'min_messages' => null,
                                                 'max_messages' => null,
                                                 'page' => 1
                                             ]) ?>" class="btn btn-outline-secondary">
@@ -415,7 +413,6 @@ if (empty($_SESSION['csrf_token'])) {
                         </div>
                     </div>
 
-                    <!-- Statystyki filtrów -->
                     <?php if (isFilterActive($filters)): ?>
                     <div class="alert alert-info mb-4">
                         <strong><?= safeEcho(__t('admin.messages.active_filters')) ?></strong>
@@ -428,13 +425,12 @@ if (empty($_SESSION['csrf_token'])) {
                         if (!empty($filters['date_to'])) $activeFilters[] = __t('admin.reports.date_to') . ': ' . $filters['date_to'];
                         if (!empty($filters['min_messages'])) $activeFilters[] = __t('admin.messages.min_messages') . ': ' . $filters['min_messages'];
                         if (!empty($filters['max_messages'])) $activeFilters[] = __t('admin.messages.max_messages') . ': ' . $filters['max_messages'];
-                        
+
                         echo implode(', ', $activeFilters);
                         ?>
                     </div>
                     <?php endif; ?>
 
-                    <!-- Tabela konwersacji -->
                     <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-1"><i class="bi bi-chat-dots"></i> <?= safeEcho(__t('admin.messages.manage_conversations')) ?></h5>
@@ -508,7 +504,7 @@ if (empty($_SESSION['csrf_token'])) {
                                                         <?php endif; ?>
                                                     </td>
                                                     <td>
-                                                        <?php 
+                                                        <?php
                                                         $content = !empty($conversation['last_message_content']) ? $conversation['last_message_content'] : __t('admin.messages.no_content');
                                                         echo safeEcho(mb_substr($content, 0, 30)) . (mb_strlen($content) > 30 ? '...' : '');
                                                         ?>
@@ -531,13 +527,13 @@ if (empty($_SESSION['csrf_token'])) {
                                                     </td>
                                                     <td>
                                                         <div class="btn-group btn-group-sm" role="group">
-                                                            <button type="button" class="btn btn-outline-info view-conversation" 
-                                                                    data-bs-toggle="modal" data-bs-target="#conversationModal" 
+                                                            <button type="button" class="btn btn-outline-info view-conversation"
+                                                                    data-bs-toggle="modal" data-bs-target="#conversationModal"
                                                                     data-conversation-id="<?= safeEcho($conversation['conversation_id']); ?>">
                                                                 <i class="bi bi-eye" title="<?= safeEcho(__t('admin.messages.preview_conversation')) ?>"></i>
                                                             </button>
-                                                            <a href="delete_conversation.php?id=<?= safeEcho($conversation['conversation_id']); ?>&csrf_token=<?= safeEcho($_SESSION['csrf_token']) ?>" 
-                                                               class="btn btn-outline-danger" 
+                                                            <a href="delete_conversation.php?id=<?= safeEcho($conversation['conversation_id']); ?>&csrf_token=<?= safeEcho($_SESSION['csrf_token']) ?>"
+                                                               class="btn btn-outline-danger"
                                                                onclick="return confirm('<?= safeEcho(__t('admin.messages.delete_conversation_confirm')) ?>');">
                                                                 <i class="bi bi-trash" title="<?= safeEcho(__t('admin.messages.delete_conversation')) ?>"></i>
                                                             </a>
@@ -552,12 +548,12 @@ if (empty($_SESSION['csrf_token'])) {
                                                     <p class="mt-3"><?= safeEcho(__t('admin.messages.no_results')) ?></p>
                                                     <?php if (isFilterActive($filters)): ?>
                                                         <a href="<?= buildUrl([
-                                                            'user_id' => null, 
-                                                            'job_id' => null, 
-                                                            'search' => null, 
-                                                            'date_from' => null, 
-                                                            'date_to' => null, 
-                                                            'min_messages' => null, 
+                                                            'user_id' => null,
+                                                            'job_id' => null,
+                                                            'search' => null,
+                                                            'date_from' => null,
+                                                            'date_to' => null,
+                                                            'min_messages' => null,
                                                             'max_messages' => null,
                                                             'page' => 1
                                                         ]) ?>" class="btn btn-primary btn-sm">
@@ -571,8 +567,7 @@ if (empty($_SESSION['csrf_token'])) {
                                 </table>
                             </div>
                             </form>
-                            
-                            <!-- Paginacja -->
+
                             <?php if ($totalPages > 1): ?>
                             <div class="d-flex justify-content-between align-items-center mt-4">
                                 <div>
@@ -593,8 +588,8 @@ if (empty($_SESSION['csrf_token'])) {
                                                     <span aria-hidden="true">&laquo;</span>
                                                 </a>
                                             </li>
-                                            
-                                            <?php 
+
+                                            <?php
                                             $startPage = max(1, $page - 2);
                                             $endPage = min($totalPages, $page + 2);
                                             for ($i = $startPage; $i <= $endPage; $i++): ?>
@@ -602,7 +597,7 @@ if (empty($_SESSION['csrf_token'])) {
                                                     <a class="page-link" href="<?= buildUrl(['page' => $i]) ?>"><?= $i; ?></a>
                                                 </li>
                                             <?php endfor; ?>
-                                            
+
                                             <li class="page-item <?= $page >= $totalPages ? 'disabled' : ''; ?>">
                                                 <a class="page-link" href="<?= buildUrl(['page' => $page + 1]) ?>" aria-label="<?= safeEcho(__t('admin.messages.next_page')) ?>">
                                                     <span aria-hidden="true">&raquo;</span>
@@ -626,7 +621,6 @@ if (empty($_SESSION['csrf_token'])) {
     </div>
 </div>
 
-<!-- Modal do podglądu konwersacji -->
 <div class="modal fade" id="conversationModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -646,7 +640,6 @@ if (empty($_SESSION['csrf_token'])) {
     </div>
 </div>
 
-<!-- Modal do moderacji wiadomości -->
 <div class="modal fade" id="moderateMessageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -706,7 +699,6 @@ if (empty($_SESSION['csrf_token'])) {
     </div>
 </div>
 
-<!-- Modal do edycji wiadomości -->
 <div class="modal fade" id="editMessageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -777,29 +769,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Modal do podglądu konwersacji
     const conversationModal = document.getElementById('conversationModal');
     if (conversationModal) {
         conversationModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
             const conversationId = button.getAttribute('data-conversation-id');
-            
+
             document.getElementById('modalConversationId').textContent = '#' + conversationId;
-            
-            // Pobierz zawartość konwersacji przez AJAX
+
             fetch('get_conversation_content.php?conversation_id=' + conversationId)
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('conversationContent').innerHTML = data;
                 })
                 .catch(error => {
-                    document.getElementById('conversationContent').innerHTML = 
+                    document.getElementById('conversationContent').innerHTML =
                         '<p class="text-danger">' + loadingErrorMessage + '</p>';
                 });
         });
     }
 
-    // Automatyczne zamykanie alertów po 5 sekundach
     setTimeout(() => {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(alert => {

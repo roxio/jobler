@@ -9,11 +9,11 @@ include_once('../../models/User.php');
 include_once('../../models/TransactionHistory.php');
 include_once('../../models/Language.php');
 
-// Inicjalizacja modeli
+
 $userModel = new User();
 $transactionModel = new TransactionHistory($pdo);
 
-// Parametry paginacji i sortowania
+
 $limit = isset($_GET['per_page']) && in_array($_GET['per_page'], [10, 25, 50, 100]) ? (int)$_GET['per_page'] : 10;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
@@ -22,7 +22,7 @@ $allowedSortColumns = ['id', 'name', 'email', 'role', 'created_at', 'account_bal
 $sortColumn = isset($_GET['sort']) && in_array($_GET['sort'], $allowedSortColumns) ? $_GET['sort'] : 'created_at';
 $sortOrder = isset($_GET['order']) && in_array(strtoupper($_GET['order']), ['ASC', 'DESC']) ? strtoupper($_GET['order']) : 'DESC';
 
-// Filtry
+
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $statusFilter = isset($_GET['status_filter']) ? $_GET['status_filter'] : '';
 $roleFilter = isset($_GET['role_filter']) ? $_GET['role_filter'] : '';
@@ -34,12 +34,12 @@ $hasJobs = isset($_GET['has_jobs']) ? $_GET['has_jobs'] : '';
 $isVerified = isset($_GET['is_verified']) ? $_GET['is_verified'] : '';
 
 try {
-    // Pobieranie danych użytkowników z filtrami
+
     $total_users = $userModel->getTotalUsersWithFilters($search, $statusFilter, $roleFilter, $dateFrom, $dateTo, $balanceMin, $balanceMax, $hasJobs, $isVerified);
     $users = $userModel->getPaginatedUsersWithFilters($limit, $offset, $sortColumn, $sortOrder, $search, $statusFilter, $roleFilter, $dateFrom, $dateTo, $balanceMin, $balanceMax, $hasJobs, $isVerified);
     $totalPages = ceil($total_users / $limit);
-    
-    // Statystyki
+
+
     $executors_count = $userModel->countUsersByRole('executor');
     $clients_count = $userModel->countUsersByRole('user');
     $admin_count = 0;
@@ -50,9 +50,9 @@ try {
     $need_attention = $userModel->countUsersNeedingAttention();
     $users_with_jobs = $userModel->countUsersWithJobs();
     $verified_users = $userModel->countVerifiedUsers();
-    
+
 } catch (Exception $e) {
-    error_log("Błąd przy pobieraniu użytkowników: " . $e->getMessage());
+    error_log(__t('admin.logs.fetch_users_error', ['error' => $e->getMessage()]));
     $error = __t('admin.users.fetch_error');
     $users = [];
     $totalPages = 1;
@@ -96,7 +96,7 @@ if (empty($_SESSION['csrf_token'])) {
                 <div class="card-body">
                     <?php if (isset($_GET['status'])): ?>
                         <div class="alert <?php echo ($_GET['status'] == 'error' || $_GET['status'] == 'error_points') ? 'alert-danger' : 'alert-success'; ?> alert-dismissible fade show" role="alert">
-                            <?php 
+                            <?php
                                 $messages = [
                                     'deleted' => __t('admin.users.deleted', ['count' => $_GET['jobs_closed'] ?? 0]),
                                     'delete_failed' => __t('admin.users.delete_failed'),
@@ -112,7 +112,7 @@ if (empty($_SESSION['csrf_token'])) {
                                     'export_success' => __t('admin.users.export_success'),
                                     'role_changed' => __t('admin.users.role_changed'),
                                     'message_sent' => __t('admin.users.message_sent')
-									
+
                                 ];
                                 echo safeEcho($messages[$_GET['status']] ?? '');
                             ?>
@@ -127,7 +127,6 @@ if (empty($_SESSION['csrf_token'])) {
                         </div>
                     <?php endif; ?>
 
-                    <!-- Kafelek statystyk -->
                     <div class="row mb-4">
                         <div class="col-md-2 col-6 mb-3">
                             <div class="card bg-primary text-white">
@@ -179,7 +178,6 @@ if (empty($_SESSION['csrf_token'])) {
                         </div>
                     </div>
 
-                    <!-- Główna karta zarządzania -->
                     <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-1"><i class="bi bi-people"></i> <?= htmlspecialchars(__t('admin.manage_users')) ?></h5>
@@ -192,8 +190,7 @@ if (empty($_SESSION['csrf_token'])) {
                                 </a>
                             </div>
                         </div>
-                        
-                        <!-- Rozwijane filtry -->
+
                         <div class="collapse <?= (!empty($search) || !empty($statusFilter) || !empty($roleFilter) || !empty($dateFrom) || !empty($dateTo) || !empty($balanceMin) || !empty($balanceMax) || !empty($hasJobs) || !empty($isVerified)) ? 'show' : ''; ?>" id="filtersCollapse">
                             <div class="card-body border-bottom">
                                 <form method="GET" class="row g-3">
@@ -201,7 +198,7 @@ if (empty($_SESSION['csrf_token'])) {
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.common.search')) ?></label>
                                         <input type="text" name="search" class="form-control form-control-sm" placeholder="<?= htmlspecialchars(__t('admin.users.search_placeholder')) ?>" value="<?= safeEcho($search); ?>">
                                     </div>
-                                    
+
                                     <div class="col-md-2">
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.common.status')) ?></label>
                                         <select name="status_filter" class="form-select form-select-sm">
@@ -225,7 +222,7 @@ if (empty($_SESSION['csrf_token'])) {
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.users.balance_from')) ?></label>
                                         <input type="number" name="balance_min" class="form-control form-control-sm" value="<?= safeEcho($balanceMin); ?>" placeholder="Min" step="0.01">
                                     </div>
-                                    
+
                                     <div class="col-md-2">
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.users.balance_to')) ?></label>
                                         <input type="number" name="balance_max" class="form-control form-control-sm" value="<?= safeEcho($balanceMax); ?>" placeholder="Max" step="0.01">
@@ -235,7 +232,7 @@ if (empty($_SESSION['csrf_token'])) {
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.common.from_date')) ?></label>
                                         <input type="date" name="date_from" class="form-control form-control-sm" value="<?= safeEcho($dateFrom); ?>">
                                     </div>
-                                    
+
                                     <div class="col-md-3">
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.common.to_date')) ?></label>
                                         <input type="date" name="date_to" class="form-control form-control-sm" value="<?= safeEcho($dateTo); ?>">
@@ -302,8 +299,7 @@ if (empty($_SESSION['csrf_token'])) {
                         <div class="card-body">
                             <form method="POST" action="../admin/bulk_users_action.php" id="usersForm">
                                 <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
-                                
-                                <!-- Akcje zbiorowe -->
+
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div class="d-flex align-items-center">
                                         <select name="bulk_action" class="form-select form-select-sm me-2" style="width: 200px;">
@@ -315,7 +311,7 @@ if (empty($_SESSION['csrf_token'])) {
                                             <option value="message"><?= htmlspecialchars(__t('admin.users.bulk_message')) ?></option>
                                         </select>
                                         <button type="submit" class="btn btn-primary btn-sm me-2"><?= htmlspecialchars(__t('admin.common.apply')) ?></button>
-                                        
+
                                         <div class="btn-group">
                                             <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
                                                 <i class="bi bi-download"></i> <?= htmlspecialchars(__t('admin.common.export')) ?>
@@ -327,13 +323,12 @@ if (empty($_SESSION['csrf_token'])) {
                                             </ul>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="text-muted">
                                         <?= htmlspecialchars(__t('admin.common.found_users', ['count' => number_format($total_users)])) ?>
                                     </div>
                                 </div>
 
-                                <!-- Tabela użytkowników -->
                                 <div class="table-responsive">
                                     <table class="table table-striped table-hover align-middle">
                                         <thead class="table-light">
@@ -355,18 +350,18 @@ if (empty($_SESSION['csrf_token'])) {
                                         </thead>
                                         <tbody>
                                             <?php if (!empty($users)): ?>
-    <?php foreach ($users as $user) : 
+    <?php foreach ($users as $user) :
         $rowClasses = [];
-        
+
         if (!empty($user['need_change']) && $user['need_change'] == 1) {
             $rowClasses[] = 'table-warning';
         }
-        
+
         if ($user['status'] === 'deleted') {
             $rowClasses[] = 'table-secondary';
             $rowClasses[] = 'text-muted';
         }
-        
+
         $rowClass = implode(' ', $rowClasses);
     ?>
         <tr class="<?= $rowClass ?>">
@@ -379,7 +374,7 @@ if (empty($_SESSION['csrf_token'])) {
             <td>
                 <div class="d-flex align-items-center">
                     <div class="flex-shrink-0">
-                        <img src="<?= !empty($user['avatar']) ? safeEcho($user['avatar']) : '../../assets/img/default-avatar.png'; ?>" 
+                        <img src="<?= !empty($user['avatar']) ? safeEcho($user['avatar']) : '../../assets/img/default-avatar.png'; ?>"
                              class="rounded-circle me-2" width="32" height="32" alt="Avatar">
                     </div>
                     <div class="flex-grow-1 ms-2">
@@ -438,22 +433,18 @@ if (empty($_SESSION['csrf_token'])) {
             </td>
             <td>
                 <div class="btn-group btn-group-sm" role="group">
-                    <!-- Dodawanie punktów -->
                     <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addPointsModal" data-user-id="<?= safeEcho($user['id']); ?>" data-user-name="<?= safeEcho($user['name']); ?>">
                         <i class="bi bi-plus-circle" title="<?= htmlspecialchars(__t('admin.users.add_points')) ?>"></i>
                     </button>
-                    
-                    <!-- Edycja -->
+
                     <a href="../admin/edit_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-warning" title="<?= htmlspecialchars(__t('common.edit')) ?>">
                         <i class="bi bi-pencil"></i>
                     </a>
-                    
-                    <!-- Podgląd -->
+
                     <a href="../admin/view_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-info" title="<?= htmlspecialchars(__t('admin.common.preview')) ?>">
                         <i class="bi bi-eye"></i>
                     </a>
-                    
-                    <!-- Aktywacja/Deaktywacja -->
+
                     <?php if ($user['status'] == 'active'): ?>
                         <a href="../admin/deactivate_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-secondary" title="<?= htmlspecialchars(__t('admin.common.deactivate')) ?>" onclick="return confirm('<?= htmlspecialchars(__t('admin.users.deactivate_confirm'), ENT_QUOTES) ?>');">
                             <i class="bi bi-person-x"></i>
@@ -463,14 +454,12 @@ if (empty($_SESSION['csrf_token'])) {
                             <i class="bi bi-person-check"></i>
                         </a>
                     <?php endif; ?>
-                    
-                    <!-- Usuwanie - pokazuj tylko jeśli użytkownik nie jest już usunięty -->
+
                     <?php if ($user['status'] !== 'deleted'): ?>
                         <a href="../admin/delete_user.php?id=<?= safeEcho($user['id']); ?>" class="btn btn-outline-danger" title="<?= htmlspecialchars(__t('admin.common.delete')) ?>" onclick="return confirm('<?= htmlspecialchars(__t('admin.users.delete_confirm'), ENT_QUOTES) ?>');">
                             <i class="bi bi-trash"></i>
                         </a>
                     <?php else: ?>
-                        <!-- Przycisk informacyjny dla już usuniętych -->
                         <button class="btn btn-outline-secondary" title="<?= htmlspecialchars(__t('admin.users.already_deleted')) ?>" disabled>
                             <i class="bi bi-trash"></i>
                         </button>
@@ -493,8 +482,7 @@ if (empty($_SESSION['csrf_token'])) {
                                         </tbody>
                                     </table>
                                 </div>
-                                
-                                <!-- Paginacja -->
+
                                 <?php if ($totalPages > 1): ?>
                                 <div class="d-flex justify-content-between align-items-center mt-4">
                                     <div>
@@ -515,8 +503,8 @@ if (empty($_SESSION['csrf_token'])) {
                                                         <span aria-hidden="true">&laquo;</span>
                                                     </a>
                                                 </li>
-                                                
-                                                <?php 
+
+                                                <?php
                                                 $startPage = max(1, $page - 2);
                                                 $endPage = min($totalPages, $page + 2);
                                                 for ($i = $startPage; $i <= $endPage; $i++): ?>
@@ -524,7 +512,7 @@ if (empty($_SESSION['csrf_token'])) {
                                                         <a class="page-link" href="<?= buildUrl(['page' => $i]) ?>"><?= $i; ?></a>
                                                     </li>
                                                 <?php endfor; ?>
-                                                
+
                                                 <li class="page-item <?= $page >= $totalPages ? 'disabled' : ''; ?>">
                                                     <a class="page-link" href="<?= buildUrl(['page' => $page + 1]) ?>" aria-label="<?= htmlspecialchars(__t('admin.common.next')) ?>">
                                                         <span aria-hidden="true">&raquo;</span>
@@ -550,7 +538,6 @@ if (empty($_SESSION['csrf_token'])) {
 </div>
 
 
-<!-- Modal do dodawania punktów -->
 <div class="modal fade" id="addPointsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -562,17 +549,17 @@ if (empty($_SESSION['csrf_token'])) {
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
                     <input type="hidden" name="user_id" id="modalUserId">
-                    
+
                     <div class="mb-3">
                         <label class="form-label"><?= htmlspecialchars(__t('admin.user')) ?></label>
                         <input type="text" class="form-control" id="modalUserName" readonly>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label"><?= htmlspecialchars(__t('admin.users.points_amount')) ?></label>
                         <input type="number" name="points_to_add" class="form-control" min="1" max="10000" required>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label"><?= htmlspecialchars(__t('admin.users.reason_optional')) ?></label>
                         <textarea name="reason" class="form-control" rows="2" placeholder="<?= htmlspecialchars(__t('admin.users.reason_placeholder')) ?>"></textarea>
@@ -586,13 +573,12 @@ if (empty($_SESSION['csrf_token'])) {
         </div>
     </div>
 </div>
-       
-  
+
+
 <?php include '../partials/footer.php'; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Zaznaczanie wszystkich checkboxów
     document.getElementById('select-all').addEventListener('change', function() {
         document.querySelectorAll('.user-checkbox').forEach(checkbox => {
             checkbox.checked = this.checked;
@@ -600,7 +586,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSelectedCount();
     });
 
-    // Aktualizacja licznika zaznaczonych użytkowników
     function updateSelectedCount() {
         const selectedCount = document.querySelectorAll('.user-checkbox:checked').length;
         const counterElement = document.getElementById('selectedCount');
@@ -613,11 +598,10 @@ document.addEventListener('DOMContentLoaded', function() {
         checkbox.addEventListener('change', updateSelectedCount);
     });
 
-    // Walidacja formularza zbiorowych akcji
     document.querySelector('form#usersForm').addEventListener('submit', function(e) {
         const bulkAction = document.querySelector('select[name="bulk_action"]').value;
         const selectedUsers = document.querySelectorAll('.user-checkbox:checked');
-        
+
         if (bulkAction && selectedUsers.length === 0) {
             e.preventDefault();
             Swal.fire({
@@ -628,20 +612,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Modal do dodawania punktów
     const addPointsModal = document.getElementById('addPointsModal');
     if (addPointsModal) {
         addPointsModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
             const userId = button.getAttribute('data-user-id');
             const userName = button.getAttribute('data-user-name');
-            
+
             document.getElementById('modalUserId').value = userId;
             document.getElementById('modalUserName').value = userName;
         });
     }
 
-    // Inicjalizacja tooltipów Bootstrap
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
     tooltipTriggerList.map(function(tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);

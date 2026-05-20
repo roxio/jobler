@@ -5,6 +5,7 @@ require_once('../../config/config.php');
 require_once('../../models/Database.php');
 require_once('../../models/Message.php');
 require_once('../../models/User.php');
+require_once('../../models/Language.php');
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
@@ -16,7 +17,7 @@ $conversationId = isset($_GET['conversation_id']) ? trim((string)$_GET['conversa
 $jobId = isset($_GET['job_id']) ? (int)$_GET['job_id'] : null;
 
 if (!$conversationId) {
-    die('Nieprawidłowy identyfikator konwersacji.');
+    die(htmlspecialchars(__t('messages.invalid_conversation_id')));
 }
 
 $pdo = Database::getConnection();
@@ -31,9 +32,7 @@ $messages = $messageModel->getConversationById($conversationId, $userId);
 
 if ($messages === false) {
     http_response_code(403);
-    die('<div class="container mt-5"><div class="alert alert-danger">
-         <i class="bi bi-shield-x"></i> Brak dostępu do tej konwersacji.
-         </div></div>');
+    die('<div class="container mt-5"><div class="alert alert-danger"><i class="bi bi-shield-x"></i> ' . htmlspecialchars(__t('messages.access_denied')) . '</div></div>');
 }
 
 if (!$jobId) {
@@ -102,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
 
         if ($conversationTarget === null || empty($conversationTarget['receiver_id']) || empty($conversationTarget['job_id'])) {
             http_response_code(400);
-            die('Nieprawidłowy format conversation_id.');
+            die(htmlspecialchars(__t('messages.invalid_conversation_format')));
         }
 
         $messageModel->sendMessage($userId, $conversationTarget['receiver_id'], $messageContent, $conversationTarget['job_id']);
@@ -140,30 +139,30 @@ include('../partials/header.php');
     <?php if (isset($_GET['report'])): ?>
         <?php
         $reportMessages = [
-            'sent' => 'Zgłoszenie zostało przekazane do administracji.',
-            'empty' => 'Podaj krótki opis zgłoszenia.',
-            'csrf' => 'Błąd bezpieczeństwa. Odśwież stronę i spróbuj ponownie.',
-            'error' => 'Nie udało się zapisać zgłoszenia.',
+            'sent' => __t('messages.report_sent'),
+            'empty' => __t('messages.report_empty'),
+            'csrf' => __t('messages.report_csrf'),
+            'error' => __t('messages.report_error'),
         ];
         $isReportSuccess = $_GET['report'] === 'sent';
         ?>
         <div class="alert alert-<?= $isReportSuccess ? 'success' : 'danger' ?>">
-            <?= htmlspecialchars($reportMessages[$_GET['report']] ?? 'Zgłoszenie przetworzone.') ?>
+            <?= htmlspecialchars($reportMessages[$_GET['report']] ?? __t('messages.report_processed')) ?>
         </div>
     <?php endif; ?>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">Rozmowa</h3>
+        <h3 class="mb-0"><?= htmlspecialchars(__t('messages.conversation_title')) ?></h3>
         <button type="button" class="btn btn-outline-danger btn-sm report-trigger"
                 data-bs-toggle="modal" data-bs-target="#reportModal"
                 data-report-type="conversation" data-message-id="" data-reported-user-id="">
-            <i class="bi bi-flag"></i> Zgłoś konwersację
+            <i class="bi bi-flag"></i> <?= htmlspecialchars(__t('messages.report_conversation')) ?>
         </button>
     </div>
 
     <div class="messages">
         <?php if (empty($messages)): ?>
-            <p>Brak wiadomości w tej konwersacji.</p>
+            <p><?= htmlspecialchars(__t('messages.no_messages')) ?></p>
         <?php else: ?>
             <ul class="list-group">
                 <?php foreach ($messages as $msg): ?>
@@ -176,7 +175,7 @@ include('../partials/header.php');
                                         data-report-type="message"
                                         data-message-id="<?= (int)$msg['id'] ?>"
                                         data-reported-user-id="<?= (int)$msg['sender_id'] ?>"
-                                        title="Zgłoś wiadomość">
+                                        title="<?= htmlspecialchars(__t('messages.report_message')) ?>">
                                     <i class="bi bi-exclamation-triangle"></i>
                                 </button>
                                 <?php if ((int)$msg['sender_id'] !== $userId): ?>
@@ -185,7 +184,7 @@ include('../partials/header.php');
                                             data-report-type="user"
                                             data-message-id="<?= (int)$msg['id'] ?>"
                                             data-reported-user-id="<?= (int)$msg['sender_id'] ?>"
-                                            title="Zgłoś użytkownika">
+                                            title="<?= htmlspecialchars(__t('messages.report_user')) ?>">
                                         <i class="bi bi-person-exclamation"></i>
                                     </button>
                                 <?php endif; ?>
@@ -193,13 +192,13 @@ include('../partials/header.php');
                         </div>
                         <?php if (!empty($msg['is_hidden'])): ?>
                             <div class="alert alert-warning mb-2">
-                                Ta wiadomość została ukryta przez administratora.
+                                <?= htmlspecialchars(__t('messages.hidden_by_admin')) ?>
                             </div>
                         <?php else: ?>
-                            <p><?php echo nl2br(htmlspecialchars($msg['content'] ?: $msg['message'] ?: '(brak treści)')); ?></p>
+                            <p><?php echo nl2br(htmlspecialchars($msg['content'] ?: $msg['message'] ?: __t('messages.no_content'))); ?></p>
                             <?php if (!empty($msg['image_path'])): ?>
                                 <div class="mb-2">
-                                    <img src="<?php echo htmlspecialchars($msg['image_path']); ?>" alt="Obraz wiadomości" class="img-fluid rounded border" style="max-height: 260px;">
+                                    <img src="<?php echo htmlspecialchars($msg['image_path']); ?>" alt="<?= htmlspecialchars(__t('messages.image_alt')) ?>" class="img-fluid rounded border" style="max-height: 260px;">
                                 </div>
                             <?php endif; ?>
                         <?php endif; ?>
@@ -217,9 +216,9 @@ include('../partials/header.php');
 
     <form method="post" class="mt-4">
         <div class="form-group">
-            <textarea name="message" class="form-control" placeholder="Wpisz wiadomość..."></textarea>
+            <textarea name="message" class="form-control" placeholder="<?= htmlspecialchars(__t('messages.placeholder')) ?>"></textarea>
         </div>
-        <button type="submit" class="btn btn-primary mt-2">Wyślij</button>
+        <button type="submit" class="btn btn-primary mt-2"><?= htmlspecialchars(__t('messages.send')) ?></button>
     </form>
 </div>
 
@@ -228,8 +227,8 @@ include('../partials/header.php');
         <div class="modal-content">
             <form method="POST">
                 <div class="modal-header">
-                    <h5 class="modal-title">Zgłoszenie do administracji</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+                    <h5 class="modal-title"><?= htmlspecialchars(__t('messages.report_modal_title')) ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars(__t('common.close')) ?>"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
@@ -237,14 +236,14 @@ include('../partials/header.php');
                     <input type="hidden" name="report_type" id="reportType" value="conversation">
                     <input type="hidden" name="message_id" id="reportMessageId">
                     <input type="hidden" name="reported_user_id" id="reportedUserId">
-                    <label for="reportReason" class="form-label">Opisz problem</label>
+                    <label for="reportReason" class="form-label"><?= htmlspecialchars(__t('messages.describe_problem')) ?></label>
                     <textarea name="reason" id="reportReason" class="form-control" rows="5" required></textarea>
-                    <div class="form-text">Zapiszemy rozmowę z chwili zgłoszenia, żeby administrator miał pełny kontekst.</div>
+                    <div class="form-text"><?= htmlspecialchars(__t('messages.report_hint')) ?></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars(__t('admin.users.cancel')) ?></button>
                     <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-flag"></i> Wyślij zgłoszenie
+                        <i class="bi bi-flag"></i> <?= htmlspecialchars(__t('messages.send_report')) ?>
                     </button>
                 </div>
             </form>

@@ -2,6 +2,7 @@
 session_start();
 
 include_once('../../models/Database.php');
+include_once('../../models/Language.php');
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
@@ -66,11 +67,11 @@ function uploadJobImage($file) {
     }
 
     if ($file['error'] !== UPLOAD_ERR_OK) {
-        throw new RuntimeException('Nie udało się wgrać zdjęcia.');
+        throw new RuntimeException(__t('user.job_form.upload_failed'));
     }
 
     if ($file['size'] > 5 * 1024 * 1024) {
-        throw new RuntimeException('Zdjęcie może mieć maksymalnie 5 MB.');
+        throw new RuntimeException(__t('user.job_form.upload_too_large'));
     }
 
     $allowedTypes = [
@@ -84,7 +85,7 @@ function uploadJobImage($file) {
     $mimeType = $finfo->file($file['tmp_name']);
 
     if (!isset($allowedTypes[$mimeType])) {
-        throw new RuntimeException('Dozwolone formaty zdjęć: JPG, PNG, GIF, WEBP.');
+        throw new RuntimeException(__t('user.job_form.upload_invalid_type'));
     }
 
     $uploadDir = dirname(__DIR__, 2) . '/uploads/jobs';
@@ -94,7 +95,7 @@ function uploadJobImage($file) {
 
     $filename = 'job_' . bin2hex(random_bytes(8)) . '.' . $allowedTypes[$mimeType];
     if (!move_uploaded_file($file['tmp_name'], $uploadDir . '/' . $filename)) {
-        throw new RuntimeException('Nie udało się zapisać zdjęcia.');
+        throw new RuntimeException(__t('user.job_form.upload_save_failed'));
     }
 
     return $filename;
@@ -134,17 +135,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $allowedWorkModes = ['remote', 'onsite', 'hybrid'];
 
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
-        $error = 'Błąd bezpieczeństwa. Odśwież stronę i spróbuj ponownie.';
+        $error = __t('user.job_form.csrf_error');
     } elseif ($form['title'] === '' || $form['category_id'] <= 0 || $form['description'] === '' || $form['budget_estimate'] === '' || $form['realization_time'] === '') {
-        $error = 'Uzupełnij wszystkie wymagane pola.';
+        $error = __t('user.job_form.required_fields');
     } elseif ($form['points_required'] < 1 || $form['points_required'] > 100) {
-        $error = 'Liczba punktów musi być w zakresie od 1 do 100.';
+        $error = __t('user.job_form.points_invalid');
     } elseif ((float)$form['budget_estimate'] < 0) {
-        $error = 'Budżet nie może być ujemny.';
+        $error = __t('user.job_form.budget_invalid');
     } elseif (!in_array($form['validity_days'], $allowedValidityDays, true)) {
-        $error = 'Wybierz poprawny czas ważności ogłoszenia.';
+        $error = __t('user.job_form.validity_invalid');
     } elseif (!in_array($form['work_mode'], $allowedWorkModes, true)) {
-        $error = 'Wybierz poprawny tryb pracy.';
+        $error = __t('user.job_form.work_mode_invalid');
     } else {
         try {
             $imageFilename = uploadJobImage($_FILES['job_image'] ?? []);
@@ -174,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
             if (!$created) {
-                throw new RuntimeException('Wystąpił błąd podczas dodawania ogłoszenia.');
+                throw new RuntimeException(__t('user.job_form.create_error'));
             }
 
             $jobId = (int)$pdo->lastInsertId();
@@ -200,10 +201,10 @@ include('../partials/header.php');
 <div class="container">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h1 class="h3 mb-1">Dodaj nowe ogłoszenie</h1>
-            <p class="text-muted mb-0">Opisz zlecenie tak, żeby wykonawca mógł szybko ocenić zakres, budżet i termin.</p>
+            <h1 class="h3 mb-1"><?= htmlspecialchars(__t('user.job_form.create_title')) ?></h1>
+            <p class="text-muted mb-0"><?= htmlspecialchars(__t('user.job_form.create_intro')) ?></p>
         </div>
-        <a href="dashboard.php" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Wróć do kokpitu</a>
+        <a href="dashboard.php" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> <?= htmlspecialchars(__t('user.back_dashboard')) ?></a>
     </div>
 
     <?php if ($error): ?>
@@ -216,19 +217,19 @@ include('../partials/header.php');
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header">
-                    <h2 class="h5 mb-0">Treść ogłoszenia</h2>
+                    <h2 class="h5 mb-0"><?= htmlspecialchars(__t('user.job_form.content_section')) ?></h2>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label for="title" class="form-label">Tytuł ogłoszenia</label>
+                        <label for="title" class="form-label"><?= htmlspecialchars(__t('user.job_form.title_label')) ?></label>
                         <input type="text" class="form-control" id="title" name="title" value="<?= htmlspecialchars($form['title']) ?>" maxlength="255" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Kategoria</label>
+                        <label class="form-label"><?= htmlspecialchars(__t('user.job_form.category_label')) ?></label>
                         <div id="categoryCascade" class="vstack gap-2">
                             <select class="form-select category-level" data-level="0" required>
-                                <option value="">Wybierz kategorię główną</option>
+                                <option value=""><?= htmlspecialchars(__t('user.job_form.select_root_category')) ?></option>
                                 <?php foreach ($categories as $category): ?>
                                     <option value="<?= (int)$category['id'] ?>" data-has-children="<?= (int)$category['child_count'] > 0 ? '1' : '0' ?>">
                                         <?= htmlspecialchars($category['name']) ?>
@@ -240,21 +241,21 @@ include('../partials/header.php');
                     </div>
 
                     <div class="mb-3">
-                        <label for="description" class="form-label">Treść ogłoszenia</label>
+                        <label for="description" class="form-label"><?= htmlspecialchars(__t('user.job_form.description_label')) ?></label>
                         <textarea class="form-control" id="description" name="description" rows="8" required><?= htmlspecialchars($form['description']) ?></textarea>
                     </div>
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label for="budget_estimate" class="form-label">Orientacyjny budżet</label>
+                            <label for="budget_estimate" class="form-label"><?= htmlspecialchars(__t('user.job_form.budget_label')) ?></label>
                             <div class="input-group">
                                 <input type="number" class="form-control" id="budget_estimate" name="budget_estimate" min="0" step="0.01" value="<?= htmlspecialchars($form['budget_estimate']) ?>" required>
                                 <span class="input-group-text">PLN</span>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label for="realization_time" class="form-label">Czas na realizację zlecenia</label>
-                            <input type="text" class="form-control" id="realization_time" name="realization_time" value="<?= htmlspecialchars($form['realization_time']) ?>" placeholder="np. 7 dni, do końca miesiąca" maxlength="120" required>
+                            <label for="realization_time" class="form-label"><?= htmlspecialchars(__t('user.job_form.realization_label')) ?></label>
+                            <input type="text" class="form-control" id="realization_time" name="realization_time" value="<?= htmlspecialchars($form['realization_time']) ?>" placeholder="<?= htmlspecialchars(__t('user.job_form.realization_placeholder')) ?>" maxlength="120" required>
                         </div>
                     </div>
                 </div>
@@ -264,37 +265,37 @@ include('../partials/header.php');
         <div class="col-lg-4">
             <div class="card mb-4">
                 <div class="card-header">
-                    <h2 class="h5 mb-0">Warunki zgłoszenia</h2>
+                    <h2 class="h5 mb-0"><?= htmlspecialchars(__t('user.job_form.conditions_section')) ?></h2>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label for="points_required" class="form-label">Wymagane punkty od wykonawcy</label>
+                        <label for="points_required" class="form-label"><?= htmlspecialchars(__t('user.job_form.points_required')) ?></label>
                         <input type="number" class="form-control" id="points_required" name="points_required" min="1" max="100" value="<?= (int)$form['points_required'] ?>" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="validity_days" class="form-label">Czas ważności ogłoszenia</label>
+                        <label for="validity_days" class="form-label"><?= htmlspecialchars(__t('user.job_form.validity_label')) ?></label>
                         <select class="form-select" id="validity_days" name="validity_days" required>
                             <?php foreach ($validityOptions as $days): ?>
-                                <option value="<?= $days ?>" <?= (int)$form['validity_days'] === $days ? 'selected' : '' ?>><?= $days ?> <?= $days === 1 ? 'dzień' : 'dni' ?></option>
+                                <option value="<?= $days ?>" <?= (int)$form['validity_days'] === $days ? 'selected' : '' ?>><?= $days ?> <?= htmlspecialchars(__t($days === 1 ? 'user.job_form.day' : 'user.job_form.days')) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Tryb pracy</label>
+                        <label class="form-label"><?= htmlspecialchars(__t('user.job_form.work_mode')) ?></label>
                         <div class="list-group">
                             <label class="list-group-item">
                                 <input class="form-check-input me-2" type="radio" name="work_mode" value="remote" <?= $form['work_mode'] === 'remote' ? 'checked' : '' ?>>
-                                Praca zdalna
+                                <?= htmlspecialchars(__t('user.job_form.work_remote')) ?>
                             </label>
                             <label class="list-group-item">
                                 <input class="form-check-input me-2" type="radio" name="work_mode" value="onsite" <?= $form['work_mode'] === 'onsite' ? 'checked' : '' ?>>
-                                Praca stacjonarna
+                                <?= htmlspecialchars(__t('user.job_form.work_onsite')) ?>
                             </label>
                             <label class="list-group-item">
                                 <input class="form-check-input me-2" type="radio" name="work_mode" value="hybrid" <?= $form['work_mode'] === 'hybrid' ? 'checked' : '' ?>>
-                                Hybrydowo
+                                <?= htmlspecialchars(__t('user.job_form.work_hybrid')) ?>
                             </label>
                         </div>
                     </div>
@@ -303,19 +304,19 @@ include('../partials/header.php');
 
             <div class="card">
                 <div class="card-header">
-                    <h2 class="h5 mb-0">Zdjęcie</h2>
+                    <h2 class="h5 mb-0"><?= htmlspecialchars(__t('user.job_form.image_section')) ?></h2>
                 </div>
                 <div class="card-body">
-                    <label for="job_image" class="form-label">Opcjonalne zdjęcie ogłoszenia</label>
+                    <label for="job_image" class="form-label"><?= htmlspecialchars(__t('user.job_form.optional_image')) ?></label>
                     <input type="file" class="form-control" id="job_image" name="job_image" accept="image/jpeg,image/png,image/gif,image/webp">
-                    <div class="form-text">Brak zdjęcia oznacza użycie domyślnego obrazu no_image.jpg.</div>
+                    <div class="form-text"><?= htmlspecialchars(__t('user.job_form.no_image_hint')) ?></div>
                     <div id="imagePreview" class="mt-3 d-none">
-                        <img src="" alt="Podgląd zdjęcia" class="img-fluid rounded border">
+                        <img src="" alt="<?= htmlspecialchars(__t('user.job_form.image_preview_alt')) ?>" class="img-fluid rounded border">
                     </div>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-success w-100 mt-4">Dodaj ogłoszenie</button>
+            <button type="submit" class="btn btn-success w-100 mt-4"><?= htmlspecialchars(__t('user.job_form.submit_create')) ?></button>
         </div>
     </form>
 </div>
@@ -344,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const select = document.createElement('select');
         select.className = 'form-select category-level';
         select.dataset.level = String(level);
-        select.innerHTML = '<option value="">Wybierz podkategorię</option>';
+        select.innerHTML = '<option value=""><?= htmlspecialchars(__t('user.job_form.select_subcategory'), ENT_QUOTES) ?></option>';
 
         data.categories.forEach(category => {
             const option = document.createElement('option');

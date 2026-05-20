@@ -1,5 +1,5 @@
 <?php
-// check_online_status.php
+
 session_start();
 require_once('../../config/config.php');
 require_once('../../models/User.php');
@@ -23,16 +23,16 @@ try {
         exit();
     }
 
-    // Sprawdź czy użytkownik jest online (ostatnie 15 minut)
+
     $isOnline = false;
     if (!empty($user['last_login'])) {
         $lastLogin = strtotime($user['last_login']);
-        $isOnline = (time() - $lastLogin) < 900; // 15 minut
+        $isOnline = (time() - $lastLogin) < 900;
     }
 
     echo json_encode(['online' => $isOnline]);
-    
+
 } catch (Exception $e) {
-    error_log("Błąd przy sprawdzaniu statusu online: " . $e->getMessage());
+    error_log(__t('admin.logs.check_online_error', ['error' => $e->getMessage()]));
     echo json_encode(['error' => __t('admin.users.error')]);
 }

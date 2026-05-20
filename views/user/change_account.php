@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../../models/Database.php';
+require_once '../../models/Language.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
@@ -11,24 +12,24 @@ $userId = $_SESSION['user_id'];
 $db = new Database();
 $conn = $db->getConnection();
 
-// Sprawdzenie aktualnego statusu need_change
+
 $query = "SELECT need_change FROM users WHERE id = ?";
 $stmt = $conn->prepare($query);
 $stmt->execute([$userId]);
 $needChange = $stmt->fetchColumn();
 
 if ($needChange === false) {
-    $error = "Błąd: Nie znaleziono użytkownika.";
+    $error = __t('user.account_change.user_not_found');
 } elseif ($needChange == 1) {
-    $message = "Zgłoszono już chęć zmiany statusu konta, oczekujesz na akceptację moderatora.";
+    $message = __t('user.account_change.pending');
 } else {
-    // Aktualizacja need_change na 1
+
     $updateQuery = "UPDATE users SET need_change = 1 WHERE id = ?";
     $updateStmt = $conn->prepare($updateQuery);
     if ($updateStmt->execute([$userId])) {
-        $message = "Zgłoszenie zostało wysłane, zmiana rodzaju konta może potrwać do 24h.";
+        $message = __t('user.account_change.sent');
     } else {
-        $error = "Wystąpił błąd podczas wysyłania zgłoszenia.";
+        $error = __t('user.account_change.error');
     }
 }
 
@@ -36,7 +37,7 @@ include '../partials/header.php';
 ?>
 
 <div class="container">
-    <h1>Zmiana rodzaju konta</h1>
+    <h1><?= htmlspecialchars(__t('user.account_change.title')) ?></h1>
 
     <?php if (isset($message)): ?>
         <div class="alert alert-success">
@@ -48,7 +49,7 @@ include '../partials/header.php';
         </div>
     <?php endif; ?>
 
-    <a href="../executor/payment.php" class="btn btn-primary">Powrót</a>
+    <a href="../executor/payment.php" class="btn btn-primary"><?= htmlspecialchars(__t('user.account_change.back')) ?></a>
 </div>
 
 <?php include '../partials/footer.php'; ?>

@@ -11,33 +11,33 @@ include_once('../../models/TransactionHistory.php');
 include_once('../../models/Message.php');
 include_once('../../models/Language.php');
 
-// Sprawdź czy użytkownik jest zalogowany i ma uprawnienia administratora
+
 require_once __DIR__ . '/_auth.php';
 requireAdminAccess();
 
-// Utwórz instancje klas z przekazanym połączeniem PDO
-$transactionModel = new TransactionHistory($pdo); // Przekazujemy $pdo do konstruktora
+
+$transactionModel = new TransactionHistory($pdo);
 $userModel = new User();
 
-// Pobierz ID użytkownika do filtrowania
+
 $userIdFilter = isset($_GET['user_id']) ? (int)$_GET['user_id'] : '';
 
-// Parametry paginacji
+
 $limit = isset($_GET['per_page']) && in_array($_GET['per_page'], [10, 25, 50, 100]) ? (int)$_GET['per_page'] : 20;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
 
-// Sortowanie
+
 $allowedSortColumns = ['id', 'user_id', 'amount', 'type', 'status', 'created_at'];
 $sortColumn = isset($_GET['sort']) && in_array($_GET['sort'], $allowedSortColumns) ? $_GET['sort'] : 'created_at';
 $sortOrder = isset($_GET['order']) && in_array(strtoupper($_GET['order']), ['ASC', 'DESC']) ? strtoupper($_GET['order']) : 'DESC';
 
-// Pobierz transakcje
+
 $transactions = $transactionModel->getTransactionsWithFilters($limit, $offset, $sortColumn, $sortOrder, $userIdFilter);
 $totalTransactions = $transactionModel->countTransactionsWithFilters($userIdFilter);
 $totalPages = ceil($totalTransactions / $limit);
 
-// Pobierz użytkownika jeśli filtrujemy
+
 $userDetails = null;
 if (!empty($userIdFilter)) {
     $userDetails = $userModel->getUserById($userIdFilter);
@@ -74,7 +74,6 @@ function buildUrl($params = []) {
                 </div>
 
                 <div class="card-body">
-                    <!-- Nagłówek z powrotem -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <a href="view_user.php?id=<?= $userIdFilter ?>" class="btn btn-sm btn-outline-secondary">
@@ -88,7 +87,6 @@ function buildUrl($params = []) {
                         </div>
                     </div>
 
-                    <!-- Statystyki -->
                     <?php if (!empty($userIdFilter)): ?>
                     <div class="row mb-4">
                         <?php
@@ -129,7 +127,6 @@ function buildUrl($params = []) {
                     </div>
                     <?php endif; ?>
 
-                    <!-- Tabela transakcji -->
                     <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-1"><i class="bi bi-currency-exchange"></i> <?= htmlspecialchars(__t('admin.transactions.title')) ?></h5>
@@ -200,8 +197,7 @@ function buildUrl($params = []) {
                                     </tbody>
                                 </table>
                             </div>
-                            
-                            <!-- Paginacja -->
+
                             <?php if ($totalPages > 1): ?>
                             <div class="d-flex justify-content-between align-items-center mt-4">
                                 <div>
@@ -222,8 +218,8 @@ function buildUrl($params = []) {
                                                     <span aria-hidden="true">&laquo;</span>
                                                 </a>
                                             </li>
-                                            
-                                            <?php 
+
+                                            <?php
                                             $startPage = max(1, $page - 2);
                                             $endPage = min($totalPages, $page + 2);
                                             for ($i = $startPage; $i <= $endPage; $i++): ?>
@@ -231,7 +227,7 @@ function buildUrl($params = []) {
                                                     <a class="page-link" href="<?= buildUrl(['page' => $i]) ?>"><?= $i; ?></a>
                                                 </li>
                                             <?php endfor; ?>
-                                            
+
                                             <li class="page-item <?= $page >= $totalPages ? 'disabled' : ''; ?>">
                                                 <a class="page-link" href="<?= buildUrl(['page' => $page + 1]) ?>" aria-label="<?= htmlspecialchars(__t('admin.common.next')) ?>">
                                                     <span aria-hidden="true">&raquo;</span>

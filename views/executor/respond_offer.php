@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../../models/Executor.php';
+require_once '../../models/Language.php';
 
 if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'executor' || !isset($_GET['job_id'])) {
     header('Location: /login.php');
@@ -23,9 +24,9 @@ $responseStatus = $executor->hasRespondedToJob($executorId, $jobId);
 $error = '';
 
 if ($responseStatus !== false) {
-    $error = 'Już wysłałeś ofertę do tego ogłoszenia.';
+    $error = htmlspecialchars(__t('executor.already_responded'));
 } elseif ($executorBalance < $pointsRequired) {
-    $error = "Nie masz wystarczającej liczby punktów na koncie, aby odpowiedzieć na to ogłoszenie. <a href='payment.php' class='alert-link'>Doładuj konto</a>";
+    $error = __t('executor.not_enough_points_html');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$error) {
@@ -34,9 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$error) {
     $scope = trim($_POST['scope'] ?? '');
 
     if ($messageContent === '' || $proposedPrice === '' || $scope === '') {
-        $error = 'Podaj wiadomość, wstępną wycenę i zakres prac.';
+        $error = htmlspecialchars(__t('executor.respond_required'));
     } elseif (!is_numeric($proposedPrice) || (float)$proposedPrice < 0) {
-        $error = 'Wstępna wycena musi być poprawną kwotą.';
+        $error = htmlspecialchars(__t('executor.price_invalid'));
     } else {
         $conversationId = $executor->respondToJob($executorId, $jobId, $messageContent, (float)$proposedPrice, $scope);
 
@@ -46,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$error) {
             exit;
         }
 
-        $error = 'Nie udało się wysłać oferty. Sprawdź saldo punktów lub spróbuj ponownie.';
+        $error = htmlspecialchars(__t('executor.send_error'));
     }
 }
 
@@ -54,10 +55,10 @@ include '../partials/header.php';
 ?>
 
 <div class="container">
-    <h1>Odpowiedz na ofertę: <?= htmlspecialchars($jobDetails['title']) ?></h1>
+    <h1><?= htmlspecialchars(__t('executor.respond_title', ['title' => $jobDetails['title']])) ?></h1>
 
     <div class="alert alert-info">
-        Do zgłoszenia zostanie pobrane <strong><?= $pointsRequired ?></strong> pkt. Jeśli użytkownik wybierze inną ofertę, punkty wrócą na Twoje konto.
+        <?= htmlspecialchars(__t('executor.points_notice', ['points' => $pointsRequired])) ?>
     </div>
 
     <?php if ($error): ?>
@@ -66,19 +67,19 @@ include '../partials/header.php';
 
     <form action="respond_offer.php?job_id=<?= $jobId ?>" method="POST">
         <div class="mb-3">
-            <label for="proposed_price" class="form-label">Wstępna wycena</label>
+            <label for="proposed_price" class="form-label"><?= htmlspecialchars(__t('executor.initial_price')) ?></label>
             <input type="number" name="proposed_price" id="proposed_price" class="form-control" min="0" step="0.01" required value="<?= htmlspecialchars($_POST['proposed_price'] ?? '') ?>">
         </div>
         <div class="mb-3">
-            <label for="scope" class="form-label">Zakres prac</label>
+            <label for="scope" class="form-label"><?= htmlspecialchars(__t('executor.scope')) ?></label>
             <textarea name="scope" id="scope" class="form-control" rows="5" required><?= htmlspecialchars($_POST['scope'] ?? '') ?></textarea>
         </div>
         <div class="mb-3">
-            <label for="message" class="form-label">Pierwsza wiadomość do użytkownika</label>
+            <label for="message" class="form-label"><?= htmlspecialchars(__t('executor.first_message')) ?></label>
             <textarea name="message" id="message" class="form-control" rows="5" required><?= htmlspecialchars($_POST['message'] ?? '') ?></textarea>
         </div>
-        <button type="submit" class="btn btn-primary" <?= $error ? 'disabled' : '' ?>>Wyślij ofertę i rozpocznij rozmowę</button>
-        <a href="offer_list.php" class="btn btn-outline-secondary">Wróć</a>
+        <button type="submit" class="btn btn-primary" <?= $error ? 'disabled' : '' ?>><?= htmlspecialchars(__t('executor.send_offer_start')) ?></button>
+        <a href="offer_list.php" class="btn btn-outline-secondary"><?= htmlspecialchars(__t('executor.back')) ?></a>
     </form>
 </div>
 

@@ -229,9 +229,9 @@ class Page {
 
     private function seedDefaultPages() {
         $defaults = [
-            ['title' => 'Polityka prywatności', 'slug' => 'polityka-prywatnosci', 'show_in_footer' => 1, 'sort_order' => 10],
-            ['title' => 'Regulamin', 'slug' => 'regulamin', 'show_in_footer' => 1, 'sort_order' => 20],
-            ['title' => 'Kontakt', 'slug' => 'kontakt', 'show_in_footer' => 1, 'sort_order' => 30],
+            ['title' => __t('model.pages.privacy_policy'), 'slug' => 'polityka-prywatnosci', 'show_in_footer' => 1, 'sort_order' => 10],
+            ['title' => __t('model.pages.terms'), 'slug' => 'regulamin', 'show_in_footer' => 1, 'sort_order' => 20],
+            ['title' => __t('model.pages.contact'), 'slug' => 'kontakt', 'show_in_footer' => 1, 'sort_order' => 30],
         ];
 
         foreach ($defaults as $page) {
@@ -242,7 +242,7 @@ class Page {
             $this->save([
                 'title' => $page['title'],
                 'slug' => $page['slug'],
-                'content' => 'Treść tej podstrony możesz uzupełnić w panelu administracyjnym.',
+                'content' => __t('model.pages.default_content'),
                 'status' => 'published',
                 'show_in_footer' => $page['show_in_footer'],
                 'show_in_menu' => 0,

@@ -7,9 +7,9 @@ $currentLocale = Language::current('frontend');
 
 if (isset($_GET['token'])) {
     $token = $_GET['token'];
-    
+
     $newsletter = new Newsletter();
-    
+
     if ($newsletter->verifySubscription($token)) {
         $message = __t('newsletter.verified');
     } else {

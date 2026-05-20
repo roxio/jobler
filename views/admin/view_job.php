@@ -5,7 +5,7 @@ include_once('../../models/User.php');
 include_once('../../models/Database.php');
 include_once('../../models/Language.php');
 
-// Sprawdź uprawnienia
+
 require_once __DIR__ . '/_auth.php';
 requireAdminAccess();
 
@@ -20,28 +20,28 @@ $pdo   = Database::getConnection();
 $jobModel  = new Job();
 $userModel = new User();
 
-// Pobierz zlecenie
+
 $job = $jobModel->getJobDetails($jobId);
 if (!$job) {
     header('Location: manage_jobs.php?status=error&message=not_found');
     exit;
 }
 
-// Pobierz kategorie i użytkowników
+
 $categories = $jobModel->getCategories();
 $allUsers   = $userModel->getAllUsers();
 
-// Pobierz zdjęcia zlecenia (jeśli tabela istnieje)
+
 $jobImages = [];
 try {
     $imgStmt = $pdo->prepare("SELECT * FROM job_images WHERE job_id = ? ORDER BY created_at ASC");
     $imgStmt->execute([$jobId]);
     $jobImages = $imgStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    // Tabela może nie istnieć — ignorujemy
+
 }
 
-// Pobierz historię zmian
+
 $changeHistory = [];
 try {
     $histStmt = $pdo->prepare(
@@ -55,10 +55,10 @@ try {
     $histStmt->execute([$jobId]);
     $changeHistory = $histStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    // Tabela może nie istnieć
+
 }
 
-// Mapowanie statusów na polskie nazwy
+
 $statusLabels = [
     'open'     => __t('admin.jobs.open'),
     'active'   => __t('admin.jobs.active'),
@@ -66,7 +66,7 @@ $statusLabels = [
     'inactive' => __t('admin.jobs.inactive')
 ];
 
-// Pobierz nazwę kategorii
+
 $categoryName = __t('admin.jobs.none_category');
 foreach ($categories as $cat) {
     if ($cat['id'] == $job['category_id']) {
@@ -75,7 +75,7 @@ foreach ($categories as $cat) {
     }
 }
 
-// Pobierz nazwę użytkownika
+
 $ownerName = __t('admin.jobs.unknown_user');
 foreach ($allUsers as $user) {
     if ($user['id'] == $job['user_id']) {
@@ -99,7 +99,6 @@ foreach ($allUsers as $user) {
                 </div>
 
                 <div class="card-body">
-                    <!-- Przyciski akcji -->
                     <div class="mb-4">
                         <a href="manage_jobs.php" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> <?= htmlspecialchars(__t('admin.back_to_list')) ?>
@@ -109,7 +108,6 @@ foreach ($allUsers as $user) {
                         </a>
                     </div>
 
-                    <!-- Informacje podstawowe -->
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="card">
@@ -129,9 +127,9 @@ foreach ($allUsers as $user) {
                                         <tr>
                                             <td class="text-muted"><?= htmlspecialchars(__t('admin.common.status')) ?>:</td>
                                             <td>
-                                                <span class="badge bg-<?= 
-                                                    $job['status'] == 'active' ? 'success' : 
-                                                    ($job['status'] == 'open' ? 'primary' : 
+                                                <span class="badge bg-<?=
+                                                    $job['status'] == 'active' ? 'success' :
+                                                    ($job['status'] == 'open' ? 'primary' :
                                                     ($job['status'] == 'closed' ? 'secondary' : 'warning'))
                                                 ?>">
                                                     <?= $statusLabels[$job['status']] ?? $job['status'] ?>
@@ -184,7 +182,6 @@ foreach ($allUsers as $user) {
                         </div>
                     </div>
 
-                    <!-- Opis -->
                     <div class="card mb-4">
                         <div class="card-header">
                             <h6 class="mb-0"><i class="bi bi-text-paragraph"></i> <?= htmlspecialchars(__t('admin.description')) ?></h6>
@@ -194,7 +191,6 @@ foreach ($allUsers as $user) {
                         </div>
                     </div>
 
-                    <!-- Zdjęcia (jeśli istnieją) -->
                     <?php if (!empty($jobImages)): ?>
                     <div class="card mb-4">
                         <div class="card-header">
@@ -217,7 +213,6 @@ foreach ($allUsers as $user) {
                     </div>
                     <?php endif; ?>
 
-                    <!-- Historia zmian -->
                     <?php if (!empty($changeHistory)): ?>
                     <div class="card">
                         <div class="card-header">

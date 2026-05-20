@@ -4,11 +4,11 @@ include_once('../../models/Job.php');
 include_once('../../models/User.php');
 include_once('../../models/Language.php');
 
-// Sprawdź czy użytkownik jest zalogowany i ma uprawnienia administratora
+
 require_once __DIR__ . '/_auth.php';
 requireAdminAccess();
 
-// Utwórz instancje klas
+
 $jobModel = new Job();
 $userModel = new User();
 
@@ -47,17 +47,17 @@ function ensureAdminJobArchiveColumns() {
 
 ensureAdminJobArchiveColumns();
 
-// Parametry paginacji
+
 $limit = isset($_GET['per_page']) && in_array($_GET['per_page'], [10, 25, 50, 100]) ? (int)$_GET['per_page'] : 20;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
 
-// Sortowanie
+
 $allowedSortColumns = ['id', 'title', 'points_required', 'created_at', 'status'];
 $sortColumn = isset($_GET['sort']) && in_array($_GET['sort'], $allowedSortColumns) ? $_GET['sort'] : 'created_at';
 $sortOrder = isset($_GET['order']) && in_array(strtoupper($_GET['order']), ['ASC', 'DESC']) ? strtoupper($_GET['order']) : 'DESC';
 
-// Parametry wyszukiwania i filtrowania
+
 $searchTerm = isset($_GET['search']) ? trim($_GET['search']) : '';
 $statusFilter = isset($_GET['status_filter']) ? $_GET['status_filter'] : '';
 $categoryFilter = isset($_GET['category_filter']) ? (int)$_GET['category_filter'] : '';
@@ -71,20 +71,20 @@ $dateTo = isset($_GET['date_to']) ? $_GET['date_to'] : '';
 $pointsMin = isset($_GET['points_min']) ? (float)$_GET['points_min'] : '';
 $pointsMax = isset($_GET['points_max']) ? (float)$_GET['points_max'] : '';
 
-// Pobierz kategorie dla filtrowania
+
 $categories = $jobModel->getCategories();
 
-// Pobierz listę użytkowników dla filtrowania
+
 $users = $userModel->getAllUsers();
 
-// Pobierz ogłoszenia z uwzględnieniem filtrów i paginacji
+
 $jobs = $jobModel->getJobsWithFilters($limit, $offset, $sortColumn, $sortOrder, $searchTerm, $statusFilter, $categoryFilter, $userFilter, $dateFrom, $dateTo, $pointsMin, $pointsMax);
 
-// Pobierz całkowitą liczbę ogłoszeń dla paginacji
+
 $totalJobs = $jobModel->countJobsWithFilters($searchTerm, $statusFilter, $categoryFilter, $userFilter, $dateFrom, $dateTo, $pointsMin, $pointsMax);
 $totalPages = ceil($totalJobs / $limit);
 
-// Statystyki
+
 $open_jobs = $jobModel->countJobsByStatus('open');
 $active_jobs = $jobModel->countJobsByStatus('active');
 $closed_jobs = $jobModel->countJobsByStatus('closed');
@@ -111,11 +111,11 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Obsługa akcji masowych
+
 if (isset($_POST['bulk_action']) && isset($_POST['selected_jobs'])) {
     $selectedJobs = $_POST['selected_jobs'];
     $bulkAction = $_POST['bulk_action'];
-    
+
     switch ($bulkAction) {
         case 'delete':
             foreach ($selectedJobs as $jobId) {
@@ -144,14 +144,14 @@ if (isset($_POST['bulk_action']) && isset($_POST['selected_jobs'])) {
             }
             $_SESSION['message'] = __t('admin.jobs.activated_message');
             break;
-            
+
         case 'deactivate':
             foreach ($selectedJobs as $jobId) {
                 $jobModel->updateJobStatus($jobId, 'inactive');
             }
             $_SESSION['message'] = __t('admin.jobs.deactivated_message');
             break;
-            
+
         case 'close':
             foreach ($selectedJobs as $jobId) {
                 $jobModel->updateJobStatus($jobId, 'closed');
@@ -159,16 +159,16 @@ if (isset($_POST['bulk_action']) && isset($_POST['selected_jobs'])) {
             $_SESSION['message'] = __t('admin.jobs.closed_message');
             break;
     }
-    
+
     header("Location: manage_jobs.php");
     exit;
 }
 
-// Obsługa pojedynczych akcji
+
 if (isset($_GET['action']) && isset($_GET['id'])) {
     $jobId = (int)$_GET['id'];
     $action = $_GET['action'];
-    
+
     switch ($action) {
         case 'delete':
             $jobModel->deleteJob($jobId);
@@ -184,23 +184,23 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
             $jobModel->permanentlyDeleteJob($jobId);
             $_SESSION['message'] = __t('admin.jobs.single_deleted_message');
             break;
-            
+
         case 'activate':
             $jobModel->updateJobStatus($jobId, 'active');
             $_SESSION['message'] = __t('admin.jobs.single_activated_message');
             break;
-            
+
         case 'deactivate':
             $jobModel->updateJobStatus($jobId, 'inactive');
             $_SESSION['message'] = __t('admin.jobs.single_deactivated_message');
             break;
-            
+
         case 'close':
             $jobModel->updateJobStatus($jobId, 'closed');
             $_SESSION['message'] = __t('admin.jobs.single_closed_message');
             break;
     }
-    
+
     header("Location: manage_jobs.php");
     exit;
 }
@@ -227,7 +227,6 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                         </div>
                     <?php endif; ?>
 
-                    <!-- Kafelek statystyk -->
                     <div class="row mb-4">
                         <div class="col-md-2 col-6 mb-3">
                             <div class="card bg-primary text-white">
@@ -271,7 +270,6 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                         </div>
                     </div>
 
-                    <!-- Główna karta zarządzania -->
                     <div class="card shadow">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-1"><i class="bi bi-briefcase"></i> <?= htmlspecialchars(__t('admin.jobs.manage')) ?></h5>
@@ -285,8 +283,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                 <a href="add_job.php" class="btn btn-success btn-sm ms-2"><i class="bi bi-plus-circle"></i> <?= htmlspecialchars(__t('admin.add_job')) ?></a>
                             </div>
                         </div>
-                        
-                        <!-- Rozwijane filtry -->
+
                         <div class="collapse <?= (!empty($searchTerm) || !empty($statusFilter) || !empty($categoryFilter) || !empty($userFilter) || !empty($dateFrom) || !empty($dateTo) || !empty($pointsMin) || !empty($pointsMax)) ? 'show' : ''; ?>" id="filtersCollapse">
                             <div class="card-body border-bottom">
                                 <form method="GET" class="row g-3">
@@ -294,7 +291,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.common.search')) ?></label>
                                         <input type="text" name="search" class="form-control form-control-sm" placeholder="<?= htmlspecialchars(__t('admin.jobs.search_placeholder')) ?>" value="<?= safeEcho($searchTerm); ?>">
                                     </div>
-                                    
+
                                     <div class="col-md-2">
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.common.status')) ?></label>
                                         <select name="status_filter" class="form-select form-select-sm">
@@ -330,12 +327,12 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
-                                    
+
                                     <div class="col-md-2">
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.jobs.points_from')) ?></label>
                                         <input type="number" name="points_min" class="form-control form-control-sm" value="<?= safeEcho($pointsMin); ?>" placeholder="Min" step="0.01">
                                     </div>
-                                    
+
                                     <div class="col-md-2">
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.jobs.points_to')) ?></label>
                                         <input type="number" name="points_max" class="form-control form-control-sm" value="<?= safeEcho($pointsMax); ?>" placeholder="Max" step="0.01">
@@ -345,7 +342,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.common.from_date')) ?></label>
                                         <input type="date" name="date_from" class="form-control form-control-sm" value="<?= safeEcho($dateFrom); ?>">
                                     </div>
-                                    
+
                                     <div class="col-md-3">
                                         <label class="form-label"><?= htmlspecialchars(__t('admin.common.to_date')) ?></label>
                                         <input type="date" name="date_to" class="form-control form-control-sm" value="<?= safeEcho($dateTo); ?>">
@@ -392,8 +389,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                         <div class="card-body">
                             <form method="POST" action="manage_jobs.php" id="jobsForm">
                                 <input type="hidden" name="csrf_token" value="<?= safeEcho($_SESSION['csrf_token']) ?>">
-                                
-                                <!-- Akcje zbiorowe -->
+
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div class="d-flex align-items-center">
                                         <select name="bulk_action" class="form-select form-select-sm me-2" style="width: 200px;">
@@ -407,13 +403,12 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                         </select>
                                         <button type="submit" class="btn btn-primary btn-sm me-2"><?= htmlspecialchars(__t('admin.common.apply')) ?></button>
                                     </div>
-                                    
+
                                     <div class="text-muted">
                                         <?= htmlspecialchars(__t('admin.common.found_jobs', ['count' => number_format($totalJobs)])) ?>
                                     </div>
                                 </div>
 
-                                <!-- Tabela ogłoszeń -->
                                 <div class="table-responsive">
                                     <table class="table table-striped table-hover align-middle">
                                         <thead class="table-light">
@@ -447,7 +442,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                                             </a>
                                                         </td>
                                                         <td>
-                                                            <?php 
+                                                            <?php
                                                             $categoryName = __t('admin.jobs.none_category');
                                                             foreach ($categories as $category) {
                                                                 if ($category['id'] == $job['category_id']) {
@@ -459,7 +454,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                                             ?>
                                                         </td>
                                                         <td>
-                                                            <?php 
+                                                            <?php
                                                             $userName = __t('admin.jobs.unknown_user');
                                                             foreach ($users as $user) {
                                                                 if ($user['id'] == $job['user_id']) {
@@ -478,29 +473,26 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                                             <br><small class="text-muted"><?= date('H:i', strtotime($job['created_at'])) ?></small>
                                                         </td>
                                                         <td>
-                                                            <span class="badge bg-<?= 
-                                                                $job['status'] == 'active' ? 'success' : 
-                                                                ($job['status'] == 'open' ? 'primary' : 
+                                                            <span class="badge bg-<?=
+                                                                $job['status'] == 'active' ? 'success' :
+                                                                ($job['status'] == 'open' ? 'primary' :
                                                                 ($job['status'] == 'closed' ? 'secondary' : 'warning'))
                                                             ?>">
-                                                                <?= htmlspecialchars($job['status'] == 'active' ? __t('admin.status.active') : 
-                                                                   ($job['status'] == 'open' ? __t('admin.jobs.open_single') : 
+                                                                <?= htmlspecialchars($job['status'] == 'active' ? __t('admin.status.active') :
+                                                                   ($job['status'] == 'open' ? __t('admin.jobs.open_single') :
                                                                    ($job['status'] == 'closed' ? __t('admin.jobs.closed') : __t('admin.jobs.inactive')))) ?>
                                                             </span>
                                                         </td>
                                                         <td>
                                                             <div class="btn-group btn-group-sm" role="group">
-                                                                <!-- Edycja -->
                                                                 <a href="edit_job.php?id=<?= safeEcho($job['id']); ?>" class="btn btn-outline-warning" title="<?= htmlspecialchars(__t('common.edit')) ?>">
                                                                     <i class="bi bi-pencil"></i>
                                                                 </a>
-                                                                
-                                                                <!-- Podgląd -->
+
                                                                 <a href="view_job.php?id=<?= safeEcho($job['id']); ?>" target="_blank" class="btn btn-outline-info" title="<?= htmlspecialchars(__t('admin.common.preview')) ?>">
                                                                     <i class="bi bi-eye"></i>
                                                                 </a>
-                                                                
-                                                                <!-- Aktywacja/Deaktywacja -->
+
                                                                 <?php if ($job['status'] == 'active' || $job['status'] == 'open'): ?>
                                                                     <a href="manage_jobs.php?action=deactivate&id=<?= safeEcho($job['id']); ?>" class="btn btn-outline-secondary" title="<?= htmlspecialchars(__t('admin.common.deactivate')) ?>" onclick="return confirm('<?= htmlspecialchars(__t('admin.jobs.deactivate_confirm'), ENT_QUOTES) ?>');">
                                                                         <i class="bi bi-x-circle"></i>
@@ -510,15 +502,13 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                                                         <i class="bi bi-check-circle"></i>
                                                                     </a>
                                                                 <?php endif; ?>
-                                                                
-                                                                <!-- Zamknięcie -->
+
                                                                 <?php if ($job['status'] != 'closed'): ?>
                                                                     <a href="manage_jobs.php?action=close&id=<?= safeEcho($job['id']); ?>" class="btn btn-outline-info" title="<?= htmlspecialchars(__t('admin.common.close_job')) ?>" onclick="return confirm('<?= htmlspecialchars(__t('admin.jobs.close_confirm'), ENT_QUOTES) ?>');">
                                                                         <i class="bi bi-lock"></i>
                                                                     </a>
                                                                 <?php endif; ?>
-                                                                
-                                                                <!-- Usuwanie -->
+
                                                                 <a href="manage_jobs.php?action=delete&id=<?= safeEcho($job['id']); ?>" class="btn btn-outline-danger" title="<?= htmlspecialchars(__t('admin.common.archive')) ?>" onclick="return confirm('<?= htmlspecialchars(__t('admin.jobs.archive_confirm'), ENT_QUOTES) ?>');">
                                                                     <i class="bi bi-trash"></i>
                                                                 </a>
@@ -548,8 +538,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                         </tbody>
                                     </table>
                                 </div>
-                                
-                                <!-- Paginacja -->
+
                                 <?php if ($totalPages > 1): ?>
                                 <div class="d-flex justify-content-between align-items-center mt-4">
                                     <div>
@@ -570,8 +559,8 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                                         <span aria-hidden="true">&laquo;</span>
                                                     </a>
                                                 </li>
-                                                
-                                                <?php 
+
+                                                <?php
                                                 $startPage = max(1, $page - 2);
                                                 $endPage = min($totalPages, $page + 2);
                                                 for ($i = $startPage; $i <= $endPage; $i++): ?>
@@ -579,7 +568,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                                                         <a class="page-link" href="<?= buildUrl(['page' => $i]) ?>"><?= $i; ?></a>
                                                     </li>
                                                 <?php endfor; ?>
-                                                
+
                                                 <li class="page-item <?= $page >= $totalPages ? 'disabled' : ''; ?>">
                                                     <a class="page-link" href="<?= buildUrl(['page' => $page + 1]) ?>" aria-label="<?= htmlspecialchars(__t('admin.common.next')) ?>">
                                                         <span aria-hidden="true">&raquo;</span>
@@ -606,23 +595,21 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Zaznaczanie wszystkich checkboxów
     document.getElementById('select-all').addEventListener('change', function() {
         document.querySelectorAll('.job-checkbox').forEach(checkbox => {
             checkbox.checked = this.checked;
         });
     });
 
-    // Walidacja formularza zbiorowych akcji
     document.querySelector('form#jobsForm').addEventListener('submit', function(e) {
         const bulkAction = document.querySelector('select[name="bulk_action"]').value;
         const selectedJobs = document.querySelectorAll('.job-checkbox:checked');
-        
+
         if (bulkAction && selectedJobs.length === 0) {
             e.preventDefault();
             alert(<?= json_encode(__t('admin.jobs.no_selected'), JSON_UNESCAPED_UNICODE) ?>);
         }
-        
+
         if (bulkAction === 'delete' && !confirm(<?= json_encode(__t('admin.jobs.bulk_archive_confirm'), JSON_UNESCAPED_UNICODE) ?>)) {
             e.preventDefault();
         }
@@ -632,7 +619,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Inicjalizacja tooltipów Bootstrap
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
     tooltipTriggerList.map(function(tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);

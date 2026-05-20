@@ -1,7 +1,5 @@
 # Jobler
 
-## Polski
-
 Jobler to aplikacja marketplace oparta o PHP i MySQL, sluzaca do publikowania zlecen, przegladania dostepnych ogloszen oraz laczenia klientow z wykonawcami.
 
 Projekt zawiera publiczna strone z lista zlecen, panele uzytkownika i wykonawcy, panel administracyjny, prosty CMS dla statycznych podstron, obsluge newslettera, raporty, transakcje oraz system lokalizacji oparty o pliki jezykowe.

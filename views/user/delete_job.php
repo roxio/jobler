@@ -17,25 +17,6 @@ if ($jobId <= 0) {
     exit;
 }
 
-function ensureJobArchiveColumns(PDO $pdo) {
-    $columns = [
-        'deleted_at' => "ALTER TABLE jobs ADD COLUMN deleted_at DATETIME DEFAULT NULL",
-        'archived_at' => "ALTER TABLE jobs ADD COLUMN archived_at DATETIME DEFAULT NULL",
-        'archive_reason' => "ALTER TABLE jobs ADD COLUMN archive_reason VARCHAR(80) DEFAULT NULL",
-    ];
-
-    $stmt = $pdo->query("SHOW COLUMNS FROM jobs");
-    $existingColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
-
-    foreach ($columns as $column => $sql) {
-        if (!in_array($column, $existingColumns, true)) {
-            $pdo->exec($sql);
-        }
-    }
-}
-
-ensureJobArchiveColumns($pdo);
-
 try {
     $pdo->beginTransaction();
 

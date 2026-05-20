@@ -7,6 +7,9 @@ class Newsletter {
 
     public function __construct() {
         $this->pdo = Database::getConnection();
+    }
+
+    public function installOrUpdateSchema() {
         $this->ensureSchema();
     }
 
@@ -22,7 +25,7 @@ class Newsletter {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function subscribe($email, $userId = null) {
+    public function subscribe($email, $userId = null, $retry = true) {
         $email = trim((string)$email);
         $existing = $this->getSubscriptionByEmail($email);
 
@@ -70,6 +73,13 @@ class Newsletter {
 
             return ['success' => true, 'message' => __t('newsletter.confirmation_sent')];
         } catch (PDOException $e) {
+            if (!$retry) {
+                error_log('Newsletter subscribe error: ' . $e->getMessage());
+                return ['success' => false, 'message' => __t('newsletter.subscribe_error')];
+            }
+            $this->installOrUpdateSchema();
+            return $this->subscribe($email, $userId, false);
+        } catch (Throwable $e) {
             error_log('Newsletter subscribe error: ' . $e->getMessage());
             return ['success' => false, 'message' => __t('newsletter.subscribe_error')];
         }

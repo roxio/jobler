@@ -7,6 +7,9 @@ class Page {
 
     public function __construct() {
         $this->pdo = Database::getConnection();
+    }
+
+    public function installOrUpdateSchema() {
         $this->ensureSchema();
         $this->seedDefaultPages();
     }
@@ -93,7 +96,12 @@ class Page {
                     updated_at = NOW()
                 WHERE id = :id
             ");
-            $stmt->execute($payload);
+            try {
+                $stmt->execute($payload);
+            } catch (Throwable $e) {
+                $this->installOrUpdateSchema();
+                $stmt->execute($payload);
+            }
             $this->saveTranslations($id, $data['translations'] ?? []);
             return ['success' => true, 'id' => $id, 'slug' => $slug];
         }
@@ -104,7 +112,12 @@ class Page {
             VALUES
                 (:title, :slug, :content, :meta_title, :meta_description, :status, :show_in_menu, :show_in_footer, :sort_order, NOW(), NOW())
         ");
-        $stmt->execute($payload);
+        try {
+            $stmt->execute($payload);
+        } catch (Throwable $e) {
+            $this->installOrUpdateSchema();
+            $stmt->execute($payload);
+        }
 
         $newId = (int)$this->pdo->lastInsertId();
         $this->saveTranslations($newId, $data['translations'] ?? []);

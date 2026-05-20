@@ -1,6 +1,6 @@
 <?php
 include_once __DIR__ . '/../../models/AccessControl.php';
-$footerAccessControl = new AccessControl();
+$footerAccessControl = function_exists('currentAccessControl') ? currentAccessControl() : new AccessControl();
 $isAdminContext = strpos($_SERVER['REQUEST_URI'] ?? '', '/views/admin/') !== false;
 ?>
 <?php if ($isAdminContext): ?>

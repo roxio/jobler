@@ -9,6 +9,10 @@ class SiteSettings {
         $this->pdo = $pdo ?: Database::getConnection();
     }
 
+    public function installOrUpdateSchema() {
+        $this->ensureSettingsColumns();
+    }
+
     private function ensureSettingsColumns() {
         if ($this->settingsColumnsEnsured) {
             return;
@@ -61,9 +65,12 @@ class SiteSettings {
     }
 
     public function getSettings() {
-        $this->ensureSettingsColumns();
-
-        $query = $this->pdo->query("SELECT * FROM site_settings LIMIT 1");
+        try {
+            $query = $this->pdo->query("SELECT * FROM site_settings LIMIT 1");
+        } catch (Throwable $e) {
+            $this->installOrUpdateSchema();
+            $query = $this->pdo->query("SELECT * FROM site_settings LIMIT 1");
+        }
         $result = $query->fetch(PDO::FETCH_ASSOC);
 
         if ($result === false) {
@@ -139,8 +146,6 @@ class SiteSettings {
     }
 
     public function updateSettings($data) {
-        $this->ensureSettingsColumns();
-
         $sql = "UPDATE site_settings SET
                 title = :title,
                 logo = :logo,
@@ -178,8 +183,14 @@ class SiteSettings {
                 sitemap_enabled = :sitemap_enabled
                 WHERE id = 1";
 
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute($data);
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute($data);
+        } catch (Throwable $e) {
+            $this->installOrUpdateSchema();
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute($data);
+        }
     }
 
     public function formatCopyrightText($settings = null) {
@@ -351,15 +362,19 @@ class SiteSettings {
     }
 
     public function updateSettingValue($column, $value) {
-        $this->ensureSettingsColumns();
-
         $allowedColumns = ['sitemap_last_generated', 'last_system_backup', 'last_database_backup'];
         if (!in_array($column, $allowedColumns, true)) {
             return false;
         }
 
-        $stmt = $this->pdo->prepare("UPDATE site_settings SET {$column} = :value WHERE id = 1");
-        return $stmt->execute(['value' => $value]);
+        try {
+            $stmt = $this->pdo->prepare("UPDATE site_settings SET {$column} = :value WHERE id = 1");
+            return $stmt->execute(['value' => $value]);
+        } catch (Throwable $e) {
+            $this->installOrUpdateSchema();
+            $stmt = $this->pdo->prepare("UPDATE site_settings SET {$column} = :value WHERE id = 1");
+            return $stmt->execute(['value' => $value]);
+        }
     }
 }
 ?>

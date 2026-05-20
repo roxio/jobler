@@ -16,26 +16,6 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-function ensureJobCreateColumns(PDO $pdo) {
-    $columns = [
-        'budget_estimate' => "ALTER TABLE jobs ADD COLUMN budget_estimate DECIMAL(10,2) DEFAULT NULL",
-        'realization_time' => "ALTER TABLE jobs ADD COLUMN realization_time VARCHAR(120) DEFAULT NULL",
-        'validity_days' => "ALTER TABLE jobs ADD COLUMN validity_days INT(11) NOT NULL DEFAULT 7",
-        'expires_at' => "ALTER TABLE jobs ADD COLUMN expires_at DATETIME DEFAULT NULL",
-        'work_mode' => "ALTER TABLE jobs ADD COLUMN work_mode VARCHAR(20) NOT NULL DEFAULT 'remote'",
-        'primary_image' => "ALTER TABLE jobs ADD COLUMN primary_image VARCHAR(255) NOT NULL DEFAULT 'no_image.jpg'",
-    ];
-
-    $stmt = $pdo->query("SHOW COLUMNS FROM jobs");
-    $existingColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
-
-    foreach ($columns as $column => $sql) {
-        if (!in_array($column, $existingColumns, true)) {
-            $pdo->exec($sql);
-        }
-    }
-}
-
 function getCategoriesByParent(PDO $pdo, $parentId = null) {
     if ($parentId === null || $parentId === '') {
         $stmt = $pdo->prepare("
@@ -100,8 +80,6 @@ function uploadJobImage($file) {
 
     return $filename;
 }
-
-ensureJobCreateColumns($pdo);
 
 if (isset($_GET['action']) && $_GET['action'] === 'category_children') {
     header('Content-Type: application/json; charset=utf-8');

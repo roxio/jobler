@@ -3,11 +3,21 @@ include_once(__DIR__ . '/Database.php');
 
 class AccessControl {
     private $pdo;
+    private $userRoleCache = [];
+    private $permissionCache = [];
+    private $permissionOverrideCache = [];
+    private $anyAdminAccessCache = [];
+    private static $rolesCache = null;
+    private static $adminRolesCache = null;
 
     public function __construct() {
         $this->pdo = Database::getConnection();
+    }
+
+    public function installOrUpdateSchema() {
         $this->ensureSchema();
         $this->seedDefaultPermissions();
+        $this->clearRuntimeCache();
     }
 
     public static function defaultRoles() {
@@ -23,15 +33,14 @@ class AccessControl {
     }
 
     public static function roles() {
+        if (self::$rolesCache !== null) {
+            return self::$rolesCache;
+        }
+
         $roles = self::defaultRoles();
 
         try {
             $pdo = Database::getConnection();
-            $stmt = $pdo->query("SHOW TABLES LIKE 'admin_roles'");
-            if (!$stmt || !$stmt->fetchColumn()) {
-                return $roles;
-            }
-
             $stmt = $pdo->query("SELECT role_key, label FROM admin_roles ORDER BY sort_order ASC, label ASC");
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $role) {
                 $roles[$role['role_key']] = $role['label'];
@@ -40,7 +49,8 @@ class AccessControl {
             error_log('Roles read warning: ' . $e->getMessage());
         }
 
-        return $roles;
+        self::$rolesCache = $roles;
+        return self::$rolesCache;
     }
 
     public static function permissions() {
@@ -64,18 +74,21 @@ class AccessControl {
     }
 
     public static function adminRoles() {
+        if (self::$adminRolesCache !== null) {
+            return self::$adminRolesCache;
+        }
+
         try {
             $pdo = Database::getConnection();
-            $stmt = $pdo->query("SHOW TABLES LIKE 'admin_roles'");
-            if ($stmt && $stmt->fetchColumn()) {
-                $stmt = $pdo->query("SELECT role_key FROM admin_roles WHERE is_panel_role = 1");
-                return $stmt->fetchAll(PDO::FETCH_COLUMN);
-            }
+            $stmt = $pdo->query("SELECT role_key FROM admin_roles WHERE is_panel_role = 1");
+            self::$adminRolesCache = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            return self::$adminRolesCache;
         } catch (Throwable $e) {
             error_log('Admin roles read warning: ' . $e->getMessage());
         }
 
-        return ['super_admin', 'admin', 'moderator', 'opiekun', 'reklamodawca'];
+        self::$adminRolesCache = ['super_admin', 'admin', 'moderator', 'opiekun', 'reklamodawca'];
+        return self::$adminRolesCache;
     }
 
     public static function roleLabel($role) {
@@ -98,9 +111,15 @@ class AccessControl {
     }
 
     public function getRolePermissions($role) {
-        $stmt = $this->pdo->prepare("SELECT permission_key FROM admin_role_permissions WHERE role = :role AND allowed = 1");
-        $stmt->execute(['role' => $role]);
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        try {
+            $stmt = $this->pdo->prepare("SELECT permission_key FROM admin_role_permissions WHERE role = :role AND allowed = 1");
+            $stmt->execute(['role' => $role]);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (Throwable $e) {
+            error_log('Role permissions read warning: ' . $e->getMessage());
+            $defaults = $this->defaultRolePermissions();
+            return $defaults[$role] ?? [];
+        }
     }
 
     public function addRole($label, $roleKey = '') {
@@ -125,19 +144,21 @@ class AccessControl {
             return ['error' => 'Rola o takim kluczu juz istnieje.'];
         }
 
-        $stmt = $this->pdo->prepare("
-            INSERT INTO admin_roles (role_key, label, is_system, is_panel_role, permissions_initialized, sort_order, created_at, updated_at)
-            VALUES (:role_key, :label, 0, 1, 1, 100, NOW(), NOW())
-        ");
+        $saved = $this->insertRole($roleKey, $label);
+        if (!$saved) {
+            $this->installOrUpdateSchema();
+            $saved = $this->insertRole($roleKey, $label);
+        }
 
-        if (!$stmt->execute(['role_key' => $roleKey, 'label' => $label])) {
+        if (!$saved) {
             return ['error' => 'Nie udalo sie dodac roli.'];
         }
 
+        $this->clearRuntimeCache();
         return ['success' => true, 'role' => $roleKey];
     }
 
-    public function setRolePermissions($role, array $permissions) {
+    public function setRolePermissions($role, array $permissions, $retry = true) {
         if (!array_key_exists($role, self::roles())) {
             return false;
         }
@@ -161,10 +182,15 @@ class AccessControl {
             }
 
             $this->pdo->commit();
+            $this->clearRuntimeCache();
             return true;
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
+            }
+            if ($retry) {
+                $this->installOrUpdateSchema();
+                return $this->setRolePermissions($role, $permissions, false);
             }
             error_log('Role permissions save error: ' . $e->getMessage());
             return false;
@@ -176,27 +202,35 @@ class AccessControl {
             return false;
         }
 
-        $stmt = $this->pdo->prepare("SELECT role FROM users WHERE id = :id LIMIT 1");
-        $stmt->execute(['id' => $userId]);
-        $role = $stmt->fetchColumn();
+        $cacheKey = (int)$userId . ':' . $permissionKey;
+        if (array_key_exists($cacheKey, $this->permissionCache)) {
+            return $this->permissionCache[$cacheKey];
+        }
+
+        $role = $this->getUserRole($userId);
 
         if (!$role) {
-            return false;
+            return $this->permissionCache[$cacheKey] = false;
         }
 
         $override = $this->getUserPermissionOverride($userId, $permissionKey);
         if ($override !== null) {
-            return $override;
+            return $this->permissionCache[$cacheKey] = $override;
         }
 
-        $stmt = $this->pdo->prepare("
-            SELECT 1
-            FROM admin_role_permissions
-            WHERE role = :role AND permission_key = :permission_key AND allowed = 1
-            LIMIT 1
-        ");
-        $stmt->execute(['role' => $role, 'permission_key' => $permissionKey]);
-        return (bool)$stmt->fetchColumn();
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT 1
+                FROM admin_role_permissions
+                WHERE role = :role AND permission_key = :permission_key AND allowed = 1
+                LIMIT 1
+            ");
+            $stmt->execute(['role' => $role, 'permission_key' => $permissionKey]);
+            return $this->permissionCache[$cacheKey] = (bool)$stmt->fetchColumn();
+        } catch (Throwable $e) {
+            error_log('Permission check warning: ' . $e->getMessage());
+            return $this->permissionCache[$cacheKey] = $this->hasDefaultPermission($role, $permissionKey);
+        }
     }
 
     public function hasAnyAdminAccess($userId) {
@@ -204,23 +238,31 @@ class AccessControl {
             return false;
         }
 
-        $stmt = $this->pdo->prepare("SELECT role FROM users WHERE id = :id LIMIT 1");
-        $stmt->execute(['id' => $userId]);
-        $role = $stmt->fetchColumn();
+        $userId = (int)$userId;
+        if (array_key_exists($userId, $this->anyAdminAccessCache)) {
+            return $this->anyAdminAccessCache[$userId];
+        }
+
+        $role = $this->getUserRole($userId);
 
         if (in_array($role, self::adminRoles(), true)) {
-            return true;
+            return $this->anyAdminAccessCache[$userId] = true;
         }
 
-        $stmt = $this->pdo->prepare("SELECT 1 FROM admin_role_permissions WHERE role = :role AND allowed = 1 LIMIT 1");
-        $stmt->execute(['role' => $role]);
-        if ($stmt->fetchColumn()) {
-            return true;
-        }
+        try {
+            $stmt = $this->pdo->prepare("SELECT 1 FROM admin_role_permissions WHERE role = :role AND allowed = 1 LIMIT 1");
+            $stmt->execute(['role' => $role]);
+            if ($stmt->fetchColumn()) {
+                return $this->anyAdminAccessCache[$userId] = true;
+            }
 
-        $stmt = $this->pdo->prepare("SELECT 1 FROM admin_user_permissions WHERE user_id = :user_id AND allowed = 1 LIMIT 1");
-        $stmt->execute(['user_id' => $userId]);
-        return (bool)$stmt->fetchColumn();
+            $stmt = $this->pdo->prepare("SELECT 1 FROM admin_user_permissions WHERE user_id = :user_id AND allowed = 1 LIMIT 1");
+            $stmt->execute(['user_id' => $userId]);
+            return $this->anyAdminAccessCache[$userId] = (bool)$stmt->fetchColumn();
+        } catch (Throwable $e) {
+            error_log('Admin access check warning: ' . $e->getMessage());
+            return $this->anyAdminAccessCache[$userId] = in_array($role, self::adminRoles(), true);
+        }
     }
 
     public function permissionForAdminFile($fileName) {
@@ -262,20 +304,68 @@ class AccessControl {
     }
 
     private function getUserPermissionOverride($userId, $permissionKey) {
-        $stmt = $this->pdo->prepare("
-            SELECT allowed
-            FROM admin_user_permissions
-            WHERE user_id = :user_id AND permission_key = :permission_key
-            LIMIT 1
-        ");
-        $stmt->execute(['user_id' => $userId, 'permission_key' => $permissionKey]);
-        $value = $stmt->fetchColumn();
-
-        if ($value === false) {
-            return null;
+        $cacheKey = (int)$userId . ':' . $permissionKey;
+        if (array_key_exists($cacheKey, $this->permissionOverrideCache)) {
+            return $this->permissionOverrideCache[$cacheKey];
         }
 
-        return (int)$value === 1;
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT allowed
+                FROM admin_user_permissions
+                WHERE user_id = :user_id AND permission_key = :permission_key
+                LIMIT 1
+            ");
+            $stmt->execute(['user_id' => $userId, 'permission_key' => $permissionKey]);
+            $value = $stmt->fetchColumn();
+        } catch (Throwable $e) {
+            error_log('User permission override warning: ' . $e->getMessage());
+            return $this->permissionOverrideCache[$cacheKey] = null;
+        }
+
+        if ($value === false) {
+            return $this->permissionOverrideCache[$cacheKey] = null;
+        }
+
+        return $this->permissionOverrideCache[$cacheKey] = ((int)$value === 1);
+    }
+
+    private function getUserRole($userId) {
+        $userId = (int)$userId;
+        if (array_key_exists($userId, $this->userRoleCache)) {
+            return $this->userRoleCache[$userId];
+        }
+
+        $stmt = $this->pdo->prepare("SELECT role FROM users WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $userId]);
+        return $this->userRoleCache[$userId] = $stmt->fetchColumn();
+    }
+
+    private function insertRole($roleKey, $label) {
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO admin_roles (role_key, label, is_system, is_panel_role, permissions_initialized, sort_order, created_at, updated_at)
+                VALUES (:role_key, :label, 0, 1, 1, 100, NOW(), NOW())
+            ");
+            return $stmt->execute(['role_key' => $roleKey, 'label' => $label]);
+        } catch (Throwable $e) {
+            error_log('Role add warning: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function hasDefaultPermission($role, $permissionKey) {
+        $defaults = $this->defaultRolePermissions();
+        return in_array($permissionKey, $defaults[$role] ?? [], true);
+    }
+
+    private function clearRuntimeCache() {
+        $this->userRoleCache = [];
+        $this->permissionCache = [];
+        $this->permissionOverrideCache = [];
+        $this->anyAdminAccessCache = [];
+        self::$rolesCache = null;
+        self::$adminRolesCache = null;
     }
 
     private function ensureSchema() {

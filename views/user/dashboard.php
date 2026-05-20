@@ -3,6 +3,7 @@ session_start();
 
 include_once('../../models/User.php');
 include_once('../../models/Executor.php');
+include_once('../../models/Job.php');
 include_once('../../models/Database.php');
 include_once('../../models/Language.php');
 
@@ -16,35 +17,12 @@ if (!isset($_SESSION['user_id'])) {
 $userId = (int)$_SESSION['user_id'];
 $userModel = new User();
 $executorModel = new Executor();
+$jobModel = new Job();
 $pdo = Database::getConnection();
 $user = $userModel->getUserById($userId);
 $userName = $user['name'] ?? ($_SESSION['user_name'] ?? '');
 
-foreach ([
-    'deleted_at' => "ALTER TABLE jobs ADD COLUMN deleted_at DATETIME DEFAULT NULL",
-    'archived_at' => "ALTER TABLE jobs ADD COLUMN archived_at DATETIME DEFAULT NULL",
-    'archive_reason' => "ALTER TABLE jobs ADD COLUMN archive_reason VARCHAR(80) DEFAULT NULL",
-] as $column => $sql) {
-    $columnStmt = $pdo->query("SHOW COLUMNS FROM jobs LIKE " . $pdo->quote($column));
-    if (!$columnStmt || !$columnStmt->fetch(PDO::FETCH_ASSOC)) {
-        $pdo->exec($sql);
-    }
-}
-
-$pdo->exec("
-    UPDATE jobs
-    SET archived_at = COALESCE(archived_at, NOW()),
-        archive_reason = CASE
-            WHEN deleted_at IS NOT NULL THEN 'auto_year_after_delete'
-            ELSE 'auto_year_after_publish'
-        END,
-        updated_at = NOW()
-    WHERE archived_at IS NULL
-      AND (
-          created_at <= DATE_SUB(NOW(), INTERVAL 1 YEAR)
-          OR (deleted_at IS NOT NULL AND deleted_at <= DATE_SUB(NOW(), INTERVAL 1 YEAR))
-      )
-");
+$jobModel->archiveExpiredJobs();
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

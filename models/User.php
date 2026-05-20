@@ -8,6 +8,9 @@ class User {
 
     public function __construct() {
         $this->pdo = Database::getConnection();
+    }
+
+    public function installOrUpdateSchema() {
         $this->ensureProfileColumns();
     }
 
@@ -74,7 +77,14 @@ class User {
         $stmt->bindParam(':original_username', $username);
         $stmt->bindParam(':original_phone', $phone);
 
-        if ($stmt->execute()) {
+        try {
+            $saved = $stmt->execute();
+        } catch (Throwable $e) {
+            $this->installOrUpdateSchema();
+            $saved = $stmt->execute();
+        }
+
+        if ($saved) {
             $userId = $this->pdo->lastInsertId();
             return ['success' => __t('auth.registration_success'), 'id' => $userId, 'role' => $role];
         }
@@ -163,14 +173,26 @@ public function getUserById($userId) {
             WHERE id = :user_id
         ");
 
-        $saved = $stmt->execute([
-            'name' => $name,
-            'username' => $username,
-            'email' => $email,
-            'phone' => $phone,
-            'newsletter_subscription' => $newsletter,
-            'user_id' => $userId,
-        ]);
+        try {
+            $saved = $stmt->execute([
+                'name' => $name,
+                'username' => $username,
+                'email' => $email,
+                'phone' => $phone,
+                'newsletter_subscription' => $newsletter,
+                'user_id' => $userId,
+            ]);
+        } catch (Throwable $e) {
+            $this->installOrUpdateSchema();
+            $saved = $stmt->execute([
+                'name' => $name,
+                'username' => $username,
+                'email' => $email,
+                'phone' => $phone,
+                'newsletter_subscription' => $newsletter,
+                'user_id' => $userId,
+            ]);
+        }
 
         if (!$saved) {
             return ['error' => __t('auth.profile_save_error')];

@@ -14,6 +14,10 @@ class Message {
     }
 }
 
+public function installOrUpdateSchema() {
+    $this->installModerationColumns();
+}
+
     public function getUserConversations($userId, $limit = 5) {
     $sql = "SELECT
         m.id as message_id,
@@ -507,6 +511,10 @@ private function buildConversationSnapshot($conversationId) {
 }
 
 private function ensureModerationColumns() {
+    return;
+}
+
+private function installModerationColumns() {
     if ($this->moderationColumnsEnsured) {
         return;
     }

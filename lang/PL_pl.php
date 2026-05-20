@@ -18,6 +18,10 @@ return [
     'nav.logout' => 'Wyloguj',
     'nav.balance' => 'Stan konta: {points} punktów',
     'nav.language' => 'Język',
+    'nav.menu' => 'Menu',
+    'nav.browse_jobs' => 'Ogłoszenia',
+    'nav.add_job' => 'Dodaj ogłoszenie',
+    'nav.account_zone' => 'Strefa użytkownika',
 
     'home.hero_eyebrow' => 'Jobler',
     'home.hero_title' => 'Znajdź wykonawcę albo dodaj zlecenie',

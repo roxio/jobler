@@ -13,7 +13,15 @@ class Executor {
         $this->pdo = Database::getConnection();
     }
 
+    public function installOrUpdateSchema() {
+        $this->installOfferWorkflowColumns();
+    }
+
     private function ensureOfferWorkflowColumns() {
+        return;
+    }
+
+    private function installOfferWorkflowColumns() {
         if ($this->workflowColumnsEnsured) {
             return;
         }

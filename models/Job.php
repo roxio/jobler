@@ -8,6 +8,9 @@ class Job {
         $this->pdo = Database::getConnection();
     }
 
+    public function installOrUpdateSchema() {
+        $this->installArchiveColumns();
+    }
 
     public function createJob($userId, $title, $description, $pointsRequired, $categoryId) {
         $sql = "INSERT INTO jobs (user_id, title, description, points_required, category_id, status, created_at, updated_at)
@@ -111,7 +114,17 @@ class Job {
     }
 
     private function ensureArchiveColumns() {
+        return;
+    }
+
+    private function installArchiveColumns() {
         $columns = [
+            'budget_estimate' => "ALTER TABLE jobs ADD COLUMN budget_estimate DECIMAL(10,2) DEFAULT NULL",
+            'realization_time' => "ALTER TABLE jobs ADD COLUMN realization_time VARCHAR(120) DEFAULT NULL",
+            'validity_days' => "ALTER TABLE jobs ADD COLUMN validity_days INT(11) NOT NULL DEFAULT 7",
+            'expires_at' => "ALTER TABLE jobs ADD COLUMN expires_at DATETIME DEFAULT NULL",
+            'work_mode' => "ALTER TABLE jobs ADD COLUMN work_mode VARCHAR(20) NOT NULL DEFAULT 'remote'",
+            'primary_image' => "ALTER TABLE jobs ADD COLUMN primary_image VARCHAR(255) NOT NULL DEFAULT 'no_image.jpg'",
             'deleted_at' => "ALTER TABLE jobs ADD COLUMN deleted_at DATETIME DEFAULT NULL",
             'archived_at' => "ALTER TABLE jobs ADD COLUMN archived_at DATETIME DEFAULT NULL",
             'archive_reason' => "ALTER TABLE jobs ADD COLUMN archive_reason VARCHAR(80) DEFAULT NULL",
@@ -124,6 +137,32 @@ class Job {
             if (!in_array($column, $existingColumns, true)) {
                 $this->pdo->exec($sql);
             }
+        }
+    }
+
+    public function archiveExpiredJobs($retry = true) {
+        try {
+            return $this->pdo->exec("
+                UPDATE jobs
+                SET archived_at = COALESCE(archived_at, NOW()),
+                    archive_reason = CASE
+                        WHEN deleted_at IS NOT NULL THEN 'auto_year_after_delete'
+                        ELSE 'auto_year_after_publish'
+                    END,
+                    updated_at = NOW()
+                WHERE archived_at IS NULL
+                  AND (
+                      created_at <= DATE_SUB(NOW(), INTERVAL 1 YEAR)
+                      OR (deleted_at IS NOT NULL AND deleted_at <= DATE_SUB(NOW(), INTERVAL 1 YEAR))
+                  )
+            ");
+        } catch (PDOException $e) {
+            if (!$retry) {
+                throw $e;
+            }
+
+            $this->installOrUpdateSchema();
+            return $this->archiveExpiredJobs(false);
         }
     }
 

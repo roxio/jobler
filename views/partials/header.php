@@ -1,9 +1,13 @@
 <?php
 require_once dirname(__DIR__, 2) . '/models/AccessControl.php';
 require_once dirname(__DIR__, 2) . '/models/Language.php';
+require_once dirname(__DIR__, 2) . '/models/Job.php';
 $languageContext = strpos($_SERVER['REQUEST_URI'] ?? '', '/views/admin/') !== false ? 'admin' : 'frontend';
 $isAdminContext = $languageContext === 'admin';
 $currentLocale = Language::current($languageContext);
+if (!$isAdminContext) {
+    (new Job())->processCompletionTimeouts();
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars(substr($currentLocale, 0, 2)) ?>">

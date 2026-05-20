@@ -6,6 +6,7 @@ include_once('../../models/Executor.php');
 include_once('../../models/Job.php');
 include_once('../../models/Database.php');
 include_once('../../models/Language.php');
+include_once('../../models/Rating.php');
 
 $currentLocale = Language::current('frontend');
 
@@ -18,11 +19,16 @@ $userId = (int)$_SESSION['user_id'];
 $userModel = new User();
 $executorModel = new Executor();
 $jobModel = new Job();
+$ratingModel = new Rating();
 $pdo = Database::getConnection();
 $user = $userModel->getUserById($userId);
 $userName = $user['name'] ?? ($_SESSION['user_name'] ?? '');
+$ratingSummary = $ratingModel->getSummaryForUser($userId);
+$averageRating = (float)($ratingSummary['average_rating'] ?? 0);
+$ratingCount = (int)($ratingSummary['rating_count'] ?? 0);
 
 $jobModel->archiveExpiredJobs();
+$jobModel->processCompletionTimeouts();
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -67,6 +73,8 @@ $statsStmt = $pdo->prepare("
         COUNT(*) AS total_jobs,
         SUM(status = 'open') AS open_jobs,
         SUM(status = 'in_progress') AS in_progress_jobs,
+        SUM(status = 'completed') AS completed_jobs,
+        SUM(status = 'under_review') AS under_review_jobs,
         SUM(status = 'closed') AS closed_jobs
     FROM jobs
     WHERE user_id = :user_id AND deleted_at IS NULL AND archived_at IS NULL
@@ -106,12 +114,16 @@ $recentJobs = $recentJobsStmt->fetchAll(PDO::FETCH_ASSOC);
 $statusLabels = [
     'open' => __t('status.open'),
     'in_progress' => __t('status.in_progress'),
+    'completed' => __t('status.completed'),
+    'under_review' => __t('status.under_review'),
     'closed' => __t('status.closed'),
 ];
 
 $statusClasses = [
     'open' => 'bg-success',
     'in_progress' => 'bg-warning text-dark',
+    'completed' => 'bg-primary',
+    'under_review' => 'bg-danger',
     'closed' => 'bg-secondary',
 ];
 
@@ -149,7 +161,7 @@ include('../partials/header.php');
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-3 col-6">
+        <div class="col-lg-2 col-md-4 col-6">
             <div class="card h-100">
                 <div class="card-body">
                     <div class="text-muted small"><?= htmlspecialchars(__t('user.all_jobs')) ?></div>
@@ -157,7 +169,7 @@ include('../partials/header.php');
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-6">
+        <div class="col-lg-2 col-md-4 col-6">
             <div class="card h-100">
                 <div class="card-body">
                     <div class="text-muted small"><?= htmlspecialchars(__t('user.open_jobs')) ?></div>
@@ -165,7 +177,7 @@ include('../partials/header.php');
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-6">
+        <div class="col-lg-2 col-md-4 col-6">
             <div class="card h-100">
                 <div class="card-body">
                     <div class="text-muted small"><?= htmlspecialchars(__t('user.offers_to_decide')) ?></div>
@@ -173,7 +185,16 @@ include('../partials/header.php');
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-6">
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small"><?= htmlspecialchars(__t('user.average_rating')) ?></div>
+                    <div class="h3 mb-0"><?= $ratingCount > 0 ? htmlspecialchars(number_format($averageRating, 2, ',', ' ')) : '-' ?></div>
+                    <div class="small text-muted"><?= htmlspecialchars(__t('user.rating_count', ['count' => $ratingCount])) ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
             <div class="card h-100">
                 <div class="card-body">
                     <div class="text-muted small"><?= htmlspecialchars(__t('user.unread_messages')) ?></div>
@@ -259,7 +280,13 @@ include('../partials/header.php');
                                             <td><span class="badge <?= $statusClasses[$job['status']] ?? 'bg-secondary' ?>"><?= $statusLabels[$job['status']] ?? htmlspecialchars($job['status']) ?></span></td>
                                             <td><?= (int)$job['offer_count'] ?></td>
                                             <td><?= date('d.m.Y', strtotime($job['created_at'])) ?></td>
-                                            <td class="text-end"><a href="edit_job.php?id=<?= (int)$job['id'] ?>" class="btn btn-sm btn-outline-secondary"><?= htmlspecialchars(__t('job.edit')) ?></a></td>
+                                            <td class="text-end">
+                                                <?php if ((int)$job['offer_count'] === 0): ?>
+                                                    <a href="edit_job.php?id=<?= (int)$job['id'] ?>" class="btn btn-sm btn-outline-secondary"><?= htmlspecialchars(__t('job.edit')) ?></a>
+                                                <?php else: ?>
+                                                    <a href="job_view.php?id=<?= (int)$job['id'] ?>" class="btn btn-sm btn-outline-primary"><?= htmlspecialchars(__t('user.details_and_offers')) ?></a>
+                                                <?php endif; ?>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -296,6 +323,7 @@ include('../partials/header.php');
                                                     $conversationId = $response['job_id'] . '_' . min($userId, $response['executor_id']) . '_' . max($userId, $response['executor_id']);
                                                     $isAccepted = $response['response_status'] === 'accepted';
                                                     $isRejected = $response['response_status'] === 'rejected';
+                                                    $isWithdrawn = $response['response_status'] === 'withdrawn';
                                                     ?>
                                                     <div class="list-group-item">
                                                         <div class="d-flex justify-content-between align-items-start gap-3">
@@ -305,14 +333,14 @@ include('../partials/header.php');
                                                                 <p class="mb-1"><strong><?= htmlspecialchars(__t('user.work_scope')) ?>:</strong><br><?= nl2br(htmlspecialchars($response['scope'] ?: __t('user.not_provided'))) ?></p>
                                                                 <small class="text-muted"><?= htmlspecialchars(__t('user.submitted_at')) ?>: <?= date('d-m-Y H:i', strtotime($response['created_at'])) ?>, <?= htmlspecialchars(__t('user.reserved_points')) ?>: <?= (int)$response['points_reserved'] ?></small>
                                                             </div>
-                                                            <span class="badge <?= $isAccepted ? 'bg-success' : ($isRejected ? 'bg-secondary' : 'bg-warning text-dark') ?>">
-                                                                <?= htmlspecialchars($isAccepted ? __t('status.accepted') : ($isRejected ? __t('status.rejected') : __t('status.pending'))) ?>
+                                                            <span class="badge <?= $isAccepted ? 'bg-success' : (($isRejected || $isWithdrawn) ? 'bg-secondary' : 'bg-warning text-dark') ?>">
+                                                                <?= htmlspecialchars($isAccepted ? __t('status.accepted') : ($isWithdrawn ? __t('status.withdrawn') : ($isRejected ? __t('status.rejected') : __t('status.pending')))) ?>
                                                             </span>
                                                         </div>
 
                                                         <div class="d-flex flex-wrap gap-2 mt-3">
                                                             <a href="../messages/conversation.php?conversation_id=<?= htmlspecialchars($conversationId) ?>&job_id=<?= (int)$response['job_id'] ?>" class="btn btn-sm btn-outline-primary"><?= htmlspecialchars(__t('user.reply_conversation')) ?></a>
-                                                            <?php if (!$isAccepted && !$isRejected && $job['job_status'] === 'open'): ?>
+                                                            <?php if (!$isAccepted && !$isRejected && !$isWithdrawn && $job['job_status'] === 'open'): ?>
                                                                 <form method="POST" onsubmit="return confirm('<?= htmlspecialchars(__t('user.accept_offer_confirm'), ENT_QUOTES) ?>');">
                                                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                                                     <input type="hidden" name="action" value="accept_response">

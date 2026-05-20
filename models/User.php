@@ -1,6 +1,7 @@
 <?php
 include_once(__DIR__ . '/Database.php');
 include_once(__DIR__ . '/AccessControl.php');
+include_once(__DIR__ . '/Executor.php');
 include_once(__DIR__ . '/Language.php');
 
 class User {
@@ -45,7 +46,7 @@ class User {
         ");
     }
 
-    public function register($email, $password, $name, $username, $role = 'user', $phone = '') {
+    public function register($email, $password, $name, $username, $role = 'user', $phone = '', array $executorCategories = []) {
         if (!in_array($role, ['user', 'executor'], true)) {
             $role = 'user';
         }
@@ -86,6 +87,9 @@ class User {
 
         if ($saved) {
             $userId = $this->pdo->lastInsertId();
+            if ($role === 'executor') {
+                (new Executor())->saveExecutorCategories((int)$userId, $executorCategories);
+            }
             return ['success' => __t('auth.registration_success'), 'id' => $userId, 'role' => $role];
         }
 

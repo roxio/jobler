@@ -4,11 +4,14 @@ require_once 'config/config.php';
 require_once 'models/User.php';
 require_once 'models/SiteSettings.php';
 require_once 'models/Language.php';
+require_once 'models/Database.php';
 
 
 $siteSettingsModel = new SiteSettings();
 $siteSettings = $siteSettingsModel->getSettings();
 $currentLocale = Language::current('frontend');
+$pdo = Database::getConnection();
+$categories = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
@@ -17,20 +20,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'];
     $role = in_array($_POST['role'] ?? 'user', ['user', 'executor'], true) ? $_POST['role'] : 'user';
     $phone = isset($_POST['phone']) ? $_POST['phone'] : '';
+    $executorCategories = array_values(array_unique(array_map('intval', $_POST['executor_categories'] ?? [])));
+    $executorCategories = array_filter($executorCategories, fn($id) => $id > 0);
 
-
-    $user = new User();
-
-
-    $result = $user->register($email, $password, $name, $username, $role, $phone);
-
-    if (isset($result['success'])) {
-        $_SESSION['user_id'] = $result['id'];
-        $_SESSION['user_role'] = $result['role'];
-        header('Location: /?lang=' . urlencode($currentLocale));
-        exit;
+    if ($role === 'executor' && count($executorCategories) > 10) {
+        $error = __t('executor.categories_limit');
     } else {
-        $error = $result['error'];
+        $user = new User();
+
+        $result = $user->register($email, $password, $name, $username, $role, $phone, $executorCategories);
+
+        if (isset($result['success'])) {
+            $_SESSION['user_id'] = $result['id'];
+            $_SESSION['user_role'] = $result['role'];
+            header('Location: /?lang=' . urlencode($currentLocale));
+            exit;
+        } else {
+            $error = $result['error'];
+        }
     }
 }
 ?>
@@ -144,6 +151,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                 </div>
 
+                                <div class="mb-4" id="executorCategoriesBox" style="display:none;">
+                                    <label class="form-label fw-semibold"><?= htmlspecialchars(__t('executor.categories_label')) ?></label>
+                                    <div class="executor-category-picker">
+                                        <?php foreach ($categories as $category): ?>
+                                            <?php $checked = in_array((int)$category['id'], array_map('intval', $_POST['executor_categories'] ?? []), true); ?>
+                                            <label class="executor-category-chip">
+                                                <input type="checkbox" name="executor_categories[]" value="<?= (int)$category['id'] ?>" <?= $checked ? 'checked' : '' ?>>
+                                                <span><?= htmlspecialchars($category['name']) ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div class="form-text"><?= htmlspecialchars(__t('executor.categories_help')) ?></div>
+                                </div>
+
                                 <div class="d-grid">
                                     <button type="submit" class="btn btn-success btn-lg">
                                         <i class="bi bi-person-plus me-2"></i><?= htmlspecialchars(__t('auth.register_button')) ?>
@@ -166,6 +187,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const role = document.getElementById('role');
+    const box = document.getElementById('executorCategoriesBox');
+    const checkboxes = box ? Array.from(box.querySelectorAll('input[type="checkbox"]')) : [];
+
+    function syncRole() {
+        if (!box || !role) return;
+        box.style.display = role.value === 'executor' ? '' : 'none';
+    }
+
+    role?.addEventListener('change', syncRole);
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const selected = checkboxes.filter(item => item.checked);
+            if (selected.length > 10) {
+                this.checked = false;
+                alert(<?= json_encode(__t('executor.categories_limit'), JSON_UNESCAPED_UNICODE) ?>);
+            }
+        });
+    });
+    syncRole();
+});
+</script>
     <?php
     $GLOBALS['siteSettings'] = $siteSettings;
     include 'templates/footer.php';

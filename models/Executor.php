@@ -1,9 +1,9 @@
 <?php
 
-include_once('Database.php');
-include_once('Job.php');
-include_once('Message.php');
-include_once('Language.php');
+include_once(__DIR__ . '/Database.php');
+include_once(__DIR__ . '/Job.php');
+include_once(__DIR__ . '/Message.php');
+include_once(__DIR__ . '/Language.php');
 
 class Executor {
     private $pdo;
@@ -29,15 +29,20 @@ class Executor {
         $responseColumns = [
             'proposed_price' => "ALTER TABLE responses ADD COLUMN proposed_price DECIMAL(10,2) DEFAULT NULL",
             'scope' => "ALTER TABLE responses ADD COLUMN scope TEXT DEFAULT NULL",
+            'declared_deadline' => "ALTER TABLE responses ADD COLUMN declared_deadline VARCHAR(120) DEFAULT NULL",
             'points_reserved' => "ALTER TABLE responses ADD COLUMN points_reserved INT(11) NOT NULL DEFAULT 0",
             'status' => "ALTER TABLE responses ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending'",
             'accepted_at' => "ALTER TABLE responses ADD COLUMN accepted_at DATETIME DEFAULT NULL",
+            'withdrawn_at' => "ALTER TABLE responses ADD COLUMN withdrawn_at DATETIME DEFAULT NULL",
         ];
         $jobColumns = [
             'executor_id' => "ALTER TABLE jobs ADD COLUMN executor_id INT(11) DEFAULT NULL",
             'deleted_at' => "ALTER TABLE jobs ADD COLUMN deleted_at DATETIME DEFAULT NULL",
             'archived_at' => "ALTER TABLE jobs ADD COLUMN archived_at DATETIME DEFAULT NULL",
             'archive_reason' => "ALTER TABLE jobs ADD COLUMN archive_reason VARCHAR(80) DEFAULT NULL",
+        ];
+        $userColumns = [
+            'executor_category_filter_enabled' => "ALTER TABLE users ADD COLUMN executor_category_filter_enabled TINYINT(1) NOT NULL DEFAULT 1",
         ];
         $messageColumnUpdates = [
             'conversation_id' => "ALTER TABLE messages MODIFY conversation_id VARCHAR(100) NOT NULL",
@@ -59,6 +64,14 @@ class Executor {
             }
         }
 
+        $stmt = $this->pdo->query("SHOW COLUMNS FROM users");
+        $existingUserColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
+        foreach ($userColumns as $column => $sql) {
+            if (!in_array($column, $existingUserColumns, true)) {
+                $this->pdo->exec($sql);
+            }
+        }
+
         $stmt = $this->pdo->query("SHOW COLUMNS FROM messages");
         $existingMessageColumns = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
         foreach ($existingMessageColumns as $column) {
@@ -68,19 +81,165 @@ class Executor {
             }
         }
 
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS executor_category_preferences (
+                user_id INT(11) NOT NULL,
+                category_id INT(11) NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, category_id),
+                KEY idx_executor_category_preferences_category (category_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
         $this->workflowColumnsEnsured = true;
     }
 
-    public function getAvailableJobs() {
+    public function getAvailableJobs($executorId = null) {
         $this->ensureOfferWorkflowColumns();
 
-        $sql = "SELECT * FROM jobs WHERE status = 'open' AND executor_id IS NULL ORDER BY created_at DESC";
+        $params = [];
+        $where = [
+            "j.status = 'open'",
+            "j.executor_id IS NULL",
+            "(j.deleted_at IS NULL OR j.deleted_at = '')",
+            "(j.archived_at IS NULL OR j.archived_at = '')",
+        ];
+
+        if ($executorId !== null && $this->isCategoryFilterEnabled((int)$executorId)) {
+            $categoryIds = $this->getExecutorCategoryIds((int)$executorId, true);
+            if (!empty($categoryIds)) {
+                $placeholders = [];
+                foreach ($categoryIds as $index => $categoryId) {
+                    $key = ':category_' . $index;
+                    $placeholders[] = $key;
+                    $params[$key] = (int)$categoryId;
+                }
+                $where[] = 'j.category_id IN (' . implode(',', $placeholders) . ')';
+            }
+        }
+
+        $sql = "SELECT j.*, c.name AS category_name, u.name AS principal_name,
+                       COALESCE(rating_stats.average_rating, 0) AS principal_rating,
+                       COALESCE(rating_stats.rating_count, 0) AS principal_rating_count
+                FROM jobs j
+                LEFT JOIN categories c ON c.id = j.category_id
+                LEFT JOIN users u ON u.id = j.user_id
+                LEFT JOIN (
+                    SELECT reviewee_id, AVG(rating) AS average_rating, COUNT(*) AS rating_count
+                    FROM ratings
+                    GROUP BY reviewee_id
+                ) rating_stats ON rating_stats.reviewee_id = j.user_id
+                WHERE " . implode(' AND ', $where) . "
+                ORDER BY j.created_at DESC";
         $stmt = $this->pdo->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function respondToJob($executorId, $jobId, $message, $proposedPrice = null, $scope = '') {
+    public function getExecutorCategoryIds($executorId, $withChildren = false) {
+        try {
+            $stmt = $this->pdo->prepare("SELECT category_id FROM executor_category_preferences WHERE user_id = :user_id ORDER BY category_id ASC");
+            $stmt->execute(['user_id' => (int)$executorId]);
+            $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        if (!$withChildren || empty($ids)) {
+            return $ids;
+        }
+
+        return $this->expandCategoryIds($ids);
+    }
+
+    public function saveExecutorCategories($executorId, array $categoryIds, $retry = true) {
+        $categoryIds = array_values(array_unique(array_filter(array_map('intval', $categoryIds), fn($id) => $id > 0)));
+        $categoryIds = array_slice($categoryIds, 0, 10);
+
+        try {
+            $this->pdo->beginTransaction();
+            $this->pdo->prepare("DELETE FROM executor_category_preferences WHERE user_id = :user_id")
+                ->execute(['user_id' => (int)$executorId]);
+
+            if (!empty($categoryIds)) {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO executor_category_preferences (user_id, category_id, created_at)
+                    VALUES (:user_id, :category_id, NOW())
+                ");
+                foreach ($categoryIds as $categoryId) {
+                    $stmt->execute(['user_id' => (int)$executorId, 'category_id' => $categoryId]);
+                }
+            }
+
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            if ($retry) {
+                $this->installOrUpdateSchema();
+                return $this->saveExecutorCategories($executorId, $categoryIds, false);
+            }
+            error_log('Executor categories save error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function isCategoryFilterEnabled($executorId) {
+        try {
+            $stmt = $this->pdo->prepare("SELECT executor_category_filter_enabled FROM users WHERE id = :user_id LIMIT 1");
+            $stmt->execute(['user_id' => (int)$executorId]);
+            $value = $stmt->fetchColumn();
+            return $value === false ? true : (bool)$value;
+        } catch (Throwable $e) {
+            return true;
+        }
+    }
+
+    public function setCategoryFilterEnabled($executorId, $enabled, $retry = true) {
+        try {
+            $stmt = $this->pdo->prepare("UPDATE users SET executor_category_filter_enabled = :enabled, updated_at = NOW() WHERE id = :user_id");
+            return $stmt->execute(['enabled' => $enabled ? 1 : 0, 'user_id' => (int)$executorId]);
+        } catch (Throwable $e) {
+            if ($retry) {
+                $this->installOrUpdateSchema();
+                return $this->setCategoryFilterEnabled($executorId, $enabled, false);
+            }
+            return false;
+        }
+    }
+
+    private function expandCategoryIds(array $categoryIds) {
+        $all = array_values(array_unique(array_map('intval', $categoryIds)));
+        $queue = $all;
+
+        while (!empty($queue)) {
+            $placeholders = [];
+            $params = [];
+            foreach ($queue as $index => $categoryId) {
+                $key = ':parent_' . $index;
+                $placeholders[] = $key;
+                $params[$key] = (int)$categoryId;
+            }
+
+            $stmt = $this->pdo->prepare("SELECT id FROM categories WHERE parent_id IN (" . implode(',', $placeholders) . ")");
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+            $children = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+            $queue = array_values(array_diff($children, $all));
+            $all = array_values(array_unique(array_merge($all, $queue)));
+        }
+
+        return $all;
+    }
+
+    public function respondToJob($executorId, $jobId, $message, $proposedPrice = null, $scope = '', $declaredDeadline = '') {
         $this->ensureOfferWorkflowColumns();
 
         try {
@@ -116,8 +275,8 @@ class Executor {
             }
 
             $insertResponse = $this->pdo->prepare("
-                INSERT INTO responses (job_id, executor_id, message, proposed_price, scope, points_reserved, status)
-                VALUES (:job_id, :executor_id, :message, :proposed_price, :scope, :points_reserved, 'pending')
+                INSERT INTO responses (job_id, executor_id, message, proposed_price, scope, declared_deadline, points_reserved, status)
+                VALUES (:job_id, :executor_id, :message, :proposed_price, :scope, :declared_deadline, :points_reserved, 'pending')
             ");
             $insertResponse->execute([
                 ':job_id' => $jobId,
@@ -125,6 +284,7 @@ class Executor {
                 ':message' => $message,
                 ':proposed_price' => $proposedPrice !== '' ? $proposedPrice : null,
                 ':scope' => $scope,
+                ':declared_deadline' => $declaredDeadline,
                 ':points_reserved' => $pointsRequired,
             ]);
 
@@ -132,6 +292,7 @@ class Executor {
             $initialMessage = trim(
                 $message .
                 "\n\n" . __t('executor.initial_price_line', ['price' => ($proposedPrice !== null && $proposedPrice !== '' ? $proposedPrice : __t('user.not_provided'))]) .
+                "\n" . __t('executor.declared_deadline_line', ['deadline' => ($declaredDeadline !== '' ? $declaredDeadline : __t('user.not_provided'))]) .
                 "\n" . __t('executor.scope_line', ['scope' => ($scope !== '' ? $scope : __t('user.not_provided'))])
             );
 
@@ -204,10 +365,22 @@ class Executor {
         $this->ensureOfferWorkflowColumns();
 
         $query = "SELECT jobs.id, jobs.user_id, jobs.title, jobs.description, jobs.points_required,
+                         jobs.status AS job_status, jobs.completed_at, jobs.review_deadline,
+                         jobs.user_completion_requested_at, jobs.executor_completion_requested_at, jobs.completion_disputed_at,
                          responses.id AS response_id, responses.created_at AS response_date,
-                         responses.proposed_price, responses.scope, responses.points_reserved, responses.status
+                         responses.proposed_price, responses.scope, responses.declared_deadline, responses.points_reserved, responses.status,
+                         responses.withdrawn_at,
+                         users.name AS principal_name,
+                         COALESCE(rating_stats.average_rating, 0) AS principal_rating,
+                         COALESCE(rating_stats.rating_count, 0) AS principal_rating_count
                   FROM jobs
                   INNER JOIN responses ON jobs.id = responses.job_id
+                  INNER JOIN users ON users.id = jobs.user_id
+                  LEFT JOIN (
+                      SELECT reviewee_id, AVG(rating) AS average_rating, COUNT(*) AS rating_count
+                      FROM ratings
+                      GROUP BY reviewee_id
+                  ) rating_stats ON rating_stats.reviewee_id = jobs.user_id
                   WHERE responses.executor_id = :executor_id
                   ORDER BY responses.created_at DESC";
 
@@ -223,7 +396,7 @@ class Executor {
 
         try {
             $queryResponses = "
-                SELECT r.id AS response_id, r.executor_id, r.job_id
+                SELECT r.id AS response_id, r.executor_id, r.job_id, r.status
                 FROM responses r
                 WHERE r.executor_id = :executorId AND r.job_id = :jobId
                 LIMIT 1
@@ -258,6 +431,7 @@ class Executor {
             if ($message) {
                 return [
                     'response_id' => $response ? $response['response_id'] : null,
+                    'status' => $response['status'] ?? null,
                     'conversation_id' => $message['conversation_id'],
                 ];
             }
@@ -265,6 +439,7 @@ class Executor {
             if ($response) {
                 return [
                     'response_id' => $response['response_id'],
+                    'status' => $response['status'] ?? null,
                     'conversation_id' => null,
                 ];
             }
@@ -288,13 +463,20 @@ class Executor {
     public function getUserJobOffers($userId) {
         $this->ensureOfferWorkflowColumns();
 
-        $query = "SELECT r.id AS response_id, r.message, r.proposed_price, r.scope, r.points_reserved,
-                         r.status AS response_status, r.created_at, r.accepted_at,
+        $query = "SELECT r.id AS response_id, r.message, r.proposed_price, r.scope, r.declared_deadline, r.points_reserved,
+                         r.status AS response_status, r.created_at, r.accepted_at, r.withdrawn_at,
                          j.id AS job_id, j.title, j.status AS job_status, j.points_required, j.executor_id AS accepted_executor_id,
-                         u.name AS executor_name, u.id AS executor_id
+                         u.name AS executor_name, u.id AS executor_id,
+                         COALESCE(rating_stats.average_rating, 0) AS executor_rating,
+                         COALESCE(rating_stats.rating_count, 0) AS executor_rating_count
                   FROM jobs j
                   INNER JOIN responses r ON j.id = r.job_id
                   INNER JOIN users u ON r.executor_id = u.id
+                  LEFT JOIN (
+                      SELECT reviewee_id, AVG(rating) AS average_rating, COUNT(*) AS rating_count
+                      FROM ratings
+                      GROUP BY reviewee_id
+                  ) rating_stats ON rating_stats.reviewee_id = u.id
                   WHERE j.user_id = :user_id
                     AND (j.deleted_at IS NULL OR j.deleted_at = '')
                     AND (j.archived_at IS NULL OR j.archived_at = '')
@@ -381,6 +563,32 @@ class Executor {
                 $this->pdo->rollBack();
             }
             error_log(__t('executor.accept_error_log', ['error' => $e->getMessage()]));
+            return false;
+        }
+    }
+
+    public function withdrawResponse($executorId, $responseId) {
+        $this->ensureOfferWorkflowColumns();
+
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE responses r
+                INNER JOIN jobs j ON j.id = r.job_id
+                SET r.status = 'withdrawn',
+                    r.withdrawn_at = NOW()
+                WHERE r.id = :response_id
+                  AND r.executor_id = :executor_id
+                  AND r.status = 'pending'
+                  AND j.status = 'open'
+            ");
+            $stmt->execute([
+                ':response_id' => (int)$responseId,
+                ':executor_id' => (int)$executorId,
+            ]);
+
+            return $stmt->rowCount() > 0;
+        } catch (Throwable $e) {
+            error_log('Executor response withdraw error: ' . $e->getMessage());
             return false;
         }
     }

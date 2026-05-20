@@ -209,7 +209,7 @@ include('../partials/header.php');
                             <select class="form-select category-level" data-level="0" required>
                                 <option value=""><?= htmlspecialchars(__t('user.job_form.select_root_category')) ?></option>
                                 <?php foreach ($categories as $category): ?>
-                                    <option value="<?= (int)$category['id'] ?>" data-has-children="<?= (int)$category['child_count'] > 0 ? '1' : '0' ?>">
+                                    <option value="<?= (int)$category['id'] ?>" data-has-children="<?= (int)($category['child_count'] ?? 0) > 0 ? '1' : '0' ?>">
                                         <?= htmlspecialchars($category['name']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const option = document.createElement('option');
             option.value = category.id;
             option.textContent = category.name;
-            option.dataset.hasChildren = Number(category.child_count) > 0 ? '1' : '0';
+            option.dataset.hasChildren = Number(category.child_count || 0) > 0 ? '1' : '0';
             select.appendChild(option);
         });
 

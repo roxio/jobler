@@ -5,6 +5,7 @@ require_once __DIR__ . '/Job.php';
 require_once __DIR__ . '/Message.php';
 require_once __DIR__ . '/Newsletter.php';
 require_once __DIR__ . '/Page.php';
+require_once __DIR__ . '/Rating.php';
 require_once __DIR__ . '/SiteSettings.php';
 require_once __DIR__ . '/User.php';
 
@@ -17,6 +18,7 @@ class ModelInstaller {
             new Message($pdo),
             new Newsletter(),
             new Page(),
+            new Rating(),
             new SiteSettings($pdo),
             new User(),
         ];

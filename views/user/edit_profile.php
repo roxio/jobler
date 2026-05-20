@@ -2,6 +2,7 @@
 session_start();
 
 include_once('../../models/User.php');
+include_once('../../models/Executor.php');
 include_once('../../models/Database.php');
 include_once('../../models/Language.php');
 
@@ -12,6 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = (int)$_SESSION['user_id'];
 $userModel = new User();
+$executorModel = new Executor();
 $pdo = Database::getConnection();
 $categories = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -22,6 +24,9 @@ if (empty($_SESSION['csrf_token'])) {
 $successMessage = '';
 $errorMessage = '';
 $user = $userModel->getUserById($userId);
+$isExecutor = ($user['role'] ?? '') === 'executor';
+$executorCategoryIds = $isExecutor ? $executorModel->getExecutorCategoryIds($userId) : [];
+$executorCategoryFilterEnabled = $isExecutor ? $executorModel->isCategoryFilterEnabled($userId) : true;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
@@ -63,7 +68,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if ($action === 'executor_settings' && $isExecutor) {
+            $selectedCategories = array_values(array_unique(array_map('intval', $_POST['executor_categories'] ?? [])));
+            $selectedCategories = array_filter($selectedCategories, fn($id) => $id > 0);
+
+            if (count($selectedCategories) > 10) {
+                $errorMessage = __t('executor.categories_limit');
+            } else {
+                $savedCategories = $executorModel->saveExecutorCategories($userId, $selectedCategories);
+                $savedFilter = $executorModel->setCategoryFilterEnabled($userId, isset($_POST['executor_category_filter_enabled']));
+
+                if ($savedCategories && $savedFilter) {
+                    $successMessage = __t('executor.settings_saved');
+                    $executorCategoryIds = $executorModel->getExecutorCategoryIds($userId);
+                    $executorCategoryFilterEnabled = $executorModel->isCategoryFilterEnabled($userId);
+                } else {
+                    $errorMessage = __t('executor.settings_error');
+                }
+            }
+        }
+
         $user = $userModel->getUserById($userId);
+        $isExecutor = ($user['role'] ?? '') === 'executor';
     }
 }
 
@@ -151,6 +177,38 @@ include('../partials/header.php');
                     </form>
                 </div>
             </div>
+
+            <?php if ($isExecutor): ?>
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h2 class="h5 mb-0"><?= htmlspecialchars(__t('executor.settings_title')) ?></h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                            <input type="hidden" name="action" value="executor_settings">
+
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" name="executor_category_filter_enabled" value="1" id="executorCategoryFilter" <?= $executorCategoryFilterEnabled ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="executorCategoryFilter"><?= htmlspecialchars(__t('executor.category_filter_enabled')) ?></label>
+                            </div>
+
+                            <label class="form-label"><?= htmlspecialchars(__t('executor.categories_label')) ?></label>
+                            <div class="executor-category-picker">
+                                <?php foreach ($categories as $category): ?>
+                                    <label class="executor-category-chip">
+                                        <input type="checkbox" name="executor_categories[]" value="<?= (int)$category['id'] ?>" <?= in_array((int)$category['id'], $executorCategoryIds, true) ? 'checked' : '' ?>>
+                                        <span><?= htmlspecialchars($category['name']) ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="form-text"><?= htmlspecialchars(__t('executor.categories_help')) ?></div>
+
+                            <button type="submit" class="btn btn-primary mt-3"><?= htmlspecialchars(__t('user.profile_edit.save_data')) ?></button>
+                        </form>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="col-lg-4">
@@ -177,5 +235,23 @@ include('../partials/header.php');
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const picker = document.querySelector('.executor-category-picker');
+    if (!picker) return;
+
+    const checkboxes = Array.from(picker.querySelectorAll('input[type="checkbox"]'));
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const selected = checkboxes.filter(item => item.checked);
+            if (selected.length > 10) {
+                this.checked = false;
+                alert(<?= json_encode(__t('executor.categories_limit'), JSON_UNESCAPED_UNICODE) ?>);
+            }
+        });
+    });
+});
+</script>
 
 <?php include('../partials/footer.php'); ?>

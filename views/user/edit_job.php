@@ -135,10 +135,19 @@ if (!$job) {
     exit;
 }
 
+$offerCountStmt = $pdo->prepare("SELECT COUNT(*) FROM responses WHERE job_id = :job_id");
+$offerCountStmt->execute(['job_id' => $jobId]);
+$offerCount = (int)$offerCountStmt->fetchColumn();
+
+if ($offerCount > 0) {
+    header('Location: /views/user/job_view.php?id=' . $jobId . '&status=edit_locked');
+    exit;
+}
+
 $error = '';
 $allowedValidityDays = [1, 2, 3, 5, 7, 10, 15, 30];
 $allowedWorkModes = ['remote', 'onsite', 'hybrid'];
-$allowedStatuses = ['open', 'in_progress', 'closed'];
+$allowedStatuses = ['open', 'in_progress', 'completed', 'under_review', 'closed'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
@@ -294,7 +303,7 @@ include('../partials/header.php');
                                 <select class="form-select category-level" data-level="<?= (int)$levelData['level'] ?>" <?= (int)$levelData['level'] === 0 ? 'required' : '' ?>>
                                     <option value=""><?= htmlspecialchars((int)$levelData['level'] === 0 ? __t('user.job_form.select_root_category') : __t('user.job_form.select_subcategory')) ?></option>
                                     <?php foreach ($levelData['options'] as $category): ?>
-                                        <option value="<?= (int)$category['id'] ?>" data-has-children="<?= (int)$category['child_count'] > 0 ? '1' : '0' ?>" <?= (int)$levelData['selected'] === (int)$category['id'] ? 'selected' : '' ?>>
+                                        <option value="<?= (int)$category['id'] ?>" data-has-children="<?= (int)($category['child_count'] ?? 0) > 0 ? '1' : '0' ?>" <?= (int)$levelData['selected'] === (int)$category['id'] ? 'selected' : '' ?>>
                                             <?= htmlspecialchars($category['name']) ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -335,6 +344,8 @@ include('../partials/header.php');
                         <select class="form-select" id="status" name="status" required>
                             <option value="open" <?= $job['status'] === 'open' ? 'selected' : '' ?>><?= htmlspecialchars(__t('user.job_form.status_open')) ?></option>
                             <option value="in_progress" <?= $job['status'] === 'in_progress' ? 'selected' : '' ?>><?= htmlspecialchars(__t('user.job_form.status_in_progress')) ?></option>
+                            <option value="completed" <?= $job['status'] === 'completed' ? 'selected' : '' ?>><?= htmlspecialchars(__t('status.completed')) ?></option>
+                            <option value="under_review" <?= $job['status'] === 'under_review' ? 'selected' : '' ?>><?= htmlspecialchars(__t('status.under_review')) ?></option>
                             <option value="closed" <?= $job['status'] === 'closed' ? 'selected' : '' ?>><?= htmlspecialchars(__t('user.job_form.status_closed')) ?></option>
                         </select>
                     </div>
@@ -412,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const option = document.createElement('option');
             option.value = category.id;
             option.textContent = category.name;
-            option.dataset.hasChildren = Number(category.child_count) > 0 ? '1' : '0';
+            option.dataset.hasChildren = Number(category.child_count || 0) > 0 ? '1' : '0';
             select.appendChild(option);
         });
 

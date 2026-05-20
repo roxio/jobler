@@ -33,7 +33,7 @@ $jobModel->archiveExpiredJobs();
 
 $categories = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 $statusFilter = $_GET['status'] ?? '';
-$allowedStatuses = ['open', 'in_progress', 'closed'];
+$allowedStatuses = ['open', 'in_progress', 'completed', 'under_review', 'closed'];
 
 $where = ['j.user_id = :user_id', 'j.deleted_at IS NULL', 'j.archived_at IS NULL'];
 $params = ['user_id' => $userId];
@@ -60,6 +60,8 @@ $statsStmt = $pdo->prepare("
         COUNT(*) AS total_jobs,
         SUM(status = 'open') AS open_jobs,
         SUM(status = 'in_progress') AS in_progress_jobs,
+        SUM(status = 'completed') AS completed_jobs,
+        SUM(status = 'under_review') AS under_review_jobs,
         SUM(status = 'closed') AS closed_jobs
     FROM jobs
     WHERE user_id = :user_id AND deleted_at IS NULL AND archived_at IS NULL
@@ -70,12 +72,16 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC) ?: [];
 $statusLabels = [
     'open' => __t('status.open'),
     'in_progress' => __t('status.in_progress'),
+    'completed' => __t('status.completed'),
+    'under_review' => __t('status.under_review'),
     'closed' => __t('status.closed'),
 ];
 
 $statusClasses = [
     'open' => 'bg-success',
     'in_progress' => 'bg-warning text-dark',
+    'completed' => 'bg-primary',
+    'under_review' => 'bg-danger',
     'closed' => 'bg-secondary',
 ];
 
@@ -109,7 +115,6 @@ include('../partials/header.php');
     <?php if (($_GET['status'] ?? '') === 'archive_error'): ?>
         <div class="alert alert-danger"><?= htmlspecialchars(__t('user.job_archive_error')) ?></div>
     <?php endif; ?>
-
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small"><?= htmlspecialchars(__t('nav.all')) ?></div><div class="h3 mb-0"><?= (int)($stats['total_jobs'] ?? 0) ?></div></div></div></div>
         <div class="col-md-3 col-6"><div class="card h-100"><div class="card-body"><div class="text-muted small"><?= htmlspecialchars(__t('status.open')) ?></div><div class="h3 mb-0"><?= (int)($stats['open_jobs'] ?? 0) ?></div></div></div></div>
@@ -175,7 +180,12 @@ include('../partials/header.php');
                                 </div>
                                 <div class="col-md-3">
                                     <div class="d-grid gap-2">
-                                        <a href="edit_job.php?id=<?= (int)$job['id'] ?>" class="btn btn-outline-primary btn-sm"><?= htmlspecialchars(__t('common.edit')) ?></a>
+                                        <a href="job_view.php?id=<?= (int)$job['id'] ?>" class="btn btn-primary btn-sm"><?= htmlspecialchars(__t('user.details_and_offers')) ?></a>
+                                        <?php if ((int)$job['offer_count'] === 0): ?>
+                                            <a href="edit_job.php?id=<?= (int)$job['id'] ?>" class="btn btn-outline-primary btn-sm"><?= htmlspecialchars(__t('common.edit')) ?></a>
+                                        <?php else: ?>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" disabled><?= htmlspecialchars(__t('user.edit_locked_short')) ?></button>
+                                        <?php endif; ?>
                                         <a href="delete_job.php?id=<?= (int)$job['id'] ?>" class="btn btn-outline-danger btn-sm" onclick="return confirm('<?= htmlspecialchars(__t('user.delete_archive_confirm'), ENT_QUOTES) ?>')"><?= htmlspecialchars(__t('common.delete')) ?></a>
                                     </div>
                                 </div>

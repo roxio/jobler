@@ -1,5 +1,5 @@
 <?php
-include_once('Database.php');
+include_once(__DIR__ . '/Database.php');
 
 class Job {
     private $pdo;
@@ -128,6 +128,11 @@ class Job {
             'deleted_at' => "ALTER TABLE jobs ADD COLUMN deleted_at DATETIME DEFAULT NULL",
             'archived_at' => "ALTER TABLE jobs ADD COLUMN archived_at DATETIME DEFAULT NULL",
             'archive_reason' => "ALTER TABLE jobs ADD COLUMN archive_reason VARCHAR(80) DEFAULT NULL",
+            'user_completion_requested_at' => "ALTER TABLE jobs ADD COLUMN user_completion_requested_at DATETIME DEFAULT NULL",
+            'executor_completion_requested_at' => "ALTER TABLE jobs ADD COLUMN executor_completion_requested_at DATETIME DEFAULT NULL",
+            'completion_disputed_at' => "ALTER TABLE jobs ADD COLUMN completion_disputed_at DATETIME DEFAULT NULL",
+            'completed_at' => "ALTER TABLE jobs ADD COLUMN completed_at DATETIME DEFAULT NULL",
+            'review_deadline' => "ALTER TABLE jobs ADD COLUMN review_deadline DATETIME DEFAULT NULL",
         ];
 
         $stmt = $this->pdo->query("SHOW COLUMNS FROM jobs");
@@ -137,6 +142,12 @@ class Job {
             if (!in_array($column, $existingColumns, true)) {
                 $this->pdo->exec($sql);
             }
+        }
+
+        $stmt = $this->pdo->query("SHOW COLUMNS FROM jobs LIKE 'status'");
+        $statusColumn = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
+        if ($statusColumn && stripos($statusColumn['Type'] ?? '', 'completed') === false) {
+            $this->pdo->exec("ALTER TABLE jobs MODIFY status ENUM('open','active','in_progress','completed','under_review','closed','inactive') NOT NULL DEFAULT 'open'");
         }
     }
 
@@ -164,6 +175,230 @@ class Job {
             $this->installOrUpdateSchema();
             return $this->archiveExpiredJobs(false);
         }
+    }
+
+    public function processCompletionTimeouts() {
+        $this->ensureArchiveColumns();
+
+        return $this->pdo->exec("
+            UPDATE jobs
+            SET status = 'completed',
+                completed_at = COALESCE(completed_at, NOW()),
+                review_deadline = COALESCE(review_deadline, DATE_ADD(NOW(), INTERVAL 30 DAY)),
+                updated_at = NOW()
+            WHERE status = 'in_progress'
+              AND completion_disputed_at IS NULL
+              AND completed_at IS NULL
+              AND (
+                    (user_completion_requested_at IS NOT NULL
+                     AND executor_completion_requested_at IS NULL
+                     AND user_completion_requested_at <= DATE_SUB(NOW(), INTERVAL 10 DAY))
+                 OR (executor_completion_requested_at IS NOT NULL
+                     AND user_completion_requested_at IS NULL
+                     AND executor_completion_requested_at <= DATE_SUB(NOW(), INTERVAL 10 DAY))
+              )
+        ");
+    }
+
+    public function markCompletion($jobId, $userId) {
+        $this->ensureArchiveColumns();
+
+        try {
+            $this->pdo->beginTransaction();
+            $job = $this->getParticipantJobForUpdate($jobId, $userId);
+
+            if (!$job || $job['status'] !== 'in_progress') {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $role = $this->resolveParticipantRole($job, $userId);
+            if ($role === null) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $column = $role === 'user' ? 'user_completion_requested_at' : 'executor_completion_requested_at';
+            $otherColumn = $role === 'user' ? 'executor_completion_requested_at' : 'user_completion_requested_at';
+            $completeNow = !empty($job[$otherColumn]);
+
+            if ($completeNow) {
+                $stmt = $this->pdo->prepare("
+                    UPDATE jobs
+                    SET {$column} = COALESCE({$column}, NOW()),
+                        status = 'completed',
+                        completed_at = COALESCE(completed_at, NOW()),
+                        review_deadline = COALESCE(review_deadline, DATE_ADD(NOW(), INTERVAL 30 DAY)),
+                        updated_at = NOW()
+                    WHERE id = :job_id
+                ");
+            } else {
+                $stmt = $this->pdo->prepare("
+                    UPDATE jobs
+                    SET {$column} = COALESCE({$column}, NOW()),
+                        updated_at = NOW()
+                    WHERE id = :job_id
+                ");
+            }
+
+            $stmt->execute(['job_id' => (int)$jobId]);
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('Job completion mark error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function disputeCompletion($jobId, $userId) {
+        $this->ensureArchiveColumns();
+
+        try {
+            $this->pdo->beginTransaction();
+            $job = $this->getParticipantJobForUpdate($jobId, $userId);
+
+            if (!$job || $job['status'] !== 'in_progress') {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $role = $this->resolveParticipantRole($job, $userId);
+            if ($role === null) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $ownColumn = $role === 'user' ? 'user_completion_requested_at' : 'executor_completion_requested_at';
+            $otherColumn = $role === 'user' ? 'executor_completion_requested_at' : 'user_completion_requested_at';
+
+            if (empty($job[$otherColumn]) || !empty($job[$ownColumn])) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $stmt = $this->pdo->prepare("
+                UPDATE jobs
+                SET status = 'under_review',
+                    completion_disputed_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = :job_id
+            ");
+            $stmt->execute(['job_id' => (int)$jobId]);
+
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('Job completion dispute error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function openDispute($jobId, $userId) {
+        $this->ensureArchiveColumns();
+
+        try {
+            $this->pdo->beginTransaction();
+            $job = $this->getParticipantJobForUpdate($jobId, $userId);
+
+            if (!$job || !in_array($job['status'], ['completed', 'in_progress'], true)) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            if ($this->resolveParticipantRole($job, $userId) === null) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $stmt = $this->pdo->prepare("
+                UPDATE jobs
+                SET status = 'under_review',
+                    completion_disputed_at = COALESCE(completion_disputed_at, NOW()),
+                    updated_at = NOW()
+                WHERE id = :job_id
+            ");
+            $stmt->execute(['job_id' => (int)$jobId]);
+
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('Job dispute open error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getCompletionContext($jobId, $userId) {
+        $this->ensureArchiveColumns();
+
+        $stmt = $this->pdo->prepare("
+            SELECT *
+            FROM jobs
+            WHERE id = :job_id
+              AND deleted_at IS NULL
+              AND archived_at IS NULL
+            LIMIT 1
+        ");
+        $stmt->execute(['job_id' => (int)$jobId]);
+        $job = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$job) {
+            return null;
+        }
+
+        $role = $this->resolveParticipantRole($job, $userId);
+        if ($role === null) {
+            return null;
+        }
+
+        $ownColumn = $role === 'user' ? 'user_completion_requested_at' : 'executor_completion_requested_at';
+        $otherColumn = $role === 'user' ? 'executor_completion_requested_at' : 'user_completion_requested_at';
+        $otherRequestedAt = $job[$otherColumn] ?? null;
+        $autoConfirmAt = $otherRequestedAt ? date('Y-m-d H:i:s', strtotime($otherRequestedAt . ' +10 days')) : null;
+
+        return [
+            'job' => $job,
+            'role' => $role,
+            'own_requested_at' => $job[$ownColumn] ?? null,
+            'other_requested_at' => $otherRequestedAt,
+            'auto_confirm_at' => $autoConfirmAt,
+            'can_mark_complete' => $job['status'] === 'in_progress' && empty($job[$ownColumn]),
+            'can_dispute' => $job['status'] === 'in_progress' && !empty($job[$otherColumn]) && empty($job[$ownColumn]),
+            'can_rate' => $job['status'] === 'completed' && !empty($job['review_deadline']) && strtotime($job['review_deadline']) >= time(),
+        ];
+    }
+
+    private function getParticipantJobForUpdate($jobId, $userId) {
+        $stmt = $this->pdo->prepare("
+            SELECT *
+            FROM jobs
+            WHERE id = :job_id
+              AND (user_id = :user_id OR executor_id = :user_id)
+              AND deleted_at IS NULL
+              AND archived_at IS NULL
+            FOR UPDATE
+        ");
+        $stmt->execute(['job_id' => (int)$jobId, 'user_id' => (int)$userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    private function resolveParticipantRole(array $job, $userId) {
+        $userId = (int)$userId;
+        if ((int)$job['user_id'] === $userId) {
+            return 'user';
+        }
+        if (!empty($job['executor_id']) && (int)$job['executor_id'] === $userId) {
+            return 'executor';
+        }
+        return null;
     }
 
     private function refundResponsePoints($jobId) {

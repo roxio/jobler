@@ -1,144 +1,221 @@
 # Jobler
 
-Jobler to prosty skrypt do oferowania i zarządzania usługami.  
-Pozwala na wystawienie zlecenia/oferty, wybór usługodawcy oraz przyjęcie zadania.
+## Polski
+
+Jobler to aplikacja marketplace oparta o PHP i MySQL, sluzaca do publikowania zlecen, przegladania dostepnych ogloszen oraz laczenia klientow z wykonawcami.
+
+Projekt zawiera publiczna strone z lista zlecen, panele uzytkownika i wykonawcy, panel administracyjny, prosty CMS dla statycznych podstron, obsluge newslettera, raporty, transakcje oraz system lokalizacji oparty o pliki jezykowe.
+
+### Funkcje
+
+- Publiczna strona glowna z wyszukiwarka, filtrami, kategoriami i wyborem jezyka
+- Rejestracja, logowanie, edycja profilu i zarzadzanie zleceniami przez uzytkownikow
+- Panel wykonawcy do przegladania ofert, odpowiadania na zlecenia i sprawdzania wyslanych odpowiedzi
+- System wiadomosci i zarzadzania konwersacjami
+- Panel administracyjny do obslugi uzytkownikow, ogloszen, wiadomosci, newslettera, raportow, transakcji, rol i ustawien
+- CMS dla statycznych podstron z tlumaczeniami oraz kontrola widocznosci linkow w menu i stopce
+- Lokalizacja oparta o slowniki PHP w katalogu `lang`
+- Ustawienia strony dla brandingu, SEO, jezykow domyslnych, SMTP, limitow, oplat, kopii zapasowych i mapy strony
+- Newsletter z zapisem, weryfikacja, wypisem, eksportem i wysylka zbiorcza
+- Zarzadzanie rolami i uprawnieniami administracyjnymi
+- Raportowanie aktywnosci, transakcji i zgloszen
+
+### Wymagania
+
+- Apache lub inny serwer zgodny z PHP
+- PHP 7.4 lub nowszy
+- MySQL albo MariaDB
+- Wlaczone rozszerzenie PDO MySQL
+- Opcjonalnie: rozszerzenie PHP Zip do tworzenia kopii systemu
+
+### Instalacja
+
+1. Sklonuj albo pobierz repozytorium.
+
+```bash
+git clone https://github.com/roxio/jobler.git
+```
+
+2. Skopiuj pliki projektu do katalogu publicznego serwera.
+
+3. Utworz baze danych i zaimportuj przykladowy schemat oraz dane.
+
+```sql
+CREATE DATABASE jobler;
+USE jobler;
+SOURCE /sciezka/do/sample DB.sql;
+```
+
+4. Skonfiguruj polaczenie z baza danych w plikach:
+
+- `config/config.php`
+- `models/Database.php`
+
+Domyslna konfiguracja lokalna:
+
+```text
+host: localhost
+database: jobler
+user: root
+password: empty
+```
+
+5. Skonfiguruj `APP_URL`, SMTP i pozostale ustawienia w `config/config.php` oraz w panelu administracyjnym.
+
+6. Otworz aplikacje w przegladarce.
+
+```text
+http://localhost/
+```
+
+### Lokalizacja
+
+Tlumaczenia sa ladowane z plikow PHP znajdujacych sie w katalogu `lang`.
+
+Domyslny polski slownik:
+
+```text
+lang/PL_pl.php
+```
+
+Kolejne jezyki mozna dodac przez utworzenie plikow, np.:
+
+```text
+lang/EN_gb.php
+lang/DE_de.php
+lang/RU_ru.php
+```
+
+System automatycznie wykrywa dostepne pliki jezykowe i pokazuje je w wyborze jezyka oraz w zakladkach tlumaczen CMS.
+
+### Przykladowe dane logowania
+
+#### Administrator
+
+- Email: `admin@admin.admin`
+- Haslo: `test`
+
+#### Wykonawca
+
+- Email: `executor@executor.executor`
+- Haslo: `test`
+
+#### Uzytkownik
+
+- Email: `user@user.user`
+- Haslo: `test`
+
+### Licencja
+
+Szczegoly znajduja sie w pliku `LICENSE`.
 
 ---
 
-## Funkcje
+## English
 
-- **Tworzenie zadań**: Użytkownicy mogą tworzyć nowe zadania, określając ich tytuł, opis i termin wykonania.  
-- **Przypisywanie zadań**: Zadania mogą być przypisywane do konkretnych profili freelancerów.  
-- **Śledzenie postępu**: Użytkownicy mogą aktualizować status zadań, co umożliwia monitorowanie postępu prac.  
+Jobler is a PHP/MySQL marketplace application for posting jobs, browsing available assignments, and connecting clients with executors.
 
----
+The project includes a public job board, user and executor dashboards, an administration panel, a simple CMS for static pages, newsletter tools, reports, transactions, and a file-based localization system.
 
-## Wymagania systemowe
+### Features
 
-- **Serwer WWW**: Apache lub inny kompatybilny serwer  
-- **PHP**: Wersja 7.0 lub nowsza  
-- **Baza danych**: MySQL lub inna kompatybilna baza danych  
+- Public homepage with search, filters, categories, and language selection
+- User registration, login, profile editing, and job management
+- Executor dashboard for browsing offers, responding to jobs, and checking submitted responses
+- Messaging and conversation management
+- Admin panel for users, jobs, messages, newsletter, reports, transactions, roles, and settings
+- Static page CMS with translations and menu/footer link visibility controls
+- File-based localization using PHP dictionaries from the `lang` directory
+- Site settings for branding, SEO, default languages, SMTP, limits, fees, backups, and sitemap generation
+- Newsletter subscription, verification, unsubscribe, export, and bulk sending tools
+- Administrative role and permission management
+- Activity, transaction, and report tracking
 
----
+### Requirements
 
-## Instalacja
+- Apache or another PHP-compatible web server
+- PHP 7.4 or newer
+- MySQL or MariaDB
+- PDO MySQL extension enabled
+- Optional: PHP Zip extension for system backups
 
-1. **Pobierz repozytorium**
-   ```bash
-   git clone https://github.com/roxio/jobler.git
-   ```
+### Installation
 
-2. **Skopiuj pliki** na serwer i upewnij się, że mają odpowiednie uprawnienia.  
+1. Clone or download the repository.
 
-3. **Utwórz bazę danych** i zaimportuj przykładowe dane:
-   ```sql
-   CREATE DATABASE jobler_db;
-   USE jobler_db;
-   SOURCE /ścieżka/do/sample DB.sql;
-   ```
+```bash
+git clone https://github.com/roxio/jobler.git
+```
 
-4. **Skonfiguruj połączenie z bazą danych** w pliku `config.php`:
-   ```php
-   <?php
-   $db_host = 'localhost';
-   $db_name = 'jobler_db';
-   $db_user = 'nazwa_użytkownika';
-   $db_pass = 'hasło';
-   ?>
-   ```
+2. Copy the project files to your web server document root.
 
-5. **Uruchom aplikację** w przeglądarce:  
-   ```
-   http://twojadomena/jobler
-   ```
+3. Create the database and import the sample schema/data.
 
----
+```sql
+CREATE DATABASE jobler;
+USE jobler;
+SOURCE /path/to/sample DB.sql;
+```
 
-## Przykładowe dane logowania
+4. Configure the database connection in:
 
-### Administrator
-- E-mail: `admin@admin.admin`  
-- Hasło: `test`  
+- `config/config.php`
+- `models/Database.php`
 
-### Wykonawca
-- E-mail: `executor@executor.executor`  
-- Hasło: `test`  
+Default local configuration:
 
-### Użytkownik
-- E-mail: `user@user.user`  
-- Hasło: `test`  
+```text
+host: localhost
+database: jobler
+user: root
+password: empty
+```
 
+5. Configure `APP_URL`, SMTP, and other site settings in `config/config.php` and in the admin panel.
 
+6. Open the application in your browser.
 
-------
+```text
+http://localhost/
+```
 
+### Localization
 
-# Jobler
+Translations are loaded from PHP dictionary files in the `lang` directory.
 
-Jobler is a simple script for offering and managing services.  
-It allows you to post a job/offer, choose a service provider, and accept an assignment.
+The default Polish dictionary is:
 
----
+```text
+lang/PL_pl.php
+```
 
-## Features
+Additional languages can be added by creating files such as:
 
-- **Task creation**: Users can create new tasks by specifying a title, description, and deadline.  
-- **Task assignment**: Tasks can be assigned to specific freelancer profiles.  
-- **Progress tracking**: Users can update task statuses, enabling monitoring of work progress.  
+```text
+lang/EN_gb.php
+lang/DE_de.php
+lang/RU_ru.php
+```
 
----
+The system detects available language files automatically and displays them in the language selector and CMS translation tabs.
 
-## System Requirements
+### Sample Login Data
 
-- **Web Server**: Apache or any compatible server  
-- **PHP**: Version 7.0 or newer  
-- **Database**: MySQL or any compatible database  
+#### Administrator
 
----
+- Email: `admin@admin.admin`
+- Password: `test`
 
-## Installation
+#### Executor
 
-1. **Download the repository**
-   ```bash
-   git clone https://github.com/roxio/jobler.git
-   ```
+- Email: `executor@executor.executor`
+- Password: `test`
 
-2. **Copy the files** to your server and make sure they have the correct permissions.  
+#### User
 
-3. **Create a database** and import the sample data:
-   ```sql
-   CREATE DATABASE jobler_db;
-   USE jobler_db;
-   SOURCE /path/to/sample DB.sql;
-   ```
+- Email: `user@user.user`
+- Password: `test`
 
-4. **Configure database connection** in `config.php`:
-   ```php
-   <?php
-   $db_host = 'localhost';
-   $db_name = 'jobler_db';
-   $db_user = 'username';
-   $db_pass = 'password';
-   ?>
-   ```
+### License
 
-5. **Run the application** in your browser:  
-   ```
-   http://yourdomain/jobler
-   ```
-
----
-
-## Sample Login Data
-
-### Administrator
-- Email: `admin@admin.admin`  
-- Password: `test`  
-
-### Executor
-- Email: `executor@executor.executor`  
-- Password: `test`  
-
-### User
-- Email: `user@user.user`  
-- Password: `test`  
+See the `LICENSE` file for details.

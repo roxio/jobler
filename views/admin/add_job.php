@@ -225,7 +225,7 @@ $statusLabels = [
 
 <div class="card shadow">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="mb-0"><i class="bi bi-tools"></i> Admin Panel</h5>
+    <h5 class="mb-0"><i class="bi bi-tools"></i> <?= htmlspecialchars(__t('admin.panel')) ?></h5>
     <nav class="nav"><?php include 'sidebar.php'; ?></nav>
   </div>
 

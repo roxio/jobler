@@ -14,6 +14,7 @@ $adminMenuItems = [
     ['permission' => 'transactions.view', 'href' => 'transactions.php', 'icon' => 'bi-cash-stack', 'label' => __t('admin.menu.transactions')],
     ['permission' => 'roles.manage', 'href' => 'access_matrix.php', 'icon' => 'bi-shield-lock', 'label' => __t('admin.menu.access')],
 ];
+$currentAdminPage = basename(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '');
 ?>
 <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
@@ -26,7 +27,7 @@ $adminMenuItems = [
                 <?php foreach ($adminMenuItems as $item): ?>
                     <?php if (canAdminAccess($item['permission'])): ?>
                         <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center" href="<?= htmlspecialchars($item['href']) ?>">
+                            <a class="nav-link d-flex align-items-center <?= $currentAdminPage === $item['href'] ? 'active' : '' ?>" href="<?= htmlspecialchars($item['href']) ?>">
                                 <i class="bi <?= htmlspecialchars($item['icon']) ?> me-2"></i>
                                 <span><?= htmlspecialchars($item['label']) ?></span>
                             </a>

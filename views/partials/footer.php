@@ -1,7 +1,14 @@
 <?php
 include_once __DIR__ . '/../../models/AccessControl.php';
 $footerAccessControl = new AccessControl();
+$isAdminContext = strpos($_SERVER['REQUEST_URI'] ?? '', '/views/admin/') !== false;
 ?>
+<?php if ($isAdminContext): ?>
+    </div>
+</div>
+<?php else: ?>
+</div>
+<?php endif; ?>
 <?php if (isset($_SESSION['user_id']) && $footerAccessControl->hasAnyAdminAccess((int)$_SESSION['user_id'])): ?>
     <?php
     include_once __DIR__ . '/../../models/SiteSettings.php';

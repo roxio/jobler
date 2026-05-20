@@ -2,6 +2,7 @@
 require_once dirname(__DIR__, 2) . '/models/AccessControl.php';
 require_once dirname(__DIR__, 2) . '/models/Language.php';
 $languageContext = strpos($_SERVER['REQUEST_URI'] ?? '', '/views/admin/') !== false ? 'admin' : 'frontend';
+$isAdminContext = $languageContext === 'admin';
 Language::setCurrent(Language::defaultLocale($languageContext));
 $currentLocale = Language::current($languageContext);
 $headerAccessControl = new AccessControl();
@@ -84,5 +85,10 @@ if (!isset($categories) || !is_array($categories)) {
 </button>
 </nav>
 <script src=".https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?php if ($isAdminContext): ?>
+<div class="admin-shell">
+    <div class="admin-page">
+<?php else: ?>
 <div class="container mt-4">
+<?php endif; ?>
 
